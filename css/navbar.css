@@ -1,0 +1,85 @@
+:root {
+    --navabr-bg-color: rgba(124, 203, 130, 0.5);
+    --navbar-opacity: 50%;
+}
+
+.navbar {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+
+    width: 100dvw;
+    height: 5rem;
+
+    position: sticky;
+}
+
+.navbar > h1 {
+    color: white;
+    position: absolute;
+    font-size: 4rem;
+    font-family: 'Jaldi', sans-serif;
+    filter: blur(4px);
+
+    z-index: 0;
+}
+
+.navbar > .body {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    right: 0;
+    background-color: var(--navabr-bg-color);
+    backdrop-filter: blur(8px);
+
+    z-index: 1;
+
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+}
+
+.elements_container {
+    width: 90%;
+    height: 90%;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.profile_picture_container {
+    border-radius: 100%;
+    background-color: white;
+    height: 100%;
+    aspect-ratio: 1/1;
+    z-index: 2;
+    overflow: hidden;
+
+    -webkit-box-shadow: 0px 5px 15px 0px rgba(0,0,0,0.5); 
+    box-shadow: 0px 5px 15px 0px rgba(0,0,0,0.5);
+}
+
+.profile_picture {
+    width: 100%;
+    aspect-ratio: 1/1;
+}
+
+.hamburger_container {
+    height: 90%;
+    aspect-ratio: 1/1;
+}
+
+.hamburge_button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    
+}
+
+.hamburger_button > span {
+
+}
