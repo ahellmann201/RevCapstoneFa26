@@ -1,5 +1,9 @@
+@import "./navbar.css";
+
 :root {
-    --bg-color: #001A17;
+    --bg-color: #001E26;
+    --button-color-1: #E79F40;
+    --button-color-2: #D06C01;
 }
 
 * {
@@ -10,4 +14,8 @@
 
 body {
     background-color: var(--bg-color);
+}
+
+.welcome_message {
+    color: white;
 }

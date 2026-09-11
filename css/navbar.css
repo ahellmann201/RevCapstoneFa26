@@ -1,6 +1,10 @@
 :root {
-    --navabr-bg-color: rgba(124, 203, 130, 0.5);
+    --navbar-height: 5rem;
+    --navabr-bg-color: rgba(0,0,0, 0.5);
     --navbar-opacity: 50%;
+    --navbar-blur: 6px;
+    --hamburger-button-size: 48px;
+    --hamburger-line-height: 8px;
 }
 
 .navbar {
@@ -10,7 +14,7 @@
     align-items: center;
 
     width: 100dvw;
-    height: 5rem;
+    height: var(--navbar-height);
 
     position: sticky;
 }
@@ -20,7 +24,6 @@
     position: absolute;
     font-size: 4rem;
     font-family: 'Jaldi', sans-serif;
-    filter: blur(4px);
 
     z-index: 0;
 }
@@ -32,7 +35,7 @@
     top: 0;
     right: 0;
     background-color: var(--navabr-bg-color);
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(var(--navbar-blur));
 
     z-index: 1;
 
@@ -68,18 +71,22 @@
     aspect-ratio: 1/1;
 }
 
-.hamburger_container {
-    height: 90%;
-    aspect-ratio: 1/1;
-}
-
-.hamburge_button {
+.hamburger_button {
     display: flex;
     flex-direction: column;
     align-items: center;
-    
+    justify-content: space-between;
+
+    height: var(--hamburger-button-size);
+    aspect-ratio: 1.1/1;
+    overflow: hidden;
+    border: none;
+    background-color: rgba(0,0,0,0);
 }
 
-.hamburger_button > span {
+.hamburger_button > div {
+    width: 100%;
+    height: var(--hamburger-line-height);
 
+    background-color: white;
 }
