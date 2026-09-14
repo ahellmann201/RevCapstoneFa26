@@ -1,14 +1,4 @@
-:root {
-    --bg-color: #001E26;
-    --button-color-1: #E79F40;
-    --button-color-2: #D06C01;
-}
-
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+@import "/css/theme.css";
 
 body {
     background-color: var(--bg-color);

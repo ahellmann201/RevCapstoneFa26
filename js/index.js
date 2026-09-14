@@ -47,7 +47,6 @@ document.getElementById("start-game-button").addEventListener("click", startGame
 
 export function scheduleEvent() {
     window.location.href = "/schedule_event.html"
-    console.log("fisbduiry")
 }
 export function startGame() {
     alert("This should go to a start game page")

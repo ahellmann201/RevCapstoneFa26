@@ -100,3 +100,31 @@
 
     background-color: white;
 }
+
+.sidebar {
+    position: absolute;
+    background-color: white;
+    width: 50dvw;
+    height: 100dvh;
+
+    z-index: 5;
+}
+.close_sidebar_button {
+    height: calc(var(--hamburger-button-size) * 1.5);
+    aspect-ratio: 1/1;
+    background-color: red;
+    border: none;
+    border-radius: 30%;
+    padding: 10%;
+}
+
+.sidebar_inactive {
+    left: -110%;
+
+    transition: left 0.3s ease-in;
+}
+.sidebar_active {
+    left: 0;
+
+    transition: left 0.3s ease-out;
+}
