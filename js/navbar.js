@@ -14,9 +14,9 @@ export function loadNavbar() {
 
                     <div class="profile_picture_container">
                         <img
-                            src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTDxH2djFGjf3l34_PiQU2Ugr57QRDSoR0XzZwG49lpAsUqx3Sp62582Rum&s=10"
+                            src="/icons/default_pfp.png"
                             class="profile_picture"
-                        >
+                        id="profile-picture">
                     </div>
                 </div>
             </div>
@@ -29,4 +29,26 @@ export function loadNavbar() {
 
 export function hamburger() {
     alert("Just pretend this is a sidebar for now")
+}
+
+export function getPfp(useDefault = false) {
+    if (useDefault) colorizePfp();
+    else {
+        document.documentElement.style.setProperty("--pfp-hue", `0`);
+        document.documentElement.style.setProperty("--pfp-saturate", `0`);
+        document.documentElement.style.setProperty("--pfp-sepia", `0`);
+        document.documentElement.style.setProperty("--pfp-bg-brightness", `1`);
+        document.documentElement.style.setProperty("--pfp-brightness", `1`);
+    }
+}
+
+export function colorizePfp() {
+    const pfpHue = Math.random() * 360;
+    document.documentElement.style.setProperty("--pfp-hue", `${pfpHue}deg`);
+}
+
+document.addEventListener("DOMContentLoaded", pageLoad);
+
+export function pageLoad() {
+    getPfp(true);
 }

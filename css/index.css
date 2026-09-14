@@ -14,8 +14,40 @@
 
 body {
     background-color: var(--bg-color);
+    overflow-x: none;
 }
 
 .welcome_message {
+    color: white;
+}
+
+.quick_links_container {
+    width: 100dvw;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+
+}
+
+.quick_links_container > button {
+    height: 4rem;
+    aspect-ratio: 2.3/1;
+    border: none;
+    border-radius: 1rem;
+
+    font-family: 'Jaldi', sans-serif;
+    font-weight: bold;
+    font-size: 1.5rem;
+
+    margin: 0 5dvw;
+}
+
+.quick_links_container > .button_1 {
+    background-color: var(--button-color-1);
+    color: black;
+}
+.quick_links_container > .button_2 {
+    background-color: var(--button-color-2);
     color: white;
 }

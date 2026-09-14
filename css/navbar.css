@@ -5,6 +5,12 @@
     --navbar-blur: 6px;
     --hamburger-button-size: 48px;
     --hamburger-line-height: 8px;
+
+    --pfp-hue: 0;
+    --pfp-sepia: 1;
+    --pfp-saturate: 5;
+    --pfp-brightness: 0.6;
+    --pfp-bg-brightness: 0.85;
 }
 
 .navbar {
@@ -64,11 +70,15 @@
 
     -webkit-box-shadow: 0px 5px 15px 0px rgba(0,0,0,0.5); 
     box-shadow: 0px 5px 15px 0px rgba(0,0,0,0.5);
+
+    filter: sepia(var(--pfp-sepia)) saturate(var(--pfp-saturate)) hue-rotate(var(--pfp-hue)) brightness(var(--pfp-bg-brightness));
 }
 
 .profile_picture {
     width: 100%;
     aspect-ratio: 1/1;
+
+    filter: sepia(var(--pfp-sepia)) saturate(var(--pfp-saturate)) hue-rotate(var(--pfp-hue)) brightness(var(--pfp-brightness));
 }
 
 .hamburger_button {

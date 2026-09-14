@@ -15,7 +15,7 @@ function pickRandomWelcomeMessage(name) {
         `It's a great day for bowling!`
         ];
     
-    const event = checkForUpcomingEvent();
+    const event = checkForUpcomingEvent(false);
     if (event == -1) return welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
     else {
         let location = event.location;
@@ -41,3 +41,13 @@ function checkForUpcomingEvent(dontCheck = true) {
 }
 
 document.addEventListener("DOMContentLoaded", pageLoad);
+
+document.getElementById("schedule-event-button").addEventListener("click", scheduleEvent);
+document.getElementById("start-game-button").addEventListener("click", startGame);
+
+export function scheduleEvent() {
+    window.location.href = "./schedule_event.html"
+}
+export function startGame() {
+    alert("This should go to a start game page")
+}
