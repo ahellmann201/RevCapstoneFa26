@@ -1,7 +1,7 @@
 import "../css/navbar.css";
 import "./theme.js";
 
-export function hamburger() {
+export function openSidebar() {
     const sidebar = document.getElementById("sidebar");
     sidebar.classList.remove("sidebar_inactive");
     sidebar.classList.add("sidebar_active");
@@ -13,12 +13,24 @@ export function closeSidebar() {
     sidebar.classList.add("sidebar_inactive");
 }
 
+export function goHome() {
+    window.location.href = "/index.html"
+}
+
 export function loadNavbar() {
     const navbar = document.querySelector("navbar");
 
     navbar.innerHTML = `
         <div class="sidebar sidebar_inactive" id="sidebar">
-            <button class="close_sidebar_button" id="close-sidebar-button"></button>
+            <div class="sidebar_section sidebar_section_close_sidebar">
+                <button class="close_sidebar_button" id="close-sidebar-button">
+                    <div></div>
+                    <div></div>
+                </button>
+            </div>
+            <div class="sidebar_section">
+                <button class="home_button" id="home-button">Home</button>
+            </div>
         </div>
 
         <div class="navbar" id="navbar>
@@ -42,9 +54,7 @@ export function loadNavbar() {
         </div>
     `;
 
-    const hamburgerButton = document.getElementById("hamburger-button");
-    hamburgerButton.addEventListener("click", hamburger);
-
-    const closeSidebarButton = document.getElementById("close-sidebar-button");
-    closeSidebarButton.addEventListener("click", closeSidebar);
+    document.getElementById("hamburger-button").addEventListener("click", openSidebar);
+    document.getElementById("close-sidebar-button").addEventListener("click", closeSidebar);
+    document.getElementById("home-button").addEventListener("click", goHome);
 }

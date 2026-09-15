@@ -11,6 +11,12 @@
     --pfp-saturate: 5;
     --pfp-brightness: 0.6;
     --pfp-bg-brightness: 0.85;
+
+    --sidebar-color: #ffffff;
+    --sidebar-color-hover: #adadad;
+    --sidebar-section-height: var(--hamburger-button-size);
+    --sidebar-animation-time: 0.3s;
+    --sidebar-font-size: 2rem;
 }
 
 .navbar {
@@ -103,28 +109,70 @@
 
 .sidebar {
     position: absolute;
-    background-color: white;
+    background-color: var(--sidebar-color);
     width: 50dvw;
     height: 100dvh;
 
     z-index: 5;
 }
 .close_sidebar_button {
+    position: relative;
     height: calc(var(--hamburger-button-size) * 1.5);
-    aspect-ratio: 1/1;
-    background-color: red;
+    width: calc(var(--hamburger-button-size) * 1.5);
     border: none;
-    border-radius: 30%;
-    padding: 10%;
+    border-radius: 30px;
+    margin-left: 6%;
+    background-color: var(--sidebar-color);
+}
+.close_sidebar_button > div {
+    position: absolute;
+    width: 100%;
+    height: var(--hamburger-line-height);
+    background-color: black;
+}
+.close_sidebar_button :nth-child(1) {
+    rotate: 45deg;
+}
+.close_sidebar_button :nth-child(2) {
+    rotate: -45deg;
 }
 
 .sidebar_inactive {
     left: -110%;
 
-    transition: left 0.3s ease-in;
+    transition: left var(--sidebar-animation-time) ease-in;
 }
 .sidebar_active {
     left: 0;
 
-    transition: left 0.3s ease-out;
+    transition: left var(--sidebar-animation-time) ease-out;
+}
+
+.sidebar_section {
+    width: 100%;
+    height: var(--sidebar-section-height);
+}
+.sidebar_section > button {
+    font-family: 'Jaldi', sans-serif;
+    font-size: var(--sidebar-font-size);
+    color: black;
+}
+
+.sidebar_section_close_sidebar {
+    height: calc(var(--hamburger-button-size) * 1.9);
+    padding: 0.1rem;
+}
+
+.home_button {
+    width: 100%;
+    height: 100%;
+    background-color: var(--sidebar-color);
+    border: none;
+    border-radius: 0;
+}
+.home_button:hover {
+    background-color: var(--sidebar-color-hover);
+}
+.home_button:active {
+    background-color: var(--sidebar-color-hover);
 }
