@@ -5,18 +5,22 @@
     --navbar-blur: 6px;
     --hamburger-button-size: 48px;
     --hamburger-line-height: 8px;
+    --hamburger-left-margin: 10dvw;
 
     --pfp-hue: 0;
     --pfp-sepia: 1;
     --pfp-saturate: 5;
     --pfp-brightness: 0.6;
     --pfp-bg-brightness: 0.85;
+    --pfp-right-margin: 10dvw;
 
-    --sidebar-color: #ffffff;
     --sidebar-color-hover: #adadad;
     --sidebar-section-height: var(--hamburger-button-size);
     --sidebar-animation-time: 0.3s;
     --sidebar-font-size: 2rem;
+
+    --menu-bg-color: #f0f0f0;
+    --menu-bg-color_hover: #b6b6b6;
 }
 
 .navbar {
@@ -58,8 +62,8 @@
 }
 
 .elements_container {
-    width: 90%;
-    height: 90%;
+    width: 100%;
+    height: 100%;
     display: flex;
     flex-direction: row;
     justify-content: space-between;
@@ -73,6 +77,7 @@
     aspect-ratio: 1/1;
     z-index: 2;
     overflow: hidden;
+    margin-right: var(--pfp-right-margin);
 
     -webkit-box-shadow: 0px 5px 15px 0px rgba(0,0,0,0.5); 
     box-shadow: 0px 5px 15px 0px rgba(0,0,0,0.5);
@@ -98,6 +103,7 @@
     overflow: hidden;
     border: none;
     background-color: rgba(0,0,0,0);
+    margin-left: var(--hamburger-left-margin);
 }
 
 .hamburger_button > div {
@@ -109,7 +115,7 @@
 
 .sidebar {
     position: absolute;
-    background-color: var(--sidebar-color);
+    background-color: var(--menu-bg-color);
     width: 50dvw;
     height: 100dvh;
 
@@ -175,4 +181,62 @@
 }
 .home_button:active {
     background-color: var(--sidebar-color-hover);
+}
+
+.pfp_dropdown {
+    position: absolute;
+    height: 7rem;
+    aspect-ratio: 3/2;
+    right: 0;
+    top: var(--navbar-height);
+    margin-right: calc(var(--pfp-right-margin) / 2);
+}
+.pfp_dropdown_inactive {
+    display: none;
+}
+
+.dropdown_arrow_container {
+    height: 20%;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: end;
+}
+.dropdown_arrow {
+    fill: var(--menu-bg-color);
+    stroke: none;
+    height: 100%;
+    aspect-ratio: 1/1;
+    margin-right: calc(var(--navbar-height) / 2 + var(--pfp-right-margin) / 2.5);
+}
+.dropdown_area {
+    background-color: var(--menu-bg-color);
+    width: 100%;
+    height: 80%;
+    border-radius: 1.5rem;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.dropdown_section {
+    width: 100%;
+    height: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Jaldi', sans-serif;
+    font-size: 1.1rem;
+
+    transition: all 0.15s ease-in-out;
+}
+
+.dropdown_section:hover {
+    background-color: var(--menu-bg-color_hover);
+}
+.dropdown_section:active {
+    background-color: var(--menu-bg-color_hover);
 }
