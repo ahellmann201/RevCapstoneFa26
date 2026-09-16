@@ -5,14 +5,16 @@
     --navbar-blur: 6px;
     --hamburger-button-size: 48px;
     --hamburger-line-height: 8px;
-    --hamburger-left-margin: 10dvw;
+    --hamburger-left-margin: 5dvw;
 
     --pfp-hue: 0;
     --pfp-sepia: 1;
     --pfp-saturate: 5;
     --pfp-brightness: 0.6;
     --pfp-bg-brightness: 0.85;
-    --pfp-right-margin: 10dvw;
+    --pfp-right-margin: 5dvw;
+
+    --pfp-dropdown-right-margin-mod: 5.0;
 
     --sidebar-color-hover: #adadad;
     --sidebar-section-height: var(--hamburger-button-size);
@@ -44,7 +46,7 @@
     z-index: 0;
 }
 
-.navbar > .body {
+.navbar > .navbar_body {
     width: 100%;
     height: 100%;
     position: absolute;
@@ -52,7 +54,8 @@
     right: 0;
     background-color: var(--navabr-bg-color);
     backdrop-filter: blur(var(--navbar-blur));
-
+    -webkit-backdrop-filter: blur(var(--navbar-blur));
+    
     z-index: 1;
 
     display: flex;
@@ -207,7 +210,7 @@
     stroke: none;
     height: 100%;
     aspect-ratio: 1/1;
-    margin-right: calc(var(--navbar-height) / 2 + var(--pfp-right-margin) / 2.5);
+    margin-right: calc(var(--navbar-height) / 2 + var(--pfp-right-margin) / var(--pfp-dropdown-right-margin-mod));
 }
 .dropdown_area {
     background-color: var(--menu-bg-color);

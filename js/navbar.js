@@ -47,9 +47,9 @@ export function loadNavbar() {
             </div>
         </div>
 
-        <div class="navbar" id="navbar>
+        <div class="navbar" id="navbar">
             <h1>REVMETRIX</h1>
-            <div class="body">
+            <div class="navbar_body">
                 <div class="elements_container">
                     <button class="hamburger_button" id="hamburger-button">
                         <div></div>
