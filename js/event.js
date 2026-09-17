@@ -8,14 +8,21 @@ Date
 */
 
 export default class Event {
-    constructor(location = "Your Nearest Bowling Alley", date = new Date()) {
+    constructor({
+        location = "Your Nearest Bowling Alley",
+        date = new Date(),
+        beyondAWeek = false
+    } = {}) {
         this.location = location;
         this.date = date;
 
-        this.date.setDate(this.date.getDate() + 6);
+        var offset = 6;
+        if (beyondAWeek) offset = 9;
+
+        this.date.setDate(this.date.getDate() + offset);
     }
 
     toString() {
-        return "${this.location}\n${this.date.getDate()}\n${this.date.getTime()}"
+        return `${this.location}\n${this.date.getDate()}\n${this.date.getTime()}`;
     }
 }
