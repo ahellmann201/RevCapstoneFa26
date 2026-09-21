@@ -14,6 +14,12 @@ export function getAuthToken(forceNoToken = false) {
     return authToken;
 }
 
+export function logOut() {
+    clearAuthToken();
+    window.location.reload();
+}
+
 window.clearAuthToken = clearAuthToken;
 window.setAuthToken = setAuthToken;
 window.getAuthToken = getAuthToken;
+window.logOut = logOut;

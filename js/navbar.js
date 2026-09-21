@@ -1,16 +1,22 @@
 import "../css/navbar.css";
 import "./theme.js";
+import { getAuthToken, logOut } from "./authentication.js"
+
 
 export function openSidebar() {
     const sidebar = document.getElementById("sidebar");
     sidebar.classList.remove("sidebar_inactive");
     sidebar.classList.add("sidebar_active");
+
+    navigator.vibrate(10);
 }
 
 export function closeSidebar() {
     const sidebar = document.getElementById("sidebar");
     sidebar.classList.remove("sidebar_active");
     sidebar.classList.add("sidebar_inactive");
+
+    navigator.vibrate(10);
 }
 
 export function goHome() {
@@ -33,6 +39,24 @@ export function togglePfpDropdown() {
 
 export function loadNavbar() {
     const navbar = document.querySelector("navbar");
+
+    const notLoggedInPfpDropdownHTML = `
+    <div class="dropdown_area">
+        <div class="dropdown_section id="log-in">Log In</div>
+        <div class="dropdown_section" id="sign-up">Sign Up</div>
+    </div>
+    `
+
+    const loggedInPfpDropdownHTML = `
+    <div class="dropdown_area">
+        <div class="dropdown_section id="account-settings">Account Settings</div>
+        <div class="dropdown_section" id="log-out">Log Out</div>
+    </div>
+    `
+
+    var pfpDropdownHTML = notLoggedInPfpDropdownHTML;
+    if (getAuthToken() != null) pfpDropdownHTML = loggedInPfpDropdownHTML;
+
 
     navbar.innerHTML = `
         <div class="sidebar sidebar_inactive" id="sidebar">
@@ -70,10 +94,7 @@ export function loadNavbar() {
                                 <polygon points="50,0 0,100 100,100"/>
                             </svg>
                         </div>
-                        <div class="dropdown_area">
-                            <div class="dropdown_section">Log In</div>
-                            <div class="dropdown_section">Sign Up</div>
-                        </div>
+                        ${pfpDropdownHTML}
                     </div>
                 </div>
             </div>
@@ -84,4 +105,7 @@ export function loadNavbar() {
     document.getElementById("close-sidebar-button").addEventListener("click", closeSidebar);
     document.getElementById("home-button").addEventListener("click", goHome);
     document.getElementById("profile-picture-container").addEventListener("click", togglePfpDropdown);
+
+    const logOutButton = document.getElementById("log-out");
+    if (logOutButton != null) logOutButton.addEventListener("click", logOut);
 }
