@@ -5,6 +5,13 @@ body {
     overflow-x: none;
 }
 
+.welcome_container {
+    width: 90dvw;
+    height: auto;
+    justify-self: center;
+    margin-top: 1rem;
+}
+
 .welcome_message {
     color: white;
 }
@@ -15,12 +22,14 @@ body {
     flex-direction: row;
     justify-content: center;
     align-items: center;
+    margin-top: 2rem;
 
 }
 
 .quick_links_container > button {
-    height: 4rem;
-    aspect-ratio: 2.3/1;
+    height: 5rem;
+    width: auto;
+    padding: 0 0.5rem;
     border: none;
     border-radius: 1rem;
 
