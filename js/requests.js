@@ -1,9 +1,15 @@
-export function getUsername(authToken) {
+import { getAuthToken } from "./authentication.js";
+import { Account } from "./account.js"
+
+export function getUsername() {
+    if (getAuthToken() == null) return Account.username;
     return "hakeBowling";
 }
-export function getDisplayName(authToken) {
+export function getDisplayName() {
+    if (getAuthToken() == null) return Account.username;
+
     const displayName = "Don Hake"; //will be a database grab later
-    if (displayName == null) return getUsername();
+    if (displayName == null) return Account.username;
     else return parseDisplayName(displayName);
 }
 
