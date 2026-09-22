@@ -14,5 +14,12 @@
     "typescript": "~6.0.2",
     "vite": "^8.2.2",
     "vitest": "^5.0.1"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/cli": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/ios": "^8.5.2"
   }
 }

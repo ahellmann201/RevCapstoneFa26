@@ -7,8 +7,6 @@ export function openSidebar() {
     const sidebar = document.getElementById("sidebar");
     sidebar.classList.remove("sidebar_inactive");
     sidebar.classList.add("sidebar_active");
-
-    navigator.vibrate(10);
 }
 
 export function closeSidebar() {
