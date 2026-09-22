@@ -40,15 +40,15 @@ export function loadNavbar() {
 
     const notLoggedInPfpDropdownHTML = `
     <div class="dropdown_area">
-        <div class="dropdown_section id="log-in">Log In</div>
-        <div class="dropdown_section" id="sign-up">Sign Up</div>
+        <div class="dropdown_section" id="login-button">Log In</div>
+        <div class="dropdown_section" id="signup-button">Sign Up</div>
     </div>
     `
 
     const loggedInPfpDropdownHTML = `
     <div class="dropdown_area">
-        <div class="dropdown_section id="account-settings">Account Settings</div>
-        <div class="dropdown_section" id="log-out">Log Out</div>
+        <div class="dropdown_section" id="account-settings-button">Account Settings</div>
+        <div class="dropdown_section" id="logout-button">Log Out</div>
     </div>
     `
 
