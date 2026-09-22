@@ -1,0 +1,93 @@
+@import "/css/theme.css";
+
+body {
+    min-height: 100dvh;
+    background: var(--bg-color);
+    overflow-x: hidden;
+    font-family: "Jaldi", sans-serif;
+}
+
+navbar {
+    display: block;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.signup_container {
+    display: flex;
+    justify-content: center;
+    padding: 2rem 1rem;
+}
+
+.signup_card {
+    width: 100%;
+    max-width: 420px;
+    padding: 2rem 1.5rem;
+    border-radius: 28px;
+
+    background: #f0f0f0;
+    color: var(--bg-color);
+    box-shadow: 0 8px 30px rgb(0 0 0 / 20%);
+}
+
+.signup_card h1 {
+    text-align: center;
+    font-size: 2rem;
+}
+
+.signup_description {
+    margin: 0.5rem 0 1.75rem;
+    text-align: center;
+    color: #535d60;
+}
+
+.signup_card label {
+    display: block;
+    margin-bottom: 0.4rem;
+    font-weight: bold;
+}
+
+.signup_card input {
+    width: 100%;
+    min-height: 50px;
+    margin-bottom: 1.25rem;
+    padding: 0.85rem 1rem;
+
+    border: 1px solid #c5ccce;
+    border-radius: 12px;
+    background: white;
+    color: var(--bg-color);
+
+    font-family: inherit;
+    font-size: 16px;
+}
+
+.signup_card input:focus-visible {
+    outline: 2px solid var(--button-color-1);
+    outline-offset: 2px;
+}
+
+.signup_submit {
+    width: 100%;
+    min-height: 50px;
+    padding: 0.75rem 1rem;
+
+    border: none;
+    border-radius: 12px;
+    background: var(--button-color-1);
+    color: var(--bg-color);
+
+    font-family: inherit;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.back_home {
+    display: block;
+    margin-top: 1.25rem;
+    padding: 0.5rem;
+    text-align: center;
+    color: #535d60;
+}

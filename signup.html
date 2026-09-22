@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/icons/revmetrix_logo.png" />
+    <title>Revmetrix | Sign Up</title>
+
+    <link rel="stylesheet" href="/css/signup.css" />
+  </head>
+
+  <body>
+    <navbar></navbar>
+
+    <main class="signup_container">
+      <section class="signup_card">
+        <h1>Create Account</h1>
+        <p class="signup_description">Sign up to get started.</p>
+
+        <label for="signup_name">Name</label>
+        <input id="signup_name" type="text" placeholder="Your name" />
+
+        <label for="signup_email">Email</label>
+        <input id="signup_email" type="email" placeholder="Your email" />
+
+        <label for="signup_password">Password</label>
+        <input
+          id="signup_password"
+          type="password"
+          placeholder="Your password"
+        />
+
+        <button type="button" class="signup_submit">Sign Up</button>
+
+        <a class="back_home" href="/index.html">Back to home</a>
+      </section>
+    </main>
+
+    <script type="module">
+      import { loadNavbar } from "/js/navbar.js";
+
+      loadNavbar();
+    </script>
+  </body>
+</html>

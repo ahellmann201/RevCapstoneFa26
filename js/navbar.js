@@ -71,8 +71,8 @@ export function loadNavbar() {
                             </svg>
                         </div>
                         <div class="dropdown_area">
-                            <div class="dropdown_section">Log In</div>
-                            <div class="dropdown_section">Sign Up</div>
+                            <div class="dropdown_section" id="login_button">Log In</div>
+                            <div class="dropdown_section" id="signup_button">Sign Up</div>
                         </div>
                     </div>
                 </div>
@@ -84,4 +84,46 @@ export function loadNavbar() {
     document.getElementById("close-sidebar-button").addEventListener("click", closeSidebar);
     document.getElementById("home-button").addEventListener("click", goHome);
     document.getElementById("profile-picture-container").addEventListener("click", togglePfpDropdown);
+
+    // Login popup
+    if (!document.getElementById("login_popup")) {
+        document.body.insertAdjacentHTML("beforeend", `
+            <dialog id="login_popup" aria-labelledby="login_title">
+                <h2 id="login_title">Log In</h2>
+
+                <p>
+                    <label for="login_email">Email</label>
+                    <input id="login_email" type="email" placeholder="Email">
+                </p>
+
+                <p>
+                    <label for="login_password">Password</label>
+                    <input
+                        id="login_password"
+                        type="password"
+                        placeholder="Password"
+                    >
+                </p>
+
+                <button type="button">Log In</button>
+                <button type="button" id="close_login">Close</button>
+            </dialog>
+        `);
+
+        document.getElementById("close_login").addEventListener("click", () => {
+            document.getElementById("login_popup").close();
+        });
+    }
+
+    document.getElementById("login_button").addEventListener("click", () => {
+        const dropdown = document.getElementById("pfp-dropdown");
+        dropdown.classList.remove("pfp_dropdown_active");
+        dropdown.classList.add("pfp_dropdown_inactive");
+
+        document.getElementById("login_popup").showModal();
+    });
+
+    document.getElementById("signup_button").addEventListener("click", () => {
+        window.location.href = "/signup.html";
+    });
 }
