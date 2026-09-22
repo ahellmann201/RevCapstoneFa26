@@ -4,8 +4,6 @@ import { getAuthToken } from "./authentication.js";
 import { getDisplayName } from "./requests.js";
 loadNavbar();
 
-
-
 function loadWelcomeMessage(name = "Guest") {
     const welcomeMessageElement = document.getElementById("welcome-message");
     if (getAuthToken() != null) {

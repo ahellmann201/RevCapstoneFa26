@@ -1,5 +1,7 @@
 import "../css/navbar.css";
 import "./theme.js";
+import { getAuthToken, logOut } from "./authentication.js"
+
 
 export function openSidebar() {
     const sidebar = document.getElementById("sidebar");
@@ -11,6 +13,8 @@ export function closeSidebar() {
     const sidebar = document.getElementById("sidebar");
     sidebar.classList.remove("sidebar_active");
     sidebar.classList.add("sidebar_inactive");
+
+    navigator.vibrate(10);
 }
 
 export function goHome() {
@@ -33,6 +37,24 @@ export function togglePfpDropdown() {
 
 export function loadNavbar() {
     const navbar = document.querySelector("navbar");
+
+    const notLoggedInPfpDropdownHTML = `
+    <div class="dropdown_area">
+        <div class="dropdown_section id="log-in">Log In</div>
+        <div class="dropdown_section" id="sign-up">Sign Up</div>
+    </div>
+    `
+
+    const loggedInPfpDropdownHTML = `
+    <div class="dropdown_area">
+        <div class="dropdown_section id="account-settings">Account Settings</div>
+        <div class="dropdown_section" id="log-out">Log Out</div>
+    </div>
+    `
+
+    var pfpDropdownHTML = notLoggedInPfpDropdownHTML;
+    if (getAuthToken() != null) pfpDropdownHTML = loggedInPfpDropdownHTML;
+
 
     navbar.innerHTML = `
         <div class="sidebar sidebar_inactive" id="sidebar">
@@ -70,10 +92,7 @@ export function loadNavbar() {
                                 <polygon points="50,0 0,100 100,100"/>
                             </svg>
                         </div>
-                        <div class="dropdown_area">
-                            <div class="dropdown_section" id="login_button">Log In</div>
-                            <div class="dropdown_section" id="signup_button">Sign Up</div>
-                        </div>
+                        ${pfpDropdownHTML}
                     </div>
                 </div>
             </div>
@@ -115,7 +134,7 @@ export function loadNavbar() {
         });
     }
 
-    document.getElementById("login_button").addEventListener("click", () => {
+    document.getElementById("login-button").addEventListener("click", () => {
         const dropdown = document.getElementById("pfp-dropdown");
         dropdown.classList.remove("pfp_dropdown_active");
         dropdown.classList.add("pfp_dropdown_inactive");
@@ -123,7 +142,9 @@ export function loadNavbar() {
         document.getElementById("login_popup").showModal();
     });
 
-    document.getElementById("signup_button").addEventListener("click", () => {
+    document.getElementById("signup-button").addEventListener("click", () => {
         window.location.href = "/signup.html";
     });
+    const logOutButton = document.getElementById("log-out");
+    if (logOutButton != null) logOutButton.addEventListener("click", logOut);
 }
