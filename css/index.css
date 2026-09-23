@@ -5,10 +5,16 @@ body {
     overflow-x: none;
 }
 
+.landing {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
 .welcome_container {
     width: 90dvw;
     height: auto;
-    justify-self: center;
     margin-top: 1rem;
 }
 

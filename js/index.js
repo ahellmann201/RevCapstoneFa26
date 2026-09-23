@@ -2,12 +2,13 @@ import { loadNavbar } from "./navbar.js";
 import Event from "./event.js"
 import { getAuthToken } from "./authentication.js";
 import { getDisplayName } from "./requests.js";
+import { parseDisplayName } from "./dataHandling.js"
 loadNavbar();
 
 function loadWelcomeMessage(name = "Guest") {
     const welcomeMessageElement = document.getElementById("welcome-message");
     if (getAuthToken() != null) {
-        name = getDisplayName()
+        name = parseDisplayName(getDisplayName());
     }
     welcomeMessageElement.textContent = pickRandomWelcomeMessage(name);
 }

@@ -10,9 +10,12 @@ export function getDisplayName() {
 
     const displayName = "Don Hake"; //will be a database grab later
     if (displayName == null) return Account.username;
-    else return parseDisplayName(displayName);
+    else return displayName;
 }
+export function getDisplayNameBlank() {
+    if (getAuthToken() == null) return null;
 
-export function parseDisplayName(displayName) {
-    return displayName.split(" ")[0];
+    const displayName = "Don Hake"; //will be a database grab later
+    if (displayName == null) return null;
+    else return displayName;
 }

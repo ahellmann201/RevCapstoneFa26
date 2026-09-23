@@ -1,6 +1,7 @@
 import "../css/navbar.css";
 import "./theme.js";
 import { getAuthToken, logOut } from "./authentication.js"
+import { addPfpToContainer } from "./dataHandling.js"
 
 
 export function openSidebar() {
@@ -19,6 +20,9 @@ export function closeSidebar() {
 
 export function goHome() {
     window.location.href = "/index.html"
+}
+export function goToAccountSettings() {
+    window.location.href = "/account_settings.html"
 }
 
 export function togglePfpDropdown() {
@@ -80,11 +84,6 @@ export function loadNavbar() {
                     </button>
 
                     <div class="profile_picture_container" id="profile-picture-container">
-                        <img
-                            src="/icons/default_pfp.png"
-                            class="profile_picture"
-                            id="profile-picture"
-                        >
                     </div>
                     <div class="pfp_dropdown pfp_dropdown_inactive" id="pfp-dropdown">
                         <div class="dropdown_arrow_container">
@@ -99,52 +98,65 @@ export function loadNavbar() {
         </div>
     `;
 
+    addPfpToContainer("profile-picture-container", "/icons/default_pfp.png")
+
     document.getElementById("hamburger-button").addEventListener("click", openSidebar);
     document.getElementById("close-sidebar-button").addEventListener("click", closeSidebar);
     document.getElementById("home-button").addEventListener("click", goHome);
     document.getElementById("profile-picture-container").addEventListener("click", togglePfpDropdown);
 
+    const accountSettingsButton = document.getElementById("account-settings-button");
+    if (accountSettingsButton != null) accountSettingsButton.addEventListener("click", goToAccountSettings);
+
     // Login popup
-    if (!document.getElementById("login_popup")) {
-        document.body.insertAdjacentHTML("beforeend", `
-            <dialog id="login_popup" aria-labelledby="login_title">
-                <h2 id="login_title">Log In</h2>
+        if (!document.getElementById("login_popup")) {
+            document.body.insertAdjacentHTML("beforeend", `
+                <dialog id="login_popup" aria-labelledby="login_title">
+                    <h2 id="login_title">Log In</h2>
 
-                <p>
-                    <label for="login_email">Email</label>
-                    <input id="login_email" type="email" placeholder="Email">
-                </p>
+                    <p>
+                        <label for="login_email">Email</label>
+                        <input id="login_email" type="email" placeholder="Email">
+                    </p>
 
-                <p>
-                    <label for="login_password">Password</label>
-                    <input
-                        id="login_password"
-                        type="password"
-                        placeholder="Password"
-                    >
-                </p>
+                    <p>
+                        <label for="login_password">Password</label>
+                        <input
+                            id="login_password"
+                            type="password"
+                            placeholder="Password"
+                        >
+                    </p>
 
-                <button type="button">Log In</button>
-                <button type="button" id="close_login">Close</button>
-            </dialog>
-        `);
+                    <button type="button">Log In</button>
+                    <button type="button" id="close_login">Close</button>
+                </dialog>
+            `);
 
-        document.getElementById("close_login").addEventListener("click", () => {
-            document.getElementById("login_popup").close();
-        });
-    }
+            document.getElementById("close_login").addEventListener("click", () => {
+                document.getElementById("login_popup").close();
+            });
+        }
 
-    document.getElementById("login-button").addEventListener("click", () => {
-        const dropdown = document.getElementById("pfp-dropdown");
-        dropdown.classList.remove("pfp_dropdown_active");
-        dropdown.classList.add("pfp_dropdown_inactive");
+        const loginButton = document.getElementById("login-button");
+        if (loginButton != null) {
+            document.getElementById("login-button").addEventListener("click", () => {
+                const dropdown = document.getElementById("pfp-dropdown");
+                dropdown.classList.remove("pfp_dropdown_active");
+                dropdown.classList.add("pfp_dropdown_inactive");
 
-        document.getElementById("login_popup").showModal();
-    });
-
-    document.getElementById("signup-button").addEventListener("click", () => {
-        window.location.href = "/signup.html";
-    });
-    const logOutButton = document.getElementById("log-out");
-    if (logOutButton != null) logOutButton.addEventListener("click", logOut);
+                document.getElementById("login_popup").showModal();
+            });
+        }
+        
+        const signupButton = document.getElementById("signup-button");
+        if (signupButton != null) {
+            document.getElementById("signup-button").addEventListener("click", () => {
+                window.location.href = "/signup.html";
+            });
+        }
+        
+        const logOutButton = document.getElementById("log-out");
+        if (logOutButton != null) logOutButton.addEventListener("click", logOut);
+    
 }

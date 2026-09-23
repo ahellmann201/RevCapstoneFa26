@@ -2,6 +2,15 @@
     --bg-color: #001E26;
     --button-color-1: #E79F40;
     --button-color-2: #D06C01;
+    --field-color: #f0f0f0;
+    --field-entry-color-1: #adadad;
+    --field-entry-color-2: #b6b6b6;
+
+    --pfp-hue: 0;
+    --pfp-sepia: 1;
+    --pfp-saturate: 5;
+    --pfp-brightness: 0.6;
+    --pfp-bg-brightness: 0.85;
 }
 
 * {

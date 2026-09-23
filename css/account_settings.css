@@ -1,0 +1,77 @@
+@import "/css/theme.css";
+
+:root {
+    --optional-field-entry-color: var(--field-entry-color-1);
+    --pfp-hue: 0;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.account_field {
+    color: var(--field-color);
+}
+
+.fields_container {
+    width: 100dvw;
+    padding-top: 2rem;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.field {
+    background-color: var(--field-color);
+    width: 85%;
+    border-radius: 20px;
+}
+
+.pfp_field {
+    height: auto;
+
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+}
+
+.pfp_field_content_container {
+    height: 100%;
+    width: 50%;
+    padding: 1rem 0;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+}
+.pfp_field_content_container > h1 {
+    font-size: 150%;
+    font-family: 'Jaldi', sans-serif;
+    margin-bottom: 1rem;
+}
+.pfp_field_picture_container {
+    border-radius: 100%;
+    width: 60%;
+    aspect-ratio: 1/1;
+    overflow: hidden;
+
+    background-color: white;
+    filter: sepia(var(--pfp-sepia)) saturate(var(--pfp-saturate)) hue-rotate(var(--pfp-hue)) brightness(var(--pfp-bg-brightness));
+    
+    -webkit-box-shadow: 0px 5px 10px -5px rgba(0,0,0,0.5);
+    box-shadow: 0px 5px 10px -5px rgba(0,0,0,0.5);
+}
+.profile_picture {
+    width: 100%;
+    aspect-ratio: 1/1;
+}
+
+.pfp_field_buttons_container {
+    height: 100%;
+    flex: 1;
+}
