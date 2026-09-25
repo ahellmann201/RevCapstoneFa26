@@ -1,16 +1,24 @@
 :root {
     --bg-color: #001E26;
-    --button-color-1: #E79F40;
-    --button-color-2: #D06C01;
+    --button-color-1: #D06C01;
+    --button-color-2: #E79F40;
     --field-color: #f0f0f0;
     --field-entry-color-1: #adadad;
-    --field-entry-color-2: #b6b6b6;
+    --field-entry-color-2: #bdbdbd;
+    --field-default-entry-color: #6b6b6b;
+    --field-entry-inset-highlight: inset -0.2rem -0.4rem 0.6rem 0px rgba(255, 255, 255, 0.736);
+    --field-entry-inset-shadow:    inset  0.2rem  0.4rem 0.6rem 0px rgba(0,0,0,0.5);
+    --field-entry-inset-highlight-focus: inset -0.15rem -0.3rem 0.4rem 0px rgba(255, 255, 255, 0.736);
+    --field-entry-inset-shadow-focus:    inset  0.15rem  0.3rem 0.4rem 0px rgba(0,0,0,0.5);
 
     --pfp-hue: 0;
     --pfp-sepia: 1;
     --pfp-saturate: 5;
     --pfp-brightness: 0.6;
     --pfp-bg-brightness: 0.85;
+
+    --off-white: #f0f0f0;
+    --off-black: #0c0c0c;
 }
 
 * {
@@ -22,4 +30,21 @@
 body {
     background-color: var(--bg-color);
     overflow-x: none;
+}
+
+.button_1 {
+    background-color: var(--button-color-1);
+    color: var(--off-white);
+    border: none;
+    font-family: 'Jaldi', sans-serif;
+}
+.button_2 {
+    background-color: var(--button-color-2);
+    color: var(--off-black);
+    border: none;
+    font-family: 'Jaldi', sans-serif;
+}
+
+input {
+    font-family: 'Jaldi', sans-serif;
 }

@@ -19,3 +19,8 @@ export function getDisplayNameBlank() {
     if (displayName == null) return null;
     else return displayName;
 }
+export function getMainhand() {
+    if (getAuthToken() == null) return "both";
+    const mainhand = "right";
+    return mainhand;
+}

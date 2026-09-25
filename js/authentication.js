@@ -1,10 +1,12 @@
 export function clearAuthToken() {
     sessionStorage.setItem("authentication_token", null); //Session storage can only hold strings, so this isnt actually null
+    window.location.reload();
     return sessionStorage.getItem("authentication_token");
 }
 
 export function setAuthToken(token = null) {
     sessionStorage.setItem("authentication_token", token);
+    window.location.reload();
     return sessionStorage.getItem("authentication_token");
 }
 

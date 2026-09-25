@@ -1,6 +1,6 @@
 import "../css/navbar.css";
 import "./theme.js";
-import { getAuthToken, logOut } from "./authentication.js"
+import { getAuthToken, logOut, setAuthToken } from "./authentication.js"
 import { addPfpToContainer } from "./dataHandling.js"
 
 
@@ -37,6 +37,10 @@ export function togglePfpDropdown() {
         dropdown.classList.remove("pfp_dropdown_active");
         return
     }
+}
+
+export function quickLogin() {
+    setAuthToken("quik");
 }
 
 export function loadNavbar() {
@@ -141,6 +145,7 @@ export function loadNavbar() {
         const loginButton = document.getElementById("login-button");
         if (loginButton != null) {
             document.getElementById("login-button").addEventListener("click", () => {
+                quickLogin();
                 const dropdown = document.getElementById("pfp-dropdown");
                 dropdown.classList.remove("pfp_dropdown_active");
                 dropdown.classList.add("pfp_dropdown_inactive");

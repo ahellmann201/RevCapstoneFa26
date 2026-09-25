@@ -36,10 +36,8 @@ body {
     height: 5rem;
     width: auto;
     padding: 0 0.5rem;
-    border: none;
     border-radius: 1rem;
 
-    font-family: 'Jaldi', sans-serif;
     font-weight: bold;
     font-size: 1.5rem;
 
@@ -47,10 +45,8 @@ body {
 }
 
 .quick_links_container > .button_1 {
-    background-color: var(--button-color-1);
-    color: black;
+    color: white;
 }
 .quick_links_container > .button_2 {
-    background-color: var(--button-color-2);
-    color: white;
+    color: black;
 }

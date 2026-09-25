@@ -15,22 +15,78 @@
     <navbar></navbar>
 
     <div class="fields_container">
-        <div class="field pfp_field">
+        <div class="account_field pfp_field">
             <div class="pfp_field_content_container">
                 <h1>Profile Picture</h1>
-                <div class="pfp_field_picture_container" id="pfp-field-picture-container">
-
-                </div>
+                <div class="pfp_field_picture_container" id="pfp-field-picture-container"></div> <!--The pfp image is put into this with js-->
             </div>
             <div class="pfp_field_buttons_container">
-
+                <button class="button_1 upload_pfp_button pfp_button" id="upload-pfp-button">
+                    <p>Upload</p>
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        class="lucide lucide-file-up preview-icon">
+                        <path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/>
+                        <path d="M14 2v5a1 1 0 0 0 1 1h5"/>
+                        <path d="M12 12v6"/>
+                        <path d="m15 15-3-3-3 3"/>
+                    </svg>
+                </button>
+                <button class="button_2 delete_pfp_button pfp_button" id="delete-pfp-button">
+                    <p>Delete</p>
+                    <svg xmlns="http://www.w3.org/2000/svg" 
+                        width="24" 
+                        height="24" 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        stroke-width="2" 
+                        stroke-linecap="round" 
+                        stroke-linejoin="round" 
+                        class="lucide lucide-trash preview-icon">
+                        <path d="M10 11v6"/>
+                        <path d="M14 11v6"/>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+                        <path d="M3 6h18"/>
+                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div class="account_field names_field">
+            <div class="username_area">
+                <p class="username_header">Username</p>
+                <p class="username_field" id="username-field"><span>@</span></p>
+                <p class="username_disclaimer">Username cannot be changed</p>
+            </div>
+            <div class="display_name_area">
+                <p>Display Name</p>
+                <input type="text" id="display-name" class="display_name_field" placeholder="No Display Name">
             </div>
         </div>
     </div>
-    <p class="account_field" id="username-field"></p>
-    <p class="account_field" id="display-name-field"></p>
-    <p class="account_field" id="email-field"></p>
-    <p class="account_field" id="password-field"></p>
+    <div class="extra_field account_field">
+        <div class="mainhand_area">
+            <p>Main Hand</p>
+            <div class="mainhand_selector" id="mainhand-selector">
+                <div class="mainhand_selection" id="mainhand-selection">
+                    <div class="left_hand hand" id="left-hand-overlay">Left</div>
+                    <div class="both_hands hand" id="both-hands-overlay">Both</div>
+                    <div class="right_hand hand" id="right-hand-overlay">Right</div>
+                </div>
+                <div class="left_hand hand" id="left-hand">Left</div>
+                <div class="both_hands hand" id="both-hands">Both</div>
+                <div class="right_hand hand" id="right-hand">Right</div>
+            </div>
+        </div>
+    </div>
     <script type="module" src="/js/account_settings.js"></script>
 </body>
 </html>
