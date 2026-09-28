@@ -8,6 +8,25 @@
     --button-2-svg-size: 2.6rem;
 
     --at-color: #666666;
+
+
+    --hand-width: 4rem;
+    --hand-font-size: calc(var(--hand-width) / calc(8/3));
+
+    --left-hand-left: calc(var(--hand-width) * 0);
+    --both-hands-left: calc(var(--hand-width) * 1);
+    --right-hand-left: calc(var(--hand-width) * 2);
+
+    --mainhand-selector-width: calc(var(--hand-width) * 3);
+    --mainhand-selector-padding: calc(var(--hand-width) * 0.0);
+    --mainhand-selector-height: calc(var(--hand-font-size) * 1.5);
+    
+    --mainhand-selection-transition: 0.3s ease-in-out;
+    --mainhand-selection-width: calc(var(--hand-width) * 1);
+    --mainhand-selection-height: calc(var(--hand-font-size) * 2);
+    --mainhand-selection-border-radius: 10px;
+    --mainhand-selection-left: 0;
+    --mainhand-selection-margin-top: calc(var(--mainhand-selection-height) / -8)
 }
 
 * {
@@ -179,24 +198,26 @@
 .mainhand_area > p {
     font-family: 'Jaldi', sans-serif;
     font-size: 1.2rem;
+    margin-left: 1rem;
 }
 
 .mainhand_selector {
     display: flex;
+    flex-shrink: 0;
     flex-direction: row;
-    width: 12rem;
+    width: var(--mainhand-selector-width);
+    height: var(--mainhand-selector-height);
     position: relative;
-    padding: 0.2rem;
-    border-radius: 10px;
+    padding: var(--mainhand-selector-padding);
+    border-radius: var(--mainhand-selection-border-radius);
 
     background-color: var(--field-entry-color-1);
 }
 .mainhand_selection {
     background-color: var(--button-color-1);
-    height: 2.5rem;
-    width: 5rem;
-    border-radius: 10px;
-    aspect-ratio: 3/2;
+    height: var(--mainhand-selection-height);
+    width: var(--mainhand-selection-width);
+    border-radius: var(--mainhand-selection-border-radius);
     position: absolute;
     z-index: 1;
 
@@ -207,18 +228,19 @@
 
     overflow: hidden;
 
-    left: 0;
-    margin-top: -0.45rem;
+    left: var(--mainhand-selection-left);
+    margin-top: var(--mainhand-selection-margin-top);
 
 
-    transition: 0.3s ease-in-out;
+    transition: var(--mainhand-selection-transition);
 }
 
 .hand {
-    width: 4rem;
+    width: var(--hand-width);
+    flex-shrink: 0;
     z-index: 0;
     font-family: 'Jaldi', sans-serif;
-    font-size: 1.5rem;
+    font-size: var(--hand-font-size);
 
     display: flex;
     flex-direction: row;
@@ -237,19 +259,19 @@
     color: white;
     z-index: 3;
     position: absolute;
+    font-size: var(--hand-font-size);
 }
 .mainhand_selection > .left_hand {
-    left: 0rem;
-    background-color: transparent;
-    transition: 0.3s ease-in-out;
+    left: var(--left-hand-left);
 }
 .mainhand_selection > .both_hands {
-    left: 4rem;
-    background-color: transparent;
-    transition: 0.3s ease-in-out;
+    left: var(--both-hands-left);
 }
 .mainhand_selection > .right_hand {
-    left: 8rem;
+    left: var(--right-hand-left);
+}
+
+.mainhand_overlay {
     background-color: transparent;
-    transition: 0.3s ease-in-out;
+    transition: var(--mainhand-selection-transition);
 }

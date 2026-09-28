@@ -71,22 +71,23 @@
                 <input type="text" id="display-name" class="display_name_field" placeholder="No Display Name">
             </div>
         </div>
-    </div>
-    <div class="extra_field account_field">
-        <div class="mainhand_area">
-            <p>Main Hand</p>
-            <div class="mainhand_selector" id="mainhand-selector">
-                <div class="mainhand_selection" id="mainhand-selection">
-                    <div class="left_hand hand" id="left-hand-overlay">Left</div>
-                    <div class="both_hands hand" id="both-hands-overlay">Both</div>
-                    <div class="right_hand hand" id="right-hand-overlay">Right</div>
+        <div class="extra_field account_field">
+            <div class="mainhand_area">
+                <p>Main Hand</p>
+                <div class="mainhand_selector" id="mainhand-selector">
+                    <div class="mainhand_selection" id="mainhand-selection">
+                        <div class="left_hand hand mainhand_overlay" id="left-hand-overlay">Left</div>
+                        <div class="both_hands hand mainhand_overlay" id="both-hands-overlay">Both</div>
+                        <div class="right_hand hand mainhand_overlay" id="right-hand-overlay">Right</div>
+                    </div>
+                    <div class="left_hand hand mainhand_underlay" id="left-hand">Left</div>
+                    <div class="both_hands hand mainhand_underlay" id="both-hands">Both</div>
+                    <div class="right_hand hand mainhand_underlay" id="right-hand">Right</div>
                 </div>
-                <div class="left_hand hand" id="left-hand">Left</div>
-                <div class="both_hands hand" id="both-hands">Both</div>
-                <div class="right_hand hand" id="right-hand">Right</div>
             </div>
         </div>
     </div>
+    
     <script type="module" src="/js/account_settings.js"></script>
 </body>
 </html>

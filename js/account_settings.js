@@ -12,30 +12,12 @@ const selection = document.getElementById("mainhand-selection");
 
 var mainhand = Requests.getMainhand();
 
-leftHandOverlay.addEventListener("click", () => {
-    mainhand = "left";
-    setMainhandSelection("left");
-})
-bothHandsOverlay.addEventListener("click", () => {
-    mainhand = "both";
-    setMainhandSelection("both");
-})
-rightHandOverlay.addEventListener("click", () => {
-    mainhand = "left";
-    setMainhandSelection("right");
-})
-leftHandUnderlay.addEventListener("click", () => {
-    mainhand = "left";
-    setMainhandSelection("left");
-})
-bothHandsUnderlay.addEventListener("click", () => {
-    mainhand = "both";
-    setMainhandSelection("both");
-})
-rightHandUnderlay.addEventListener("click", () => {
-    mainhand = "left";
-    setMainhandSelection("right");
-})
+leftHandOverlay.addEventListener("click", () => {setMainhandSelection("left");})
+bothHandsOverlay.addEventListener("click", () => {setMainhandSelection("both");})
+rightHandOverlay.addEventListener("click", () => {setMainhandSelection("right");})
+leftHandUnderlay.addEventListener("click", () => {setMainhandSelection("left");})
+bothHandsUnderlay.addEventListener("click", () => {setMainhandSelection("both");})
+rightHandUnderlay.addEventListener("click", () => {setMainhandSelection("right");})
 
 loadNavbar();
 loadAccountInfoToFields();
@@ -56,25 +38,25 @@ export function loadMainhand() {
     setMainhandSelection(mainhand);
 }
 
-export function setMainhandSelection(mainhand = "both") {
+export function setMainhandSelection(setMainhand = "both") {
+    mainhand = setMainhand;
     if (mainhand == "left") {
-        selection.style.left = "-0.5rem";
-        leftHandOverlay.style.left = "0.5rem";
-        bothHandsOverlay.style.left = "4.5rem";
-        rightHandOverlay.style.left = "8.5rem";
+        selection.style.left = "var(--left-hand-left)";
+        leftHandOverlay.style.left = "0rem";
+        bothHandsOverlay.style.left = "calc(var(--both-hands-left) - var(--left-hand-left))";
+        rightHandOverlay.style.left = "calc(var(--right-hand-left) - var(--left-hand-left))";
     }
     else if (mainhand == "both") {
-        selection.style.left = "3.5rem";
-
-        leftHandOverlay.style.left = "-3.5rem";
-        bothHandsOverlay.style.left = "0.5rem";
-        rightHandOverlay.style.left = "4.5rem";
+        selection.style.left = "var(--both-hands-left)";
+        leftHandOverlay.style.left = "calc(var(--left-hand-left) - var(--both-hands-left))";
+        bothHandsOverlay.style.left = "0rem";
+        rightHandOverlay.style.left = "calc(var(--right-hand-left) - var(--both-hands-left))";
     }
     else if (mainhand == "right") {
-        selection.style.left = "7.5rem";
-
-        leftHandOverlay.style.left = "-7.5rem";
-        bothHandsOverlay.style.left = "-3.5rem";
-        rightHandOverlay.style.left = "0.5rem";
+        selection.style.left = "var(--right-hand-left)";
+        leftHandOverlay.style.left = "calc(var(--left-hand-left) - var(--right-hand-left))";
+        bothHandsOverlay.style.left = "calc(var(--both-hands-left) - var(--right-hand-left))";
+        rightHandOverlay.style.left = "0rem";
     }
+    console.log(mainhand);
 }
