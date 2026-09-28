@@ -1,6 +1,6 @@
 import "../css/navbar.css";
 import "./theme.js";
-import { getAuthToken, logOut, setAuthToken } from "./authentication.js"
+import { clearAuthToken, getAuthToken, logOut, setAuthToken } from "./authentication.js"
 import { addPfpToContainer } from "./dataHandling.js"
 
 
@@ -111,57 +111,59 @@ export function loadNavbar() {
 
     const accountSettingsButton = document.getElementById("account-settings-button");
     if (accountSettingsButton != null) accountSettingsButton.addEventListener("click", goToAccountSettings);
+    // const logoutButton = document.getElementById("logout-button");
+    // if (logoutButton != null) logoutButton.addEventListener("click", clearAuthToken());
 
     // Login popup
-        if (!document.getElementById("login_popup")) {
-            document.body.insertAdjacentHTML("beforeend", `
-                <dialog id="login_popup" aria-labelledby="login_title">
-                    <h2 id="login_title">Log In</h2>
+    if (!document.getElementById("login_popup")) {
+        document.body.insertAdjacentHTML("beforeend", `
+            <dialog id="login_popup" aria-labelledby="login_title">
+                <h2 id="login_title">Log In</h2>
 
-                    <p>
-                        <label for="login_email">Email</label>
-                        <input id="login_email" type="email" placeholder="Email">
-                    </p>
+                <p>
+                    <label for="login_email">Email</label>
+                    <input id="login_email" type="email" placeholder="Email">
+                </p>
 
-                    <p>
-                        <label for="login_password">Password</label>
-                        <input
-                            id="login_password"
-                            type="password"
-                            placeholder="Password"
-                        >
-                    </p>
+                <p>
+                    <label for="login_password">Password</label>
+                    <input
+                        id="login_password"
+                        type="password"
+                        placeholder="Password"
+                    >
+                </p>
 
-                    <button type="button">Log In</button>
-                    <button type="button" id="close_login">Close</button>
-                </dialog>
-            `);
+                <button type="button">Log In</button>
+                <button type="button" id="close_login">Close</button>
+            </dialog>
+        `);
 
-            document.getElementById("close_login").addEventListener("click", () => {
-                document.getElementById("login_popup").close();
-            });
-        }
+        document.getElementById("close_login").addEventListener("click", () => {
+            document.getElementById("login_popup").close();
+        });
+    }
 
-        const loginButton = document.getElementById("login-button");
-        if (loginButton != null) {
-            document.getElementById("login-button").addEventListener("click", () => {
-                quickLogin();
-                const dropdown = document.getElementById("pfp-dropdown");
-                dropdown.classList.remove("pfp_dropdown_active");
-                dropdown.classList.add("pfp_dropdown_inactive");
+    const loginButton = document.getElementById("login-button");
+    if (loginButton != null) {
+        document.getElementById("login-button").addEventListener("click", () => {
+            quickLogin();
+            const dropdown = document.getElementById("pfp-dropdown");
+            dropdown.classList.remove("pfp_dropdown_active");
+            dropdown.classList.add("pfp_dropdown_inactive");
 
-                document.getElementById("login_popup").showModal();
-            });
-        }
-        
-        const signupButton = document.getElementById("signup-button");
-        if (signupButton != null) {
-            document.getElementById("signup-button").addEventListener("click", () => {
-                window.location.href = "/signup.html";
-            });
-        }
-        
-        const logOutButton = document.getElementById("log-out");
-        if (logOutButton != null) logOutButton.addEventListener("click", logOut);
+            document.getElementById("login_popup").showModal();
+        });
+    }
+
+    const signupButton = document.getElementById("signup-button");
+    if (signupButton != null) {
+        document.getElementById("signup-button").addEventListener("click", () => {
+            window.location.href = "/signup.html";
+        });
+    }
+
+    const logOutButton = document.getElementById("logout-button");
+    if (logOutButton != null) logOutButton.addEventListener("click", logOut);
     
 }

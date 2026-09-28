@@ -21,6 +21,7 @@ rightHandUnderlay.addEventListener("click", () => {setMainhandSelection("right")
 
 loadNavbar();
 loadAccountInfoToFields();
+setShowFullDisplayName();
 
 export function loadAccountInfoToFields() {
     const pfpFieldPictureContainer = document.getElementById("pfp-field-picture-container");
@@ -58,5 +59,15 @@ export function setMainhandSelection(setMainhand = "both") {
         bothHandsOverlay.style.left = "calc(var(--both-hands-left) - var(--right-hand-left))";
         rightHandOverlay.style.left = "0rem";
     }
-    console.log(mainhand);
+}
+
+export function setShowFullDisplayName() {
+    const displayNameFullToggle = document.getElementById("display-name-full-toggle");
+    displayNameFullToggle.checked = Requests.getShowFullDisplayName();
+
+    var displayNameFull = true;
+    displayNameFullToggle.addEventListener("change", () => {
+        displayNameFull = displayNameFullToggle.checked;
+        Requests.setShowFullDisplayName(displayNameFull);
+    });
 }

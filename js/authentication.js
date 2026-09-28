@@ -1,3 +1,5 @@
+import * as Requests from "./requests"
+
 export function clearAuthToken() {
     sessionStorage.setItem("authentication_token", null); //Session storage can only hold strings, so this isnt actually null
     window.location.reload();
@@ -18,6 +20,7 @@ export function getAuthToken(forceNoToken = false) {
 
 export function logOut() {
     clearAuthToken();
+    Requests.clearSessionStorage();
     window.location.reload();
 }
 

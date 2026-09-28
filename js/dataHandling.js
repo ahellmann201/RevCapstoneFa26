@@ -1,7 +1,10 @@
 import { applyPfpHue, getPfpHue } from "./theme";
+import * as Requests from "./requests";
 
 export function parseDisplayName(displayName) {
-    return displayName.split(" ")[0];
+    const showFull = Requests.getShowFullDisplayName();
+    if (showFull) return displayName;
+    else return displayName.split(" ")[0];
 }
 
 export function addPfpToContainer(containerID, pfpURL) {

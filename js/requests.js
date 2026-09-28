@@ -24,3 +24,25 @@ export function getMainhand() {
     const mainhand = "right";
     return mainhand;
 }
+
+export function setMainhand(mainhand) {
+    sessionStorage.setItem("mainhand", mainhand);
+}
+
+export function clearSessionStorage() {
+    sessionStorage.clear();
+}
+
+export function getShowFullDisplayName() {
+    const showFull = sessionStorage.getItem("showFullDisplayName");
+    console.log(showFull)
+    if (showFull == null || showFull === "") return false;
+    else {
+        if (showFull === "true") return true;
+        else return false;
+    }
+}
+
+export function setShowFullDisplayName(showFull) {
+    sessionStorage.setItem("showFullDisplayName", showFull);
+}
