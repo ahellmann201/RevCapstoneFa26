@@ -1,7 +1,7 @@
 import "../css/navbar.css";
 import "./theme.js";
 import { clearAuthToken, getAuthToken, logOut, setAuthToken } from "./authentication.js"
-import { addPfpToContainer } from "./dataHandling.js"
+import { addPfpToContainer } from "./data_handling.js"
 
 
 export function openSidebar() {
@@ -111,8 +111,6 @@ export function loadNavbar() {
 
     const accountSettingsButton = document.getElementById("account-settings-button");
     if (accountSettingsButton != null) accountSettingsButton.addEventListener("click", goToAccountSettings);
-    // const logoutButton = document.getElementById("logout-button");
-    // if (logoutButton != null) logoutButton.addEventListener("click", clearAuthToken());
 
     // Login popup
     if (!document.getElementById("login_popup")) {
@@ -165,5 +163,4 @@ export function loadNavbar() {
 
     const logOutButton = document.getElementById("logout-button");
     if (logOutButton != null) logOutButton.addEventListener("click", logOut);
-    
 }

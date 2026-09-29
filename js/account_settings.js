@@ -1,6 +1,7 @@
 import { loadNavbar } from "./navbar.js";
 import * as Requests from "./requests.js";
-import { addPfpToContainer } from "./dataHandling.js";
+import * as Cache from "./cache.js";
+import { addPfpToContainer } from "./data_handling.js";
 
 const leftHandOverlay = document.getElementById("left-hand-overlay");
 const bothHandsOverlay = document.getElementById("both-hands-overlay");
@@ -32,10 +33,11 @@ export function loadAccountInfoToFields() {
     let usernameValue = usernameField.innerHTML;
     usernameField.innerHTML = usernameValue + username;
 
-    loadMainhand();
-}
+    const displayNameField = document.getElementById("display-name-field");
+    const displayName = Requests.getDisplayNameBlank();
+    console.log(displayName);
+    if (displayName != null) displayNameField.value = displayName;
 
-export function loadMainhand() {
     setMainhandSelection(mainhand);
 }
 
@@ -59,15 +61,17 @@ export function setMainhandSelection(setMainhand = "both") {
         bothHandsOverlay.style.left = "calc(var(--both-hands-left) - var(--right-hand-left))";
         rightHandOverlay.style.left = "0rem";
     }
+
+    Cache.setMainhand(mainhand);
 }
 
 export function setShowFullDisplayName() {
     const displayNameFullToggle = document.getElementById("display-name-full-toggle");
-    displayNameFullToggle.checked = Requests.getShowFullDisplayName();
+    displayNameFullToggle.checked = Cache.getShowFullDisplayName();
 
     var displayNameFull = true;
     displayNameFullToggle.addEventListener("change", () => {
         displayNameFull = displayNameFullToggle.checked;
-        Requests.setShowFullDisplayName(displayNameFull);
+        Cache.setShowFullDisplayName(displayNameFull);
     });
 }

@@ -1,8 +1,9 @@
 import { applyPfpHue, getPfpHue } from "./theme";
 import * as Requests from "./requests";
+import * as Cache from "./cache";
 
 export function parseDisplayName(displayName) {
-    const showFull = Requests.getShowFullDisplayName();
+    const showFull = Cache.getShowFullDisplayName();
     if (showFull) return displayName;
     else return displayName.split(" ")[0];
 }

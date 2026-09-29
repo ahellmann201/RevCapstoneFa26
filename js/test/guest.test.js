@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { clearAuthToken } from "../authentication"
-import { getDisplayName, getUsername } from "../requests"
+import { getDisplayNameBlank, getMainhand, getUsername } from "../requests"
 
 describe('guest test', () => {
     clearAuthToken(),
@@ -9,6 +9,9 @@ describe('guest test', () => {
         expect(getUsername()).toEqual("Guest");
     }),
     it('getDisplayName', () => {
-        expect(getDisplayName()).toEqual("Guest");
+        expect(getDisplayNameBlank()).toEqual(null);
+    }),
+    it('getMainhand', () => {
+        expect(getMainhand()).toEqual("both");
     })
 })

@@ -1,48 +1,45 @@
 import { getAuthToken } from "./authentication.js";
-import { Account } from "./account.js"
+import * as Cache from "./cache";
+import { GuestAccount } from "./guest_account.js";
+import * as Database from "./database.js";
 
 export function getUsername() {
-    if (getAuthToken() == null) return Account.username;
-    return "hakeBowling";
+    if (getAuthToken() == null) return GuestAccount.username;
+    const cachedUsername = Cache.getUsername();
+    if (cachedUsername != null) return cachedUsername;
+
+    const username = Database.getUsername();
+    Cache.setUsername(username);
+    return username;
 }
 export function getDisplayName() {
-    if (getAuthToken() == null) return Account.username;
+    if (getAuthToken() == null) return GuestAccount.username;
 
-    const displayName = "Don Hake"; //will be a database grab later
-    if (displayName == null) return Account.username;
-    else return displayName;
+    const cachedDisplayName = Cache.getDisplayName();
+    if (cachedDisplayName != null) return cachedDisplayName;
+
+    const displayName = Database.getDisplayName();
+    if (displayName == null) return getUsername();
+    Cache.setDisplayName(displayName);
+    return displayName;
 }
 export function getDisplayNameBlank() {
     if (getAuthToken() == null) return null;
 
-    const displayName = "Don Hake"; //will be a database grab later
+    const cachedDisplayName = Cache.getDisplayName();
+    if (cachedDisplayName != null) return cachedDisplayName;
+
+    const displayName = Database.getDisplayName();
     if (displayName == null) return null;
-    else return displayName;
+    Cache.setDisplayName(displayName);
+    return displayName;
 }
 export function getMainhand() {
-    if (getAuthToken() == null) return "both";
-    const mainhand = "right";
+    if (getAuthToken() == null) return GuestAccount.mainhand;
+    const cachedMainhand = Cache.getMainhand();
+    if (cachedMainhand != null) return cachedMainhand;
+
+    const mainhand = Database.getMainhand();
+    Cache.setMainhand(mainhand);
     return mainhand;
-}
-
-export function setMainhand(mainhand) {
-    sessionStorage.setItem("mainhand", mainhand);
-}
-
-export function clearSessionStorage() {
-    sessionStorage.clear();
-}
-
-export function getShowFullDisplayName() {
-    const showFull = sessionStorage.getItem("showFullDisplayName");
-    console.log(showFull)
-    if (showFull == null || showFull === "") return false;
-    else {
-        if (showFull === "true") return true;
-        else return false;
-    }
-}
-
-export function setShowFullDisplayName(showFull) {
-    sessionStorage.setItem("showFullDisplayName", showFull);
 }
