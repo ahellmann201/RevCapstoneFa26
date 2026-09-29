@@ -2,7 +2,7 @@ import { loadNavbar } from "./navbar.js";
 import Event from "./event.js"
 import { getAuthToken } from "./authentication.js";
 import { getDisplayName } from "./requests.js";
-import { parseDisplayName } from "./dataHandling.js"
+import { parseDisplayName } from "./data_handling.js"
 loadNavbar();
 
 function loadWelcomeMessage(name = "Guest") {

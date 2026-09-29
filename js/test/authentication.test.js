@@ -43,7 +43,7 @@ describe('authentication', () => {
     it('logs out and clears session preferences', () => {
         setAuthToken('Auth Token')
         Cache.setShowFullDisplayName(true)
-        Requests.setMainhand('left')
+        Cache.setMainhand('left')
 
         logOut()
 
