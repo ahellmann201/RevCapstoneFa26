@@ -1,3 +1,4 @@
+/** Implements the site navbar, sidebar, and its authentication controls. */
 import "../css/navbar.css";
 import "./theme.js";
 import { clearAuthToken, getAuthToken, logOut, setAuthToken } from "./authentication.js"
@@ -121,6 +122,7 @@ export function loadNavbar() {
     const logOutButton = document.getElementById("log-out");
 
     loginButton?.addEventListener("click", () => {
+        setAuthToken("auth");
         openAuthPopup("login_popup");
     });
 

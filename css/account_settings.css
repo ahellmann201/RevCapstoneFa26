@@ -10,7 +10,7 @@
     --at-color: #666666;
 
 
-    --hand-width: 4rem;
+    --hand-width: 5dvh;
     --hand-font-size: calc(var(--hand-width) / calc(8/3));
 
     --left-hand-left: calc(var(--hand-width) * 0);
@@ -21,7 +21,7 @@
     --mainhand-selector-padding: calc(var(--hand-width) * 0.0);
     --mainhand-selector-height: calc(var(--hand-font-size) * 1.5);
     
-    --mainhand-selection-transition: 0.3s ease-in-out;
+    --mainhand-selection-transition: left 0.3s ease-in-out;
     --mainhand-selection-width: calc(var(--hand-width) * 1);
     --mainhand-selection-height: calc(var(--hand-font-size) * 2);
     --mainhand-selection-border-radius: 10px;

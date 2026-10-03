@@ -1,3 +1,4 @@
+/** Provides shared formatting and DOM helpers for user profile data. */
 import { applyPfpHue, getPfpHue } from "./theme";
 import * as Requests from "./requests";
 import * as Cache from "./cache";

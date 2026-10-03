@@ -1,3 +1,4 @@
+/** Manages the profile picture hue preference and applies it to the page. */
 let pfpHue = getPfpHue();
 
 if (pfpHue === null) {

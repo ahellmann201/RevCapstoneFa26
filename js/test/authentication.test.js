@@ -1,3 +1,4 @@
+/** Tests token storage, retrieval, and logout behavior. */
 import { beforeEach, describe, expect, it } from 'vitest'
 import { clearAuthToken, getAuthToken, logOut, setAuthToken } from '../authentication'
 import * as Requests from '../requests.js'

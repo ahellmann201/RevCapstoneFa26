@@ -1,5 +1,5 @@
-/*
-A class for handling events
+/**
+Represents a scheduled event with a location, start time, and date.
 
 Includes:
 Location (Address)

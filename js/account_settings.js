@@ -1,3 +1,4 @@
+/** Controls account settings, including profile picture and handedness preferences. */
 import { loadNavbar } from "./navbar.js";
 import * as Requests from "./requests.js";
 import * as Cache from "./cache.js";

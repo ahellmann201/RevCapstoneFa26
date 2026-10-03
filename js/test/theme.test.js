@@ -1,3 +1,4 @@
+/** Tests profile picture hue storage and validation. */
 import { describe, expect, it } from 'vitest'
 import { getPfpHue, applyPfpHue } from "../theme"
 
