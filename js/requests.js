@@ -9,6 +9,7 @@ export function getUsername() {
     if (getAuthToken() == null) return GuestAccount.username;
     try {
         const username = Database.getUsername();
+        if (username === Database.DB_UNAVAILABLE) return Cache.getUsername();
         Cache.setUsername(username);
         return username;
     } catch {
@@ -20,6 +21,7 @@ export function getDisplayName() {
     if (getAuthToken() == null) return GuestAccount.username;
     try {
         const displayName = Database.getDisplayName();
+        if (displayName === Database.DB_UNAVAILABLE) return Cache.getDisplayName() ?? getUsername();
         if (displayName == null) return getUsername();
         Cache.setDisplayName(displayName);
         return displayName;
@@ -32,6 +34,7 @@ export function getDisplayNameBlank() {
     if (getAuthToken() == null) return null;
     try {
         const displayName = Database.getDisplayName();
+        if (displayName === Database.DB_UNAVAILABLE) return Cache.getDisplayName();
         if (displayName == null) return null;
         Cache.setDisplayName(displayName);
         return displayName;
@@ -44,6 +47,7 @@ export function getMainhand() {
     if (getAuthToken() == null) return GuestAccount.mainhand;
     try {
         const mainhand = Database.getMainhand();
+        if (mainhand === Database.DB_UNAVAILABLE) return Cache.getMainhand();
         Cache.setMainhand(mainhand);
         return mainhand;
     } catch {

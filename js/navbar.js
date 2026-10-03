@@ -174,6 +174,7 @@ function createAuthPopup(type) {
                     <input
                         id="signup_name"
                         type="text"
+                        class="text_input"
                         placeholder="Your name"
                     >
                 ` : ""}
@@ -182,6 +183,7 @@ function createAuthPopup(type) {
                 <input
                     id="${type}_email"
                     type="email"
+                    class="text_input"
                     placeholder="Your email"
                 >
 
@@ -189,6 +191,7 @@ function createAuthPopup(type) {
                 <input
                     id="${type}_password"
                     type="password"
+                    class="text_input"
                     placeholder="Your password"
                 >
 

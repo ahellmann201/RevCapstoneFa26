@@ -6,10 +6,13 @@
     --field-entry-color-1: #adadad;
     --field-entry-color-2: #bdbdbd;
     --field-default-entry-color: #6b6b6b;
-    --field-entry-inset-highlight: inset -0.2rem -0.4rem 0.6rem 0px rgba(255, 255, 255, 0.736);
-    --field-entry-inset-shadow:    inset  0.2rem  0.4rem 0.6rem 0px rgba(0,0,0,0.5);
-    --field-entry-inset-highlight-focus: inset -0.15rem -0.3rem 0.4rem 0px rgba(255, 255, 255, 0.736);
-    --field-entry-inset-shadow-focus:    inset  0.15rem  0.3rem 0.4rem 0px rgba(0,0,0,0.5);
+
+    /* Text field */
+    --text-input-border: 1px solid #c5ccce;
+    --text-input-border-radius: 12px;
+    --text-input-background: white;
+    --text-input-color: var(--bg-color);
+    --text-input-font-family: 'Jaldi', sans-serif;
 
     --pfp-hue: 0;
     --pfp-sepia: 1;
@@ -47,4 +50,11 @@ body {
 
 input {
     font-family: 'Jaldi', sans-serif;
+}
+
+.text_input {
+    border: 1px solid #c5ccce;
+    border-radius: 12px;
+    background: white;
+    color: var(--bg-color);
 }

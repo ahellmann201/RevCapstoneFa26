@@ -327,17 +327,19 @@ navbar {
     font-weight: bold;
 }
 
-.popup_content input {
+.popup_content input.text_input {
     box-sizing: border-box;
     width: 100%;
     min-height: 50px;
     margin-bottom: 1.25rem;
     padding: 0.85rem 1rem;
-    border: 1px solid #c5ccce;
-    border-radius: 12px;
-    background: white;
-    color: var(--bg-color);
-    font-family: inherit;
+
+    border: var(--text-input-border);
+    border-radius: var(--text-input-border-radius);
+    background: var(--text-input-background);
+    color: var(--text-input-color);
+
+    font-family: var(--text-input-font-family);
     font-size: 16px;
 }
 
