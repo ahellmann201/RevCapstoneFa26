@@ -36,7 +36,6 @@ export function loadAccountInfoToFields() {
 
     const displayNameField = document.getElementById("display-name-field");
     const displayName = Requests.getDisplayNameBlank();
-    console.log(displayName);
     if (displayName != null) displayNameField.value = displayName;
 
     setMainhandSelection(mainhand);

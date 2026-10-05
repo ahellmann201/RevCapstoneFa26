@@ -1,6 +1,6 @@
 /** Initializes the home page navbar and personalized welcome message. */
 import { loadNavbar } from "./navbar.js";
-import Event from "./event.js"
+import Event from "./objects/event.js"
 import { getAuthToken } from "./authentication.js";
 import { getDisplayName } from "./requests.js";
 import { parseDisplayName } from "./data_handling.js"

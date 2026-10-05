@@ -1,7 +1,7 @@
 /** Provides authenticated profile lookups with database-first cache fallback. */
 import { getAuthToken } from "./authentication.js";
 import * as Cache from "./cache";
-import { GuestAccount } from "./guest_account.js";
+import { GuestAccount } from "./defaults/guest_account.js";
 import * as Database from "./database.js";
 
 /** Returns the signed-in user's username, falling back to the guest username or cache. */

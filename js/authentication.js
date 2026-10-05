@@ -34,6 +34,14 @@ export function logOut() {
     window.location.reload();
 }
 
+/** Checks auth token against db to verify a valid session */
+//TODO: implement fully when db is connected
+export function checkAuthToken(forceInvalid = false) {
+    if (forceInvalid) return false;
+
+    return true; //Just standin for now
+}
+
 window.clearAuthToken = clearAuthToken;
 window.setAuthToken = setAuthToken;
 window.getAuthToken = getAuthToken;
