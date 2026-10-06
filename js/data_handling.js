@@ -1,7 +1,7 @@
 /** Provides shared formatting and DOM helpers for user profile data. */
-import { applyPfpHue, getPfpHue } from "./theme";
-import * as Requests from "./requests";
-import * as Cache from "./cache";
+import { applyPfpHue, getPfpHue } from "./theme.js";
+import * as Requests from "./requests.js";
+import * as Cache from "./cache.js";
 
 export function parseDisplayName(displayName) {
     const showFull = Cache.getShowFullDisplayName();

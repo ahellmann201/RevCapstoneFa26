@@ -1,13 +1,10 @@
-import { Request } from "./objects/request"
+import { Request } from "./objects/request.js"
 import { DummyAccount } from "./defaults/dummy_account.js";
 import * as Cache from "./cache.js";
 import * as Authentication from "./authentication.js";
 /** Returns the database's mainhand value. */
 
 export const DB_UNAVAILABLE = Symbol("Database Unavailable");
-
-//TODO: make the unctions actually interface with the db
-//TODO: have function ouptut DB_UNAVAILABLE if db cant be reached (will be used to know if to go to the cache)
 
 /** Provides the application's current user profile values from its data source. */
 export function getMainhand(forceDatabaseUnavailableParam = false, forceInvalidSessionParam = false) {
@@ -57,7 +54,7 @@ export function sendRequest(request = null) {
         console.log("Invalid request call");
         return null;
     }
-    
+
     if (request.forceDatabaseUnavailable) {
         return DB_UNAVAILABLE;
     }

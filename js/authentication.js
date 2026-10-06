@@ -1,6 +1,6 @@
 /** Stores and retrieves authentication tokens and exposes login/logout helpers. */
-import * as Requests from "./requests";
-import * as Cache from "./cache";
+import * as Requests from "./requests.js";
+import * as Cache from "./cache.js";
 
 /** Clears the stored authentication token, reloads the page, and returns its stored value. */
 export function clearAuthToken() {
@@ -31,7 +31,6 @@ export function getAuthToken(forceNoToken = false) {
 export function logOut() {
     clearAuthToken();
     Cache.clearCache()
-    window.location.reload();
 }
 
 /** Checks auth token against db to verify a valid session */

@@ -22,6 +22,8 @@
 
     --off-white: #f0f0f0;
     --off-black: #0c0c0c;
+
+    --standard-font-family: 'Jaldi', sans-serif;
 }
 
 * {
@@ -57,4 +59,8 @@ input {
     border-radius: 12px;
     background: white;
     color: var(--bg-color);
+}
+
+.hidden {
+    display: none;
 }
