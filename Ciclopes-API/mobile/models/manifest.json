@@ -1,0 +1,25 @@
+{
+  "model": "ciclopes_lane_ball.onnx",
+  "source_weights": "best_v2_26n.pt",
+  "task": "instance-segmentation",
+  "input": {
+    "name": "images",
+    "layout": "NCHW",
+    "color": "RGB",
+    "dtype": "float32",
+    "range": [
+      0,
+      1
+    ],
+    "imgsz": 640,
+    "letterbox": true
+  },
+  "classes": {
+    "0": "ball",
+    "1": "lane",
+    "2": "pins"
+  },
+  "output": "Raw YOLO segmentation heads; decode/NMS/prototype-mask reconstruction required.",
+  "opset": 17,
+  "nms_in_graph": false
+}

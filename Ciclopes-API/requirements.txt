@@ -1,0 +1,30 @@
+# ── Web framework ─────────────────────────────────────────────────────────────
+fastapi
+uvicorn
+pydantic
+
+# ── HTTP / networking ─────────────────────────────────────────────────────────
+requests
+
+# ── Scientific / vision ───────────────────────────────────────────────────────
+numpy
+scipy
+opencv-python
+
+# ── PyTorch (nightly cu124 installed via Dockerfile for Blackwell GPU) ────────
+torch
+torchvision
+
+# ── YOLO segmentation ────────────────────────────────────────────────────────
+ultralytics>=8.3.0
+
+# ── SAM 3D Body dependencies ─────────────────────────────────────────────────
+huggingface_hub
+roma
+yacs
+omegaconf
+braceexpand
+pillow
+timm
+einops
+pytorch-lightning
