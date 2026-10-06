@@ -127,7 +127,7 @@ CREATE TABLE IF NOT EXISTS user_balls (
 CREATE TABLE IF NOT EXISTS shots (
     shot_id    INTEGER PRIMARY KEY AUTOINCREMENT,
     throw_type TEXT,
-    pin_leave  TEXT,                        -- e.g. "7,10" (pins left standing)
+    pin_leave  INTEGER NOT NULL DEFAULT 0,                        
     side       TEXT,
     position   TEXT,
     comment    TEXT,
