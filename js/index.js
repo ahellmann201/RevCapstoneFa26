@@ -78,5 +78,5 @@ export function scheduleEvent() {
     window.location.href = "/schedule_event.html"
 }
 export function startGame() {
-    alert("This should go to a start game page")
+    window.location.href = "/game.html"
 }

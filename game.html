@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+    <link rel="icon" href="/icons/revmetrix_logo.png">
+    <link rel="stylesheet" href="/css/game.css">
+    <title>Revmetrix | Game</title>
+</head>
+
+<body>
+    <navbar></navbar>
+
+    <main class="game_page">
+        <header class="game_heading">
+            <div>
+                <p class="game_eyebrow">LET’S BOWL</p>
+            </div>
+
+            <span class="game_badge">Game 01</span>
+        </header>
+
+        <section class="score_section" aria-labelledby="score_title">
+            <div class="section_heading">
+                <h2 id="score_title">Scorecard</h2>
+            </div>
+
+            <div
+                id="frame_strip"
+                class="frame_strip"
+                role="region"
+                aria-label="Scrollable scorecard"
+                tabindex="0"
+            >
+            </div>
+        </section>
+
+        <section class="lane_panel" aria-labelledby="frame_title">
+            <header class="lane_heading">
+                <div>
+                    <p class="game_eyebrow">ON THE LANE</p>
+                    <h2 id="frame_title" aria-live="polite">Frame 1</h2>
+                </div>
+
+                <div class="pin_legend">
+                    <span></span>
+                    Standing
+                </div>
+            </header>
+
+            <p class="pin_hint">Tap the pins you knocked down.</p>
+
+            <div class="lane_controls">
+                <div
+                    id="pin_rack"
+                    class="pin_rack"
+                    role="group"
+                    aria-label="Bowling pins"
+                ></div>
+
+                <div class="shot_actions" aria-label="Shot shortcuts">
+                    <button type="button" disabled>
+                        <strong>F</strong>
+                        <span>Foul</span>
+                    </button>
+
+                    <button type="button" disabled>
+                        <strong>−</strong>
+                        <span>Gutter</span>
+                    </button>
+
+                    <button type="button" disabled>
+                        <strong>/</strong>
+                        <span>Spare</span>
+                    </button>
+
+                    <button type="button" disabled>
+                        <strong>X</strong>
+                        <span>Strike</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <footer class="game_footer">
+            <div class="secondary_actions">
+                <button type="button" disabled>Shot Info</button>
+                <button type="button" disabled>Comment</button>
+            </div>
+
+            <button type="button" id="next_frame" class="next_button">
+                Next frame <span aria-hidden="true">→</span>
+            </button>
+
+            <p id="game_status" class="game_status" aria-live="polite">
+                Frame 1 of 10
+            </p>
+        </footer>
+    </main>
+
+    <script type="module" src="/js/game.js"></script>
+</body>
+</html>
