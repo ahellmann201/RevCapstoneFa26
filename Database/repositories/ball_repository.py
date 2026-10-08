@@ -1,24 +1,29 @@
-import sqlite3
+import pyodbc
 
 from entities import Ball
 
 
 class BallRepository:
-    def __init__(self, conn: sqlite3.Connection):
+    def __init__(self, conn: pyodbc.Connection):
         self.conn = conn
 
     def create(self, ball: Ball) -> Ball:
-        cursor = self.conn.execute(
+        cursor = self.conn.cursor()
+
+        cursor.execute(
             """
             INSERT INTO balls (
+                user_id,
                 ball_name,
                 weight,
                 color,
                 core_type
             )
-            VALUES (?, ?, ?, ?)
+            OUTPUT INSERTED.ball_id
+            VALUES (?, ?, ?, ?, ?)
             """,
             (
+                ball.user_id,
                 ball.ball_name,
                 ball.weight,
                 ball.color,
@@ -26,34 +31,64 @@ class BallRepository:
             )
         )
 
+        ball.ball_id = cursor.fetchone()[0]
         self.conn.commit()
-        ball.ball_id = cursor.lastrowid
 
         return ball
 
     def get_by_id(self, ball_id: int) -> Ball | None:
-        row = self.conn.execute(
+        cursor = self.conn.cursor()
+
+        cursor.execute(
             """
-            SELECT ball_id, ball_name, weight, color, core_type
+            SELECT ball_id, user_id, ball_name, weight, color, core_type
             FROM balls
             WHERE ball_id = ?
             """,
             (ball_id,)
-        ).fetchone()
+        )
+
+        row = cursor.fetchone()
 
         if row is None:
             return None
 
         return Ball(
             ball_id=row[0],
-            ball_name=row[1],
-            weight=row[2],
-            color=row[3],
-            core_type=row[4]
+            user_id=row[1],
+            ball_name=row[2],
+            weight=row[3],
+            color=row[4],
+            core_type=row[5]
         )
 
+    def get_by_user(self, user_id: int) -> list[Ball]:
+        cursor = self.conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT ball_id, user_id, ball_name, weight, color, core_type
+            FROM balls
+            WHERE user_id = ?
+            ORDER BY ball_id
+            """,
+            (user_id,)
+        )
+
+        return [
+            Ball(
+                ball_id=row[0],
+                user_id=row[1],
+                ball_name=row[2],
+                weight=row[3],
+                color=row[4],
+                core_type=row[5]
+            )
+            for row in cursor.fetchall()
+        ]
+
     def update(self, ball: Ball) -> None:
-        self.conn.execute(
+        self.conn.cursor().execute(
             """
             UPDATE balls
             SET ball_name = ?,
@@ -74,11 +109,8 @@ class BallRepository:
         self.conn.commit()
 
     def delete(self, ball_id: int) -> None:
-        self.conn.execute(
-            """
-            DELETE FROM balls
-            WHERE ball_id = ?
-            """,
+        self.conn.cursor().execute(
+            "DELETE FROM balls WHERE ball_id = ?",
             (ball_id,)
         )
 

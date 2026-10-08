@@ -1,86 +1,128 @@
-import sqlite3
-from datetime import datetime
+import pyodbc
 
 from entities import Session
 
 
 class SessionRepository:
-    def __init__(self, conn: sqlite3.Connection):
+    def __init__(self, conn: pyodbc.Connection):
         self.conn = conn
 
     def create(self, session: Session) -> Session:
-        cursor = self.conn.execute(
+        cursor = self.conn.cursor()
+
+        cursor.execute(
             """
             INSERT INTO sessions (
+                event_id,
+                establishment_id,
                 date_time,
                 opponent,
                 score,
-                stats,
                 record
             )
-            VALUES (?, ?, ?, ?, ?)
+            OUTPUT INSERTED.session_id
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
             (
-                session.date_time.isoformat()
-                if session.date_time else None,
+                session.event_id,
+                session.establishment_id,
+                session.date_time,
                 session.opponent,
                 session.score,
-                session.stats,
                 session.record
             )
         )
 
+        session.session_id = cursor.fetchone()[0]
         self.conn.commit()
-        session.session_id = cursor.lastrowid
 
         return session
 
     def get_by_id(self, session_id: int) -> Session | None:
-        row = self.conn.execute(
+        cursor = self.conn.cursor()
+
+        cursor.execute(
             """
             SELECT
                 session_id,
+                event_id,
+                establishment_id,
                 date_time,
                 opponent,
                 score,
-                stats,
                 record
             FROM sessions
             WHERE session_id = ?
             """,
             (session_id,)
-        ).fetchone()
+        )
+
+        row = cursor.fetchone()
 
         if row is None:
             return None
 
         return Session(
             session_id=row[0],
-            date_time=datetime.fromisoformat(row[1])
-            if row[1] else None,
-            opponent=row[2],
-            score=row[3],
-            stats=row[4],
-            record=row[5]
+            event_id=row[1],
+            establishment_id=row[2],
+            date_time=row[3],
+            opponent=row[4],
+            score=row[5],
+            record=row[6]
         )
 
+    def get_by_event(self, event_id: int) -> list[Session]:
+        cursor = self.conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT
+                session_id,
+                event_id,
+                establishment_id,
+                date_time,
+                opponent,
+                score,
+                record
+            FROM sessions
+            WHERE event_id = ?
+            ORDER BY date_time
+            """,
+            (event_id,)
+        )
+
+        return [
+            Session(
+                session_id=row[0],
+                event_id=row[1],
+                establishment_id=row[2],
+                date_time=row[3],
+                opponent=row[4],
+                score=row[5],
+                record=row[6]
+            )
+            for row in cursor.fetchall()
+        ]
+
     def update(self, session: Session) -> None:
-        self.conn.execute(
+        self.conn.cursor().execute(
             """
             UPDATE sessions
-            SET date_time = ?,
+            SET event_id = ?,
+                establishment_id = ?,
+                date_time = ?,
                 opponent = ?,
                 score = ?,
-                stats = ?,
                 record = ?
             WHERE session_id = ?
             """,
             (
-                session.date_time.isoformat()
-                if session.date_time else None,
+                session.event_id,
+                session.establishment_id,
+                session.date_time,
                 session.opponent,
                 session.score,
-                session.stats,
                 session.record,
                 session.session_id
             )
@@ -89,11 +131,8 @@ class SessionRepository:
         self.conn.commit()
 
     def delete(self, session_id: int) -> None:
-        self.conn.execute(
-            """
-            DELETE FROM sessions
-            WHERE session_id = ?
-            """,
+        self.conn.cursor().execute(
+            "DELETE FROM sessions WHERE session_id = ?",
             (session_id,)
         )
 

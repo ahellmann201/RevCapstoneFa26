@@ -1,20 +1,23 @@
-import sqlite3
+import pyodbc
 
 from entities import MasterLocation, UserEstablishment
 
 
 class LocationRepository:
-    def __init__(self, conn: sqlite3.Connection):
+    def __init__(self, conn: pyodbc.Connection):
         self.conn = conn
 
     def create_master(self, location: MasterLocation) -> MasterLocation:
-        cursor = self.conn.execute(
+        cursor = self.conn.cursor()
+
+        cursor.execute(
             """
             INSERT INTO master_locations (
                 location_name,
                 lane_count,
                 address
             )
+            OUTPUT INSERTED.location_id
             VALUES (?, ?, ?)
             """,
             (
@@ -24,8 +27,8 @@ class LocationRepository:
             )
         )
 
+        location.location_id = cursor.fetchone()[0]
         self.conn.commit()
-        location.location_id = cursor.lastrowid
 
         return location
 
@@ -34,14 +37,18 @@ class LocationRepository:
         location_id: int
     ) -> MasterLocation | None:
 
-        row = self.conn.execute(
+        cursor = self.conn.cursor()
+
+        cursor.execute(
             """
             SELECT location_id, location_name, lane_count, address
             FROM master_locations
             WHERE location_id = ?
             """,
             (location_id,)
-        ).fetchone()
+        )
+
+        row = cursor.fetchone()
 
         if row is None:
             return None
@@ -54,7 +61,7 @@ class LocationRepository:
         )
 
     def update_master(self, location: MasterLocation) -> None:
-        self.conn.execute(
+        self.conn.cursor().execute(
             """
             UPDATE master_locations
             SET location_name = ?,
@@ -73,7 +80,7 @@ class LocationRepository:
         self.conn.commit()
 
     def delete_master(self, location_id: int) -> None:
-        self.conn.execute(
+        self.conn.cursor().execute(
             """
             DELETE FROM master_locations
             WHERE location_id = ?
@@ -88,7 +95,9 @@ class LocationRepository:
         establishment: UserEstablishment
     ) -> UserEstablishment:
 
-        cursor = self.conn.execute(
+        cursor = self.conn.cursor()
+
+        cursor.execute(
             """
             INSERT INTO user_establishments (
                 establishment_name,
@@ -97,6 +106,7 @@ class LocationRepository:
                 user_id,
                 location_id
             )
+            OUTPUT INSERTED.establishment_id
             VALUES (?, ?, ?, ?, ?)
             """,
             (
@@ -108,8 +118,8 @@ class LocationRepository:
             )
         )
 
+        establishment.establishment_id = cursor.fetchone()[0]
         self.conn.commit()
-        establishment.establishment_id = cursor.lastrowid
 
         return establishment
 
@@ -118,7 +128,9 @@ class LocationRepository:
         establishment_id: int
     ) -> UserEstablishment | None:
 
-        row = self.conn.execute(
+        cursor = self.conn.cursor()
+
+        cursor.execute(
             """
             SELECT
                 establishment_id,
@@ -131,7 +143,9 @@ class LocationRepository:
             WHERE establishment_id = ?
             """,
             (establishment_id,)
-        ).fetchone()
+        )
+
+        row = cursor.fetchone()
 
         if row is None:
             return None
@@ -150,13 +164,12 @@ class LocationRepository:
         establishment: UserEstablishment
     ) -> None:
 
-        self.conn.execute(
+        self.conn.cursor().execute(
             """
             UPDATE user_establishments
             SET establishment_name = ?,
                 lane_count = ?,
                 address = ?,
-                user_id = ?,
                 location_id = ?
             WHERE establishment_id = ?
             """,
@@ -164,7 +177,6 @@ class LocationRepository:
                 establishment.establishment_name,
                 establishment.lane_count,
                 establishment.address,
-                establishment.user_id,
                 establishment.location_id,
                 establishment.establishment_id
             )
@@ -173,7 +185,7 @@ class LocationRepository:
         self.conn.commit()
 
     def delete_establishment(self, establishment_id: int) -> None:
-        self.conn.execute(
+        self.conn.cursor().execute(
             """
             DELETE FROM user_establishments
             WHERE establishment_id = ?

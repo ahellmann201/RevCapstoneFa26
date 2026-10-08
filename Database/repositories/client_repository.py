@@ -1,14 +1,14 @@
-import sqlite3
+import pyodbc
 
 from entities import Client
 
 
 class ClientRepository:
-    def __init__(self, conn: sqlite3.Connection):
+    def __init__(self, conn: pyodbc.Connection):
         self.conn = conn
 
     def create(self, client: Client) -> Client:
-        self.conn.execute(
+        self.conn.cursor().execute(
             """
             INSERT INTO clients (
                 device,
@@ -27,19 +27,21 @@ class ClientRepository:
         )
 
         self.conn.commit()
-
         return client
 
     def get(self, user_id: int, device: str) -> Client | None:
-        row = self.conn.execute(
+        cursor = self.conn.cursor()
+
+        cursor.execute(
             """
             SELECT device, token, incorrect_passwords, user_id
             FROM clients
-            WHERE user_id = ?
-              AND device = ?
+            WHERE user_id = ? AND device = ?
             """,
             (user_id, device)
-        ).fetchone()
+        )
+
+        row = cursor.fetchone()
 
         if row is None:
             return None
@@ -52,13 +54,12 @@ class ClientRepository:
         )
 
     def update(self, client: Client) -> None:
-        self.conn.execute(
+        self.conn.cursor().execute(
             """
             UPDATE clients
             SET token = ?,
                 incorrect_passwords = ?
-            WHERE user_id = ?
-              AND device = ?
+            WHERE user_id = ? AND device = ?
             """,
             (
                 client.token,
@@ -71,11 +72,10 @@ class ClientRepository:
         self.conn.commit()
 
     def delete(self, user_id: int, device: str) -> None:
-        self.conn.execute(
+        self.conn.cursor().execute(
             """
             DELETE FROM clients
-            WHERE user_id = ?
-              AND device = ?
+            WHERE user_id = ? AND device = ?
             """,
             (user_id, device)
         )
