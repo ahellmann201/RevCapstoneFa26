@@ -1,4 +1,5 @@
-import pyodbc
+
+from database.connection import get_connection
 
 
 SCHEMA = """
@@ -200,42 +201,53 @@ END;
 """
 
 
-def create_database(connection_string: str) -> pyodbc.Connection:
-    conn = pyodbc.connect(connection_string)
+def create_tables() -> None:
+    conn = get_connection()
 
-    cursor = conn.cursor()
-    cursor.execute(SCHEMA)
+    try:
+        cursor = conn.cursor()
 
-    conn.commit()
+        # Confirm the correct database before making changes
+        database_name = cursor.execute(
+            "SELECT DB_NAME()"
+        ).fetchone()[0]
 
-    return conn
+        if database_name != "revmetrix-26":
+            raise RuntimeError(
+                f"Wrong database: {database_name}. "
+                "Expected revmetrix-26."
+            )
+
+        print(f"Connected to: {database_name}")
+
+        # Execute the schema
+        cursor.execute(SCHEMA)
+        conn.commit()
+
+        # Get all existing tables
+        cursor.execute("""
+            SELECT TABLE_NAME
+            FROM INFORMATION_SCHEMA.TABLES
+            WHERE TABLE_TYPE = 'BASE TABLE'
+            ORDER BY TABLE_NAME
+        """)
+
+        tables = [row[0] for row in cursor.fetchall()]
+
+        print(f"Tables found: {len(tables)}")
+
+        for table in tables:
+            print(f"  - {table}")
+
+        print("Database setup completed successfully.")
+
+    except Exception:
+        conn.rollback()
+        raise
+
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":
-    connection_string = (
-        "DRIVER={ODBC Driver 18 for SQL Server};"
-        "SERVER=YOUR_SERVER;"
-        "DATABASE=revmetrix;"
-        "UID=YOUR_USERNAME;"
-        "PWD=YOUR_PASSWORD;"
-        "Encrypt=yes;"
-        "TrustServerCertificate=yes;"
-    )
-
-    conn = create_database(connection_string)
-
-    tables = conn.cursor().execute(
-        """
-        SELECT TABLE_NAME
-        FROM INFORMATION_SCHEMA.TABLES
-        WHERE TABLE_TYPE = 'BASE TABLE'
-        ORDER BY TABLE_NAME
-        """
-    ).fetchall()
-
-    print(
-        "Created tables:",
-        ", ".join(row[0] for row in tables)
-    )
-
-    conn.close()
+    create_tables()

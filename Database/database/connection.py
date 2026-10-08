@@ -1,7 +1,9 @@
 import os
 
 import pyodbc
+from dotenv import load_dotenv
 
+load_dotenv()
 
 def get_connection() -> pyodbc.Connection:
     server = os.environ["DB_SERVER"]
@@ -21,5 +23,3 @@ def get_connection() -> pyodbc.Connection:
 
     return pyodbc.connect(connection_string)
 
-
-# ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJgqJ4eUHQOjwD3qf114jCPNAu/RygsM92XV481k14yU ahellmann@ycp.edu

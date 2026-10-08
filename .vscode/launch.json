@@ -1,0 +1,14 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run All Database Tests",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "tests.run_tests",
+            "cwd": "${workspaceFolder}/Database",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        }
+    ]
+}
