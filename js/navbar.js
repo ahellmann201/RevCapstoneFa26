@@ -4,7 +4,9 @@ import "./theme.js";
 import { clearAuthToken, getAuthToken, logOut, setAuthToken } from "./authentication.js";
 import { addPfpToContainer } from "./data_handling.js";
 import { createAuthPopup, openAuthPopup, createLogoutPopup, showLogOutPopup } from "./popups.js";
+import { retryConnection } from "./reconnect.js";
 
+retryConnection(true);
 
 export function openSidebar() {
     const sidebar = document.getElementById("sidebar");
