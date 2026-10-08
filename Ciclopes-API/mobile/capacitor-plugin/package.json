@@ -1,0 +1,34 @@
+{
+  "name": "@revmetrix/ciclopes-lane-analysis",
+  "version": "0.1.0",
+  "description": "Android Capacitor bridge for Ciclopes lane and ball inference",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/definitions.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/definitions.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "android/",
+    "dist/"
+  ],
+  "capacitor": {
+    "android": {
+      "src": "android"
+    }
+  },
+  "peerDependencies": {
+    "@capacitor/core": ">=6.0.0 <9.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/core": "^8.0.0",
+    "typescript": "^5.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepare": "npm run build"
+  }
+}

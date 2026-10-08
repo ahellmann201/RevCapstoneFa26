@@ -48,3 +48,7 @@ See `mobile/android/bridge-contract.md` for the JavaScript/native interface.
 The exact bridge adapter depends on whether the frontend packages its web app
 with Capacitor, a WebView shell, or another native wrapper. Do not place this
 work in the separate Android watch app.
+
+An initial local Capacitor package scaffold is available in
+`mobile/capacitor-plugin/`. Its Android bridge methods are placeholders until
+the runtime and frame-processing path are implemented.

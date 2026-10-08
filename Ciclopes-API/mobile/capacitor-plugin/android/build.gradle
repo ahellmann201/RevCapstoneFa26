@@ -1,0 +1,19 @@
+apply plugin: 'com.android.library'
+
+android {
+    namespace 'com.revmetrix.ciclopes.laneanalysis'
+    compileSdk rootProject.ext.compileSdkVersion
+
+    defaultConfig {
+        minSdkVersion rootProject.ext.minSdkVersion
+    }
+}
+
+repositories {
+    google()
+    mavenCentral()
+}
+
+dependencies {
+    implementation project(':capacitor-android')
+}
