@@ -47,8 +47,21 @@ def main() -> None:
                   "dtype": "float32", "range": [0, 1], "imgsz": args.imgsz,
                   "letterbox": True},
         "classes": CLASS_NAMES,
-        "output": "Raw YOLO segmentation heads; decode/NMS/prototype-mask reconstruction required.",
+        "outputs": {
+            "output0": {
+                "shape": [1, 300, 38],
+                "layout": "[x1,y1,x2,y2,confidence,class_id,mask_coefficients(32)]",
+                "box_coordinates": "xyxy in letterboxed model-input pixels",
+                "note": "YOLO26 end-to-end top-k detections; filter by confidence. No separate anchor decoding or NMS is required.",
+            },
+            "output1": {
+                "shape": [1, 32, args.imgsz // 4, args.imgsz // 4],
+                "layout": "mask prototypes (channels,height,width)",
+            },
+        },
+        "mask_reconstruction": "Multiply each detection's 32 mask coefficients by the flattened 32 prototype maps; reshape to prototype resolution, threshold logits, crop to the box, resize, and undo letterboxing.",
         "opset": args.opset,
+        "end_to_end": True,
         "nms_in_graph": False,
     }
     (args.output_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")

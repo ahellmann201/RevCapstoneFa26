@@ -16,17 +16,21 @@ python scripts/export_mobile_onnx.py --imgsz 640
 
 The export writes `mobile/models/ciclopes_lane_ball.onnx` and `manifest.json`.
 Model files are generated artifacts and should not be committed. The exported
-graph contains raw segmentation heads (`nms=false`); a phone adapter must do
-YOLO decoding, NMS, prototype-mask reconstruction, and source-frame coordinate
-mapping. The manifest documents the expected RGB, NCHW, float32, 0..1 input.
+graph returns YOLO26 end-to-end detections and mask prototypes. A phone adapter
+filters by confidence, reconstructs each instance mask from its 32 coefficients
+and 32 prototype maps, crops/resizes masks, and maps detections back through
+letterboxing to source-frame coordinates. Separate anchor decoding and NMS are
+not required for this export. The manifest documents the expected RGB, NCHW,
+float32, 0..1 input.
 
 ## Integration sequence
 
 1. Compare ONNX Runtime outputs and decoded masks with PyTorch on a fixed set
    of representative frames; measure accuracy, latency, and memory on target
-   Android and iOS devices.
-2. Implement preprocessing, ONNX Runtime execution, and output decoding in the
-   Android native layer. Keep inference off the UI thread.
+   Android phones.
+2. Implement preprocessing and ONNX Runtime execution in the Android native
+   layer. Decode the returned detection fields, reconstruct masks, and map
+   coordinates back to the source frame. Keep inference off the UI thread.
 3. Feed masks into lane geometry and ball tracking. The existing Python
    postprocessing is the behavioral reference; the phone implementation should
    be ported in small, parity-checked stages.

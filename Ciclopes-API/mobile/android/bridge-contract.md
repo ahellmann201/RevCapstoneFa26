@@ -116,7 +116,11 @@ model operators and device support. Keep the ONNX file as an Android app asset
 or managed model file. Don't add the model to the watch application.
 
 The bridge must preprocess RGB frames to the export manifest's fixed NCHW
-float32 0..1 input, apply letterboxing, decode raw YOLO segmentation outputs,
-perform NMS and mask reconstruction, and map lane corners back to normalized
-source-frame coordinates. These responsibilities are not implemented by model
-export alone.
+float32 0..1 input and apply letterboxing. This YOLO26 end-to-end export returns
+up to 300 selected detections per frame. Each output row contains an `xyxy`
+box, confidence, class ID, and 32 mask coefficients; the second output contains
+32 prototype maps. Filter detections by confidence, reconstruct each mask from
+its coefficients and prototypes, crop/resize masks, undo letterboxing, and map
+lane corners to normalized source-frame coordinates. No separate anchor decode
+or NMS pass is expected for this export. These steps are not implemented by
+model export alone.
