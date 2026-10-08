@@ -50,12 +50,15 @@ export function getUsername(forceDatabaseUnavailableParam = false, forceInvalidS
 
 //TODO: make this function actually communicate to the db. for now, it just has some dummy output
 export function sendRequest(request = null) {
+    testDatabaseConnection(true);
+    const connected = sessionStorage.getItem("canReachDatabase") !== "false";
+
     if (request == null) {
         console.log("Invalid request call");
         return null;
     }
 
-    if (request.forceDatabaseUnavailable) {
+    if (request.forceDatabaseUnavailable || !connected) {
         return DB_UNAVAILABLE;
     }
     if (request.forceInvalidSession) {
@@ -70,6 +73,48 @@ export function sendRequest(request = null) {
     }
 }
 
+/**
+ * Checks whether the database is reachable and stores the result in
+ * `sessionStorage` under `canReachDatabase`. The check is currently simulated;
+ * it runs only when that session value has not been set and records `"true"`
+ * or `"false"` for later requests. This function resolves without a value.
+ *
+ * @returns {Promise<void>} A promise that resolves after the simulated check,
+ * or immediately if a connection result is already stored.
+ */
+export async function testDatabaseConnection(forceFail = false, testAnyway = false) {
+    if (sessionStorage.getItem("canReachDatabase") === null || testAnyway) {
+
+        const controller = new AbortController();
+
+        //code waits 5 seconds for a valid response from db before aborting and putting "false" in session storage
+        const timeout = setTimeout(() => {
+            controller.abort()
+        }, 5000);
+
+
+        try {
+            //this is a fake check, will be an actual check later. it just simulates a response that takes a second to get back
+            const response = await new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    if (forceFail) {
+                        reject();
+                    } else {
+                        resolve();
+                    }
+                }, 1000);
+            });
+
+            sessionStorage.setItem("canReachDatabase", "true");
+        } catch(error) {
+            sessionStorage.setItem("canReachDatabase", "false")
+        }
+    }
+
+    return sessionStorage.getItem("canReachDatabase");
+}
+
 window.getMainhand = getMainhand;
 window.getUsername = getUsername;
 window.getDisplayName = getDisplayName;
+window.testDatabaseConnection = testDatabaseConnection;

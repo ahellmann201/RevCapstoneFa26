@@ -57,7 +57,6 @@ export function getShowFullDisplayName() {
         else return false;
     }
 }
-
 /** Stores whether to show the full display name. @param {boolean} showFull */
 export function setShowFullDisplayName(showFull) {
     sessionStorage.setItem("showFullDisplayName", showFull);
