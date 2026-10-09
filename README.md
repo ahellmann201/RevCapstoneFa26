@@ -1,5 +1,4 @@
 # RevCapstoneFa26
-<<<<<<< HEAD
 
 ## Overview
 This project is a mobile bowling application developed as a York College of Pennsylvania Computer Science Capstone project. The application allows users to record and track bowling games, manage bowling events and locations, view performance data, and connect with other bowlers.
