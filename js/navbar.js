@@ -5,6 +5,7 @@ import { clearAuthToken, getAuthToken, logOut, setAuthToken } from "./authentica
 import { addPfpToContainer } from "./data_handling.js";
 import { createAuthPopup, openAuthPopup, createLogoutPopup, showLogOutPopup } from "./popups.js";
 import { retryConnection } from "./reconnect.js";
+import "./api_client.js";
 
 retryConnection(true);
 
