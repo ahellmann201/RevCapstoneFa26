@@ -1,7 +1,7 @@
 import { Request } from "./objects/request.js"
-import { DummyAccount } from "./defaults/dummy_account.js";
 import * as Cache from "./cache.js";
 import * as Authentication from "./authentication.js";
+import * as API from "./api_client.js"
 /** Returns the database's mainhand value. */
 
 export const DB_UNAVAILABLE = Symbol("Database Unavailable");
@@ -50,7 +50,8 @@ export function getUsername(forceDatabaseUnavailableParam = false, forceInvalidS
 
 //TODO: make this function actually communicate to the db. for now, it just has some dummy output
 export function sendRequest(request = null) {
-    testDatabaseConnection(true);
+    console.log(sessionStorage.getItem("canReachDatabase"));
+    testDatabaseConnection(false, false);
     const connected = sessionStorage.getItem("canReachDatabase") !== "false";
 
     if (request == null) {
@@ -67,9 +68,10 @@ export function sendRequest(request = null) {
     }
 
     if (request.operation == "get") {
-        if (request.resource == "mainhand") return DummyAccount.mainhand;
-        if (request.resource == "username") return DummyAccount.username;
-        if (request.resource == "displayName") return DummyAccount.displayName;
+        const userID = sessionStorage.getItem("userID");
+        if (request.resource == "mainhand") return API.getMainhand(userID);
+        if (request.resource == "username") return API.getUsername(userID);
+        if (request.resource == "displayName") return API.getDisplayName(userID)
     }
 }
 

@@ -1,4 +1,5 @@
-import { logOut } from "./authentication.js";
+import { logOut, submitAuth } from "./authentication.js";
+import * as Cache from "./cache.js";
 
 export function openAuthPopup(id) {
     const dropdown = document.getElementById("pfp-dropdown");
@@ -65,7 +66,7 @@ export function createAuthPopup(type) {
                     placeholder="Your password"
                 >
 
-                <button type="button" class="popup_primary">
+                <button type="button" class="popup_primary" id="submit-button">
                     ${buttonText}
                 </button>
 
@@ -78,8 +79,12 @@ export function createAuthPopup(type) {
 
 
     setupPopupDrag(document.getElementById(popupId));
-}
 
+    const submitButton = document.getElementById("submit-button");
+    submitButton?.addEventListener("click", () => {
+        submitAuth(type);
+    });
+}
 
 function setupPopupDrag(popup) {
     const dragArea = popup.querySelector(".popup_drag_area");

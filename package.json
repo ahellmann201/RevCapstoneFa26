@@ -7,10 +7,10 @@
     "dev": "vite",
     "dev:host": "vite --host",
     "dev:python": "source .venv/bin/activate && python -m uvicorn api.main:app --reload --host 0.0.0.0 --port 8000",
-    "dev:full": "concurrently -k -n FRONTEND,API \"npm run dev:host\" \"npm run dev:python\"",
+    "dev:full": "node scripts/dev.mjs",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest","db:reset": ".venv/bin/python -c \"from test_database.connection import DATABASE_PATH; DATABASE_PATH.unlink(missing_ok=True)\" && .venv/bin/python -m test_database.connection"
   },
   "devDependencies": {
     "concurrently": "^10.0.6",
@@ -24,6 +24,7 @@
     "@capacitor/cli": "^8.5.2",
     "@capacitor/core": "^8.5.2",
     "@capacitor/haptics": "^8.0.2",
-    "@capacitor/ios": "^8.5.2"
+    "@capacitor/ios": "^8.5.2",
+    "dotenv": "^18.0.7"
   }
 }

@@ -25,24 +25,24 @@ loadNavbar();
 loadAccountInfoToFields();
 setShowFullDisplayName();
 
-export function loadAccountInfoToFields() {
+export async function loadAccountInfoToFields() {
     const pfpFieldPictureContainer = document.getElementById("pfp-field-picture-container");
     addPfpToContainer("pfp-field-picture-container", "/icons/default_pfp.png");
 
-    const username = Requests.getUsername();
+    const username = await Requests.getUsername();
     const usernameField = document.getElementById("username-field");
     let usernameValue = usernameField.innerHTML;
     usernameField.innerHTML = usernameValue + username;
 
     const displayNameField = document.getElementById("display-name-field");
-    const displayName = Requests.getDisplayNameBlank();
+    const displayName = await Requests.getDisplayNameBlank();
     if (displayName != null) displayNameField.value = displayName;
 
-    setMainhandSelection(mainhand);
+    await setMainhandSelection(mainhand);
 }
 
-export function setMainhandSelection(setMainhand = "both") {
-    mainhand = setMainhand;
+export async function setMainhandSelection(setMainhand = "both") {
+    mainhand = await setMainhand;
     if (mainhand == "left") {
         selection.style.left = "var(--left-hand-left)";
         leftHandOverlay.style.left = "0rem";

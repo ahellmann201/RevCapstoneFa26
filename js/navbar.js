@@ -160,7 +160,6 @@ export function loadNavbar() {
 
 
     loginButton?.addEventListener("click", () => {
-        setAuthToken("auth");
         openAuthPopup("login_popup");
     });
 

@@ -1,6 +1,6 @@
 import pyodbc
 
-from entities import Client
+from ..entities import Client
 
 
 class ClientRepository:

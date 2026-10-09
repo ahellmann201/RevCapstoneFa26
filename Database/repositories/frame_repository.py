@@ -1,6 +1,6 @@
 import pyodbc
 
-from entities import Frame
+from ..entities import Frame
 
 
 class FrameRepository:

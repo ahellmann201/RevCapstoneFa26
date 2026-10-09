@@ -62,4 +62,13 @@ export function setShowFullDisplayName(showFull) {
     sessionStorage.setItem("showFullDisplayName", showFull);
 }
 
+export function getUserID() {
+    const userID = sessionStorage.getItem("userID");
+    if (userID == null) return null;
+    else return userID;
+}
+export function setUserID(userID) {
+    sessionStorage.setItem("userID", userID);
+}
+
 window.clearCache = clearCache;

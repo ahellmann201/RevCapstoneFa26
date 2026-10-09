@@ -1,6 +1,6 @@
 import pyodbc
 
-from entities import User, Hand
+from ..entities import User, Hand
 
 
 class UserRepository:

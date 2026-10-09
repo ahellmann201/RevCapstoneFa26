@@ -1,6 +1,7 @@
 /** Stores and retrieves authentication tokens and exposes login/logout helpers. */
 import * as Requests from "./requests.js";
 import * as Cache from "./cache.js";
+import * as API from "./api_client.js";
 
 /** Clears the stored authentication token, reloads the page, and returns its stored value. */
 export function clearAuthToken() {
@@ -39,6 +40,38 @@ export function checkAuthToken(forceInvalid = false) {
     if (forceInvalid) return false;
 
     return true; //Just standin for now
+}
+
+export async function submitAuth(type = "login") {
+    const isLogin = type === "login";
+
+    if (isLogin) {
+        const emailField = document.getElementById(`${type}_email`);
+        const passwordField = document.getElementById(`${type}_password`);
+
+        if (!emailField || !passwordField) return;
+
+        const email = emailField.value.trim()
+        const password = passwordField.value;
+
+        console.log(`email: ${email}`);
+        console.log(`password: ${password}`);
+
+        if (!email || !password) {
+            console.error("Invalid email or password"); //TODO: make this actual ui feedback
+            return;
+        }
+
+        try {
+            const result = await API.login(email, password);
+            const userID = result.User_ID;
+            console.log("Authenticated User ID:", userID);
+            Cache.setUserID(userID);
+            setAuthToken(userID); //TODO: replace with actual auth token functionality
+        } catch (error) {
+            console.error("Login failed:", error.message);
+        }
+    }
 }
 
 window.clearAuthToken = clearAuthToken;

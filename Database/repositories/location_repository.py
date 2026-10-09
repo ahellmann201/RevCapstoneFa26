@@ -1,6 +1,6 @@
 import pyodbc
 
-from entities import MasterLocation, UserEstablishment
+from ..entities import MasterLocation, UserEstablishment
 
 
 class LocationRepository:
