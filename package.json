@@ -4,13 +4,20 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "cap": "node scripts/cap.mjs",
+
+    "setup": "node scripts/setup.mjs",
+
     "dev": "vite",
     "dev:host": "vite --host",
-    "dev:python": "source .venv/bin/activate && python -m uvicorn api.main:app --reload --host 0.0.0.0 --port 8000",
+    "dev:python": "node scripts/dev-python.mjs",
     "dev:full": "node scripts/dev.mjs",
+
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "vitest","db:reset": ".venv/bin/python -c \"from test_database.connection import DATABASE_PATH; DATABASE_PATH.unlink(missing_ok=True)\" && .venv/bin/python -m test_database.connection"
+    "test": "vitest",
+
+    "db:reset": "node scripts/db-reset.mjs"
   },
   "devDependencies": {
     "concurrently": "^10.0.6",

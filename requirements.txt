@@ -1,0 +1,4 @@
+# Core dependencies for the local Python API and SQLite test workflow.
+# Python 3.10 or newer is required.
+fastapi>=0.115,<1.0
+uvicorn>=0.30,<1.0
