@@ -2,9 +2,27 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Run FastAPI",
+            "type": "debugpy",
+            "request": "launch",
+            "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+            "module": "uvicorn",
+            "args": [
+                "Database.api.main:app",
+                "--host",
+                "127.0.0.1",
+                "--port",
+                "8000"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
             "name": "Run All Database Tests",
             "type": "debugpy",
             "request": "launch",
+            "python": "${workspaceFolder}/.venv/Scripts/python.exe",
             "module": "tests.run_tests",
             "cwd": "${workspaceFolder}/Database",
             "console": "integratedTerminal",
