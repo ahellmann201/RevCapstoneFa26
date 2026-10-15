@@ -130,19 +130,6 @@ async function resetDatabase() {
         return;
     }
 
-    if (process.env.CAP_CONFIRM_RESET !== "yes") {
-        fail(
-            "Database reset requires explicit confirmation.\n" +
-            "This deletes the local SQLite test database and its data.\n\n" +
-            "To confirm, run:\n" +
-            (isWindows
-                ? '  $env:CAP_CONFIRM_RESET="yes"; npm run cap -- db reset'
-                : '  CAP_CONFIRM_RESET=yes npm run cap -- db reset'),
-        );
-
-        return;
-    }
-
     console.log("Resetting the local SQLite test database...");
     console.log(`Database file: ${databasePath}`);
 

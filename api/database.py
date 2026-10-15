@@ -53,21 +53,24 @@ def _password_matches(password: str, stored_hash: str | bytes) -> bool:
         return False
 
 
-def create_account(name: str, email: str, password: str) -> int | None:
-    """Create an account and return its ID, or None if its email is taken."""
+def create_account(username: str, email: str, password: str) -> int | None:
+    """Create an account, returning its ID or None for a duplicate username/email."""
     conn = get_connection()
 
     try:
+        # The signup endpoint creates a default display name from the username.
+        # A separate profile update can replace it after account creation.
+        display_name = username
         cursor = conn.cursor()
         if DB_TYPE == "sqlite":
             cursor.execute(
                 "SELECT User_ID FROM USERS WHERE Email = ? OR Username = ?",
-                (email, email),
+                (email, username),
             )
         else:
             cursor.execute(
                 "SELECT user_id FROM users WHERE email = ? OR username = ?",
-                (email, email),
+                (email, username),
             )
 
         if cursor.fetchone() is not None:
@@ -81,7 +84,7 @@ def create_account(name: str, email: str, password: str) -> int | None:
                 INSERT INTO USERS (Display_Name, Username, Password, Email, Main_Hand)
                 VALUES (?, ?, ?, ?, ?)
                 """,
-                (name, email, password_hash, email, "both"),
+                (display_name, username, password_hash, email, "both"),
             )
             user_id = cursor.lastrowid
         else:
@@ -91,7 +94,7 @@ def create_account(name: str, email: str, password: str) -> int | None:
                 OUTPUT INSERTED.user_id
                 VALUES (?, ?, ?, ?)
                 """,
-                (name, email, password_hash.encode("utf-8"), email),
+                (display_name, username, password_hash.encode("utf-8"), email),
             )
             user_id = cursor.fetchone()[0]
 

@@ -3,11 +3,14 @@ import { logOut, submitAuth } from "./authentication.js";
 // Authentication dialogs
 export function openAuthPopup(id) {
     const dropdown = document.getElementById("pfp-dropdown");
+    const popup = document.getElementById(id);
 
     dropdown.classList.remove("pfp_dropdown_active");
     dropdown.classList.add("pfp_dropdown_inactive");
 
-    document.getElementById(id).showModal();
+    popup.showModal();
+    popup.classList.add("is_entering");
+    requestAnimationFrame(() => popup.classList.remove("is_entering"));
 }
 
 export function createAuthPopup(type) {
@@ -20,6 +23,8 @@ export function createAuthPopup(type) {
     const isSignup = type === "signup";
     const title = isSignup ? "Create Account" : "Log In";
     const buttonText = isSignup ? "Sign Up" : "Log In";
+    const switchText = isSignup ? "Log in instead" : "Sign up instead";
+    const switchPopupId = isSignup ? "login_popup" : "signup_popup";
 
 
     document.body.insertAdjacentHTML("beforeend", `
@@ -40,12 +45,20 @@ export function createAuthPopup(type) {
                         Sign up to get started.
                     </p>
 
-                    <label for="signup_name">Name</label>
+                    <label for="signup_username">Username</label>
                     <input
-                        id="signup_name"
+                        id="signup_username"
                         type="text"
                         class="text_input"
-                        placeholder="Your name"
+                        placeholder="Your username"
+                    >
+
+                    <label for="signup_display_name">Display name (optional)</label>
+                    <input
+                        id="signup_display_name"
+                        type="text"
+                        class="text_input"
+                        placeholder="How your name appears"
                     >
                 ` : ""}
 
@@ -69,6 +82,10 @@ export function createAuthPopup(type) {
                     ${buttonText}
                 </button>
 
+                <button type="button" class="popup_switch">
+                    ${switchText}
+                </button>
+
                 <button type="button" class="popup_close">
                     Close
                 </button>
@@ -83,6 +100,29 @@ export function createAuthPopup(type) {
     submitButton?.addEventListener("click", () => {
         console.log(type);
         submitAuth(type);
+    });
+
+    popup.querySelector(".popup_switch")?.addEventListener("click", () => {
+        popup.classList.add("is_switching_out");
+
+        const finishSwitch = () => {
+            popup.close();
+            popup.classList.remove("is_switching_out");
+            openAuthPopup(switchPopupId);
+        };
+
+        popup.addEventListener("transitionend", (event) => {
+            if (event.target === popup && event.propertyName === "transform") {
+                finishSwitch();
+            }
+        }, { once: true });
+
+        // Keep the switch working if the transition is disabled or interrupted.
+        window.setTimeout(() => {
+            if (popup.open && popup.classList.contains("is_switching_out")) {
+                finishSwitch();
+            }
+        }, 250);
     });
 }
 

@@ -373,3 +373,6 @@
 .save_display_name {
     background-color: var(--button-color-1);
 }
+.save_display_name:disabled {
+    color: rgb(12 12 12 / 50%);
+}

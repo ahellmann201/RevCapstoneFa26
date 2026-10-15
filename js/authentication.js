@@ -45,24 +45,38 @@ export async function submitAuth(type = "login") {
     const isLogin = type === "login";
 
     if (!isLogin) {
-        const nameField = document.getElementById("signup_name");
+        const usernameField = document.getElementById("signup_username");
+        const displayNameField = document.getElementById("signup_display_name");
         const emailField = document.getElementById("signup_email");
         const passwordField = document.getElementById("signup_password");
 
-        if (!nameField || !emailField || !passwordField) return;
+        if (!usernameField || !emailField || !passwordField) return;
 
-        const name = nameField.value.trim();
+        const username = usernameField.value.trim();
+        const displayName = displayNameField?.value.trim() ?? "";
         const email = emailField.value.trim().toLowerCase();
         const password = passwordField.value;
 
-        if (!name) {
-            console.error("Name is required to sign up.");
+        if (!username) {
+            console.error("Username is required to sign up.");
             return;
         }
 
         try {
-            const result = await API.createAccount(name, email, password);
+            const result = await API.createAccount(username, email, password);
             const userID = result.User_ID;
+
+            if (displayName) {
+                try {
+                    await API.setDisplayName(userID, displayName);
+                    Cache.setDisplayName(displayName);
+                } catch (error) {
+                    console.error(
+                        "Account created, but the display name could not be saved:",
+                        error.message,
+                    );
+                }
+            }
 
             console.log("Account created:", userID);
             Cache.setUserID(userID);

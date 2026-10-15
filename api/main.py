@@ -16,7 +16,7 @@ class LoginRequest(BaseModel):
 
 
 class SignupRequest(BaseModel):
-    name: str = Field(min_length=1, max_length=100)
+    username: str = Field(min_length=1, max_length=100)
     email: str
     password: str
 
@@ -98,20 +98,24 @@ def login(credentials: LoginRequest) -> dict[str, int]:
 
 @app.post("/api/auth/signup", status_code=status.HTTP_201_CREATED)
 def signup(request: SignupRequest) -> dict[str, int]:
-    name = request.name.strip()
+    username = request.username.strip()
     email = request.email.strip().lower()
 
-    if not name:
+    if not username:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Name cannot be empty.",
+            detail="Username cannot be empty.",
         )
 
-    user_id = create_account(name, email, request.password)
+    user_id = create_account(
+        username=username,
+        email=email,
+        password=request.password,
+    )
     if user_id is None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="An account with this email already exists.",
+            detail="An account with this username or email already exists.",
         )
 
     return {"User_ID": user_id}

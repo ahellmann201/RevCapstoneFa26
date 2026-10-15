@@ -69,11 +69,11 @@ export function login(email, password) {
     });
 }
 
-export function createAccount(name, email, password) {
+export function createAccount(username, email, password) {
     return request("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password })
+        body: JSON.stringify({ username, email, password })
     });
 }
 

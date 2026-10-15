@@ -34,7 +34,6 @@ export function goToAccountSettings() {
     window.location.href = "/account_settings.html";
 }
 
-
 export function togglePfpDropdown() {
     const dropdown = document.getElementById("pfp-dropdown");
 
@@ -50,12 +49,6 @@ export function togglePfpDropdown() {
         return;
     }
 }
-
-
-export function quickLogin() {
-    setAuthToken("quik");
-}
-
 
 export function loadNavbar() {
     const navbar = document.querySelector("navbar");
@@ -92,6 +85,10 @@ export function loadNavbar() {
 
             <div class="sidebar_section">
                 <button class="home_button" id="home-button">Home</button>
+            </div>
+
+            <div class="sidebar_auth" id="sidebar-auth">
+                <button class="sidebar_login_button" id="sidebar-login-button">Log In</button>
             </div>
         </div>
 
@@ -143,6 +140,12 @@ export function loadNavbar() {
         .getElementById("profile-picture-container")
         .addEventListener("click", togglePfpDropdown);
 
+    document
+        .getElementById("sidebar-login-button")?.addEventListener("click", () => openAuthPopup("login_popup"));
+    if (getAuthToken() != null) {
+        document.getElementById("sidebar-auth").remove();
+    }
+    
 
     const accountSettingsButton = document.getElementById("account-settings-button");
     accountSettingsButton?.addEventListener("click", goToAccountSettings);
