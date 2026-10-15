@@ -1,137 +1,63 @@
-import { Request } from "./objects/request.js"
-import * as Cache from "./cache.js";
 import * as Authentication from "./authentication.js";
-import * as API from "./api_client.js"
-/** Returns the database's mainhand value. */
+import * as API from "./api_client.js";
 
+// Use a Symbol so callers can distinguish an unavailable backend from valid
+// values such as null, an empty string, or false.
 export const DB_UNAVAILABLE = Symbol("Database Unavailable");
 
-/** Provides the application's current user profile values from its data source. */
-export function getMainhand(forceDatabaseUnavailableParam = false, forceInvalidSessionParam = false) {
-    const request = new Request({
-        operation: "get",
-        resource: "mainhand",
-        debug: {
-            forceDatabaseUnavailable: forceDatabaseUnavailableParam,
-            forceInvalidSession: forceInvalidSessionParam
-        }
-    });
-
-    return sendRequest(request);
+// The connectivity flag is a session-level shortcut. Network failures still
+// propagate from api_client.js, where the shared HTTP response handling lives.
+function isUnavailable(forceDatabaseUnavailable = false) {
+    return forceDatabaseUnavailable || sessionStorage.getItem("canReachDatabase") === "false";
 }
 
-/** Returns the database's display name. */
-export function getDisplayName(forceDatabaseUnavailableParam = false, forceInvalidSessionParam = false) {
-    const request = new Request({
-        operation: "get",
-        resource: "displayName",
-        debug: {
-            forceDatabaseUnavailable: forceDatabaseUnavailableParam,
-            forceInvalidSession: forceInvalidSessionParam
-        }
-    });
-
-    return sendRequest(request);
+function getUserID() {
+    const userID = sessionStorage.getItem("userID");
+    if (userID == null) throw new Error("No signed-in user is available.");
+    return userID;
 }
 
-export function setDisplayName(displayName) {
-    const request = new Request({
-        operation: "set",
-        resource: "displayName",
-        parameters: {
-            value: displayName
-        },
-        debug: {
-            forceDatabaseUnavailable: false,
-            forceInvalidSession: false
-        }
-    });
-
-    return sendRequest(request);
-}
-
-/** Returns the database's username. */
-export function getUsername(forceDatabaseUnavailableParam = false, forceInvalidSessionParam = false) {
-    const request = new Request({
-        operation: "get",
-        resource: "username",
-        debug: {
-            forceDatabaseUnavailable: forceDatabaseUnavailableParam,
-            forceInvalidSession: forceInvalidSessionParam
-        }
-    });
-
-    return sendRequest(request);
-}
-
-export function sendRequest(request = null) {
-    // testDatabaseConnection(false, false);
-    const connected = sessionStorage.getItem("canReachDatabase") !== "false";
-
-    if (request == null) {
-        console.log("Invalid request call");
-        return null;
-    }
-
-    if (request.forceDatabaseUnavailable || !connected) {
-        return DB_UNAVAILABLE;
-    }
-    if (request.forceInvalidSession) {
+// Keep profile lookup policy here: reject known-unavailable requests, apply
+// debug-only invalid-session behavior, then let the API client perform HTTP.
+// Passing the reader in avoids repeating this policy for each profile field.
+async function readProfileValue(read, forceDatabaseUnavailable, forceInvalidSession) {
+    if (isUnavailable(forceDatabaseUnavailable)) return DB_UNAVAILABLE;
+    if (forceInvalidSession) {
         Authentication.logOut();
-        return "Logged Out due to invalid auth token (debug)";
+        throw new Error("Logged out due to an invalid session (debug).");
     }
+    return read(getUserID());
+}
 
-    if (request.operation == "get") {
-        const userID = sessionStorage.getItem("userID");
-        if (request.resource == "mainhand") return API.getMainhand(userID);
-        if (request.resource == "username") return API.getUsername(userID);
-        if (request.resource == "displayName") return API.getDisplayName(userID)
-    }
-    else if (request.operation == "set") {
-        if (request.resource == "displayName") {
-            API.setDisplayName(request.parameters["value"]);
-            return true;
-        }
-    }
+export function getMainhand(forceDatabaseUnavailable = false, forceInvalidSession = false) {
+    return readProfileValue(API.getMainhand, forceDatabaseUnavailable, forceInvalidSession);
+}
+
+export function getDisplayName(forceDatabaseUnavailable = false, forceInvalidSession = false) {
+    return readProfileValue(API.getDisplayName, forceDatabaseUnavailable, forceInvalidSession);
+}
+
+export function getUsername(forceDatabaseUnavailable = false, forceInvalidSession = false) {
+    return readProfileValue(API.getUsername, forceDatabaseUnavailable, forceInvalidSession);
+}
+
+export async function setDisplayName(displayName) {
+    if (isUnavailable()) return DB_UNAVAILABLE;
+    // Await the write so true means the server accepted it; otherwise the
+    // caller could report success before the database update completes.
+    await API.setDisplayName(getUserID(), displayName);
+    return true;
 }
 
 /**
- * Checks whether the database is reachable and stores the result in
- * `sessionStorage` under `canReachDatabase`. The check is currently simulated;
- * it runs only when that session value has not been set and records `"true"`
- * or `"false"` for later requests. This function resolves without a value.
- *
- * @returns {Promise<void>} A promise that resolves after the simulated check,
- * or immediately if a connection result is already stored.
+ * Stores the result of the current simulated connectivity check in session
+ * storage. This is a development placeholder until the app checks the API.
+ * `testAnyway` forces a refresh; otherwise an existing session result is kept.
  */
 export async function testDatabaseConnection(forceFail = false, testAnyway = false) {
     if (sessionStorage.getItem("canReachDatabase") === null || testAnyway) {
-        const controller = new AbortController();
-
-        //code waits 5 seconds for a valid response from db before aborting and putting "false" in session storage
-        const timeout = setTimeout(() => {
-            controller.abort()
-        }, 5000);
-
-
-        try {
-            //this is a fake check, will be an actual check later. it just simulates a response that takes a second to get back
-            const response = await new Promise((resolve, reject) => {
-                setTimeout(() => {
-                    if (forceFail) {
-                        reject();
-                    } else {
-                        resolve();
-                    }
-                }, 1000);
-            });
-
-            sessionStorage.setItem("canReachDatabase", "true");
-        } catch(error) {
-            sessionStorage.setItem("canReachDatabase", "false")
-        }
+        sessionStorage.setItem("canReachDatabase", forceFail ? "false" : "true");
     }
-
     return sessionStorage.getItem("canReachDatabase");
 }
 

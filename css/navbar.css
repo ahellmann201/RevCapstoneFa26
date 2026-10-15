@@ -464,10 +464,10 @@ body:has(.auth_popup[open]) {
 }
 
 .mini_popup {
-    position: absolute;
-    top: 0;
+    position: fixed;
+    top: -100%;
     left: 50%;
-    transform: translate(-50%, 0);
+    transform: translateX(-50%);
     width: 80%;
     height: auto;
     background-color: rgba(255,255,255,0.5);
@@ -479,7 +479,17 @@ body:has(.auth_popup[open]) {
     z-index: 999;
     border-bottom-right-radius: 1rem;
     border-bottom-left-radius: 1rem;
-    transition: top 1s ease-in-out;
+    transition: top 350ms ease-in-out;
+}
+
+.mini_popup.mini_popup_visible {
+    top: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mini_popup {
+        transition-duration: 1ms;
+    }
 }
 .mini_popup::before {
     top: -100%;

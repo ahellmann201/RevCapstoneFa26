@@ -1,135 +1,76 @@
-import { existsSync } from "node:fs";
-import path from "node:path";
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const projectRoot = fileURLToPath(new URL("../../", import.meta.url));
-
+const projectRoot = resolve(fileURLToPath(new URL("../../", import.meta.url)));
 const args = process.argv.slice(2);
 const testMode = args.includes("--test");
+const lanMode = args.includes("--lan");
+const extraArgs = args.filter((arg) => arg !== "--test" && arg !== "--lan");
 
-const apiScript = path.join(
-    projectRoot,
-    "scripts",
-    "commands",
-    "api.mjs"
-);
-
-const frontendScript = path.join(
-    projectRoot,
-    "scripts",
-    "commands",
-    "frontend.mjs"
-);
-
-const scripts = [apiScript, frontendScript];
-
-for (const script of scripts) {
-    if (!existsSync(script)) {
-        console.error(`Required script not found: ${script}`);
-        process.exit(1);
-    }
-}
+const apiScript = resolve(projectRoot, "scripts", "commands", "api.mjs");
+const frontendScript = resolve(projectRoot, "scripts", "commands", "frontend.mjs");
 
 const children = new Map();
-let shuttingDown = false;
-let failed = false;
+let stopping = false;
 
-function stopAll(exitCode = 0) {
-    if (shuttingDown) return;
-
-    shuttingDown = true;
+function stopAll(signal = "SIGTERM", exitCode = 0) {
+    if (stopping) return;
+    stopping = true;
 
     for (const child of children.values()) {
-        if (child.exitCode === null && !child.killed) {
-            child.kill("SIGTERM");
-        }
+        if (child.exitCode === null && !child.killed) child.kill(signal);
     }
 
-    const timeout = setTimeout(() => {
-        for (const child of children.values()) {
-            if (child.exitCode === null && !child.killed) {
-                child.kill("SIGKILL");
-            }
-        }
-
-        process.exit(exitCode);
-    }, 5000);
-
-    timeout.unref();
-
-    Promise.all(
-        [...children.values()].map(
-            (child) =>
-                new Promise((resolve) => {
-                    if (child.exitCode !== null || child.signalCode !== null) {
-                        resolve();
-                    } else {
-                        child.once("exit", resolve);
-                    }
-                })
-        )
-    ).then(() => {
-        clearTimeout(timeout);
-        process.exit(exitCode);
-    });
+    process.exitCode = exitCode;
 }
 
-function startProcess(name, script, childArgs = []) {
+function startProcess(name, script, childArgs) {
+    if (!existsSync(script)) {
+        console.error(`Required ${name} script was not found: ${script}`);
+        stopAll("SIGTERM", 1);
+        return;
+    }
+
     console.log(`Starting ${name}...`);
-
-    const child = spawn(
-        process.execPath,
-        [script, ...childArgs],
-        {
-            cwd: projectRoot,
-            env: process.env,
-            stdio: "inherit"
-        }
-    );
-
+    const child = spawn(process.execPath, [script, ...childArgs], {
+        cwd: projectRoot,
+        env: process.env,
+        stdio: "inherit",
+    });
     children.set(name, child);
 
-    child.on("error", (error) => {
+    child.once("error", (error) => {
         console.error(`${name} failed to start: ${error.message}`);
-        failed = true;
-        stopAll(1);
+        stopAll("SIGTERM", 1);
     });
 
-    child.on("exit", (code, signal) => {
+    child.once("exit", (code, signal) => {
         children.delete(name);
+        if (stopping) return;
 
-        if (shuttingDown) return;
-
-        if (code !== 0) {
-            console.error(
-                `${name} exited unexpectedly (code: ${code}, signal: ${signal}).`
-            );
-            failed = true;
-            stopAll(1);
-            return;
-        }
-
-        console.log(`${name} stopped.`);
-        stopAll(failed ? 1 : 0);
+        console.error(
+            `${name} exited unexpectedly (${signal ? `signal ${signal}` : `code ${code ?? "unknown"}`}).`,
+        );
+        stopAll("SIGTERM", code === 0 ? 1 : code ?? 1);
     });
-
-    return child;
 }
 
-process.on("SIGINT", () => stopAll(130));
-process.on("SIGTERM", () => stopAll(143));
+process.once("SIGINT", () => stopAll("SIGINT"));
+process.once("SIGTERM", () => stopAll("SIGTERM"));
 
 console.log(
-    testMode
-        ? "Starting frontend and API in TEST mode (SQLite)."
-        : "Starting frontend and API in DEVELOPMENT mode."
+    `Starting frontend and API in ${testMode ? "TEST" : "DEVELOPMENT"} mode${lanMode ? " on the LAN" : ""}.`,
 );
 
-startProcess(
-    "Python API",
-    apiScript,
-    testMode ? ["--test"] : []
-);
+const apiArgs = [...extraArgs];
+const frontendArgs = [...extraArgs];
+if (testMode) apiArgs.push("--test");
+if (lanMode) {
+    apiArgs.push("--lan");
+    frontendArgs.push("--lan");
+}
 
-startProcess("Frontend", frontendScript);
+startProcess("Python API", apiScript, apiArgs);
+startProcess("Frontend", frontendScript, frontendArgs);

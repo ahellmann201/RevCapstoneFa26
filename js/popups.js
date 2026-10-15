@@ -195,13 +195,21 @@ export function hideLogOutPopup() {
     overlay.classList.add("hidden");
 }
 
-export async function showMiniPopup(content = "Popup") {
-    document.body.insertAdjacentHTML("beforeend", `
-        <div class="mini_popup" id="mini-popup">${content}</div>
-    `);
+export function showMiniPopup(content = "Popup") {
+    const popup = document.createElement("div");
+    popup.className = "mini_popup";
+    popup.textContent = content;
+    document.body.append(popup);
+
+    // Apply the visible state on the next frame so the browser can animate
+    // from the initial offscreen position.
+    requestAnimationFrame(() => popup.classList.add("mini_popup_visible"));
 
     setTimeout(() => {
-        const popup = document.getElementById("mini-popup");
-        popup.remove()
-    }, 2000)
+        popup.classList.remove("mini_popup_visible");
+        popup.addEventListener("transitionend", () => popup.remove(), { once: true });
+
+        // Keep cleanup reliable if transitions are disabled or interrupted.
+        setTimeout(() => popup.remove(), 400);
+    }, 2000);
 }

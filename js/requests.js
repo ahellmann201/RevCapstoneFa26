@@ -43,10 +43,10 @@ export async function getDisplayNameBlank() {
     }
 }
 /** Returns the signed-in user's mainhand, falling back to the guest setting or cache. */
-export function getMainhand() {
+export async function getMainhand() {
     if (getAuthToken() == null) return GuestAccount.mainhand;
     try {
-        const mainhand = Database.getMainhand();
+        const mainhand = await Database.getMainhand();
         if (mainhand === Database.DB_UNAVAILABLE) return Cache.getMainhand();
         Cache.setMainhand(mainhand);
         return mainhand;

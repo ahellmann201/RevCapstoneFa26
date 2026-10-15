@@ -3,6 +3,8 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+const lanMode = process.argv.includes("--lan");
+
 const projectRoot = resolve(
     fileURLToPath(new URL("../../", import.meta.url)),
 );
@@ -22,6 +24,7 @@ const databaseModule = "test_database.connection";
 const developmentScript = resolve(
     projectRoot,
     "scripts",
+    "commands",
     "dev.mjs",
 );
 
@@ -94,7 +97,7 @@ async function main() {
     }
 
     if (!existsSync(developmentScript)) {
-        fail("The development launcher scripts/dev.mjs was not found.");
+        fail("The development launcher scripts/commands/dev.mjs was not found.");
         return;
     }
 
@@ -139,9 +142,15 @@ async function main() {
         console.log("\nTest database initialization completed.");
         console.log("Starting the frontend and Python API in test mode...\n");
 
+        const devArgs = ["--test"];
+
+        if (lanMode) {
+            devArgs.push("--lan");
+        }
+
         await runProcess(
             process.execPath,
-            [developmentScript, "--test"],
+            [developmentScript, ...devArgs],
             "Development environment",
         );
     } catch (error) {

@@ -1,129 +1,62 @@
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL = `http://${window.location.hostname}:8000`;
 
-export function checkResponse(response) {
+// All HTTP calls share response parsing and error conversion here. Returning
+// parsed data keeps endpoint methods small, and throwing on non-2xx responses
+// lets the request layer decide whether to show cached data or report failure.
+async function request(path, options) {
+    const response = await fetch(`${API_BASE_URL}${path}`, options);
+    const data = response.status === 204 ? null : await response.json().catch(() => null);
+
     if (!response.ok) {
-        throw new Error(`HTTP error: ${response.status}`);
+        throw new Error(data?.detail ?? `HTTP error: ${response.status}`);
     }
+
+    return data;
 }
 
-export async function testPython() {
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/test`);
+export function checkResponse(response) {
+    if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+}
 
-        checkResponse(response);
+export function testPython() {
+    return request("/api/test");
+}
 
-        const data = await response.json();
-
-        console.log("Response from Python:", data);
-
-        return data;
-    } catch (error) {
-        console.error("Python request failed:", error);
-        throw error;
-    }
+export function getUser(userID) {
+    // The backend returns the profile as one record, so the field-specific
+    // methods below reuse this endpoint rather than issuing separate queries.
+    return request(`/api/users/${encodeURIComponent(userID)}`);
 }
 
 export async function getUsername(userID) {
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/users/${userID}`);
-
-        checkResponse(response);
-
-        const user = await response.json();
-        console.log(user);
-        const username = user.Username;
-
-        console.log("Username: ", username);
-
-        return username;
-    } catch (error) {
-        console.error("Username fetch failed:", error);
-        throw error;
-    }
+    return (await getUser(userID)).Username;
 }
 
 export async function getDisplayName(userID) {
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/users/${userID}`);
-
-        checkResponse(response);
-
-        const user = await response.json();
-        const displayName = user.Display_Name
-
-        console.log("Display name: ", displayName);
-        return displayName;
-    } catch (error) {
-        console.error("Display name fetch failed", error);
-        throw error;
-    }
+    return (await getUser(userID)).Display_Name;
 }
 
 export async function getMainhand(userID) {
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/users/${userID}`);
-
-        checkResponse(response);
-
-        const user = await response.json();
-        const mainhand = user.Main_Hand
-
-        console.log("Mainhand: ", mainhand);
-        return mainhand;
-    } catch (error) {
-        console.error("Mainhand fetch failed", error);
-        throw error;
-    }
+    return (await getUser(userID)).Main_Hand;
 }
 
-export async function login(email, password) {
-    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            email: email,
-            password: password
-        })
+export function setDisplayName(userID, displayName) {
+    // Match the API's PUT contract and JSON body shape for profile updates.
+    return request(`/api/users/${encodeURIComponent(userID)}/display-name`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: displayName })
     });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-        throw new Error(result.detail || "Login failed.");
-    }
-
-    return result;
 }
 
-export async function setDisplayName(displayName) {
-    const userID = sessionStorage.getItem("userID");
-    const response = await fetch(
-        `${API_BASE_URL}/api/users/${userID}/display-name`,
-        {
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                value: displayName
-            })
-        }
-    );
-
-    if (!response.ok) {
-        const error = await response.json();
-        console.error("API Error:", error);
-        throw new Error(JSON.stringify(error.detail));
-    }
-    else {
-        return getDisplayName(userID);
-    }
-
-    return await response.json();
+export function login(email, password) {
+    return request("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+    });
 }
 
-// Expose the function for development testing.
 window.testPython = testPython;
-window.setDisplayName = setDisplayName;
+window.setDisplayName = (displayName) =>
+    setDisplayName(sessionStorage.getItem("userID"), displayName);

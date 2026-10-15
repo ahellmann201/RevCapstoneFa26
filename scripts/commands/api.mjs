@@ -19,9 +19,10 @@ const pythonExecutable = resolve(
 );
 
 const testMode = process.argv.includes("--test");
+const lanMode = process.argv.includes("--lan");
 
 const extraArgs = process.argv.slice(2).filter(
-    (arg) => arg !== "--test"
+    (arg) => arg !== "--test" && arg !== "--lan"
 );
 
 function fail(message) {
@@ -92,7 +93,7 @@ function main() {
             "api.main:app",
             "--reload",
             "--host",
-            "127.0.0.1",
+            lanMode ? "0.0.0.0" : "127.0.0.1",
             "--port",
             "8000",
             ...extraArgs

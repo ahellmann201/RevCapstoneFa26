@@ -96,15 +96,17 @@ export function setShowFullDisplayName() {
     });
 }
 
-export function saveDisplayName() {
+export async function saveDisplayName() {
     const field = document.getElementById("display-name-field");
     const newDisplayName = field.value;
 
-    const success = Database.setDisplayName(newDisplayName);
+    const success = await Database.setDisplayName(newDisplayName);
 
-    if (success) {
+    if (success === true) {
+        Cache.setDisplayName(newDisplayName);
         saveDisplayNameButton.disabled = true;
-        Popups.showMiniPopup(`Successfully set display name to ${Database.getDisplayNameBlank()}`);
+        initialDisplayName = newDisplayName;
+        Popups.showMiniPopup(`Successfully set display name to ${newDisplayName}`);
     }
 }
 

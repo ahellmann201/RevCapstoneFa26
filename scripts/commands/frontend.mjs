@@ -28,7 +28,16 @@ function main() {
         );
     }
 
-    const extraArgs = process.argv.slice(2);
+    const args = process.argv.slice(2);
+    const lanMode = args.includes("--lan");
+
+    const extraArgs = args.filter(
+        (arg) => arg !== "--lan"
+    );
+
+    if (lanMode) {
+        extraArgs.push("--host", "0.0.0.0");
+    }
 
     console.log("Starting the RevCapstone frontend...");
     console.log("Vite will display the local development URL below.\n");
