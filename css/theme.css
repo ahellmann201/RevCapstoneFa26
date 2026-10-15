@@ -32,6 +32,10 @@
     box-sizing: border-box;
 }
 
+button {
+    color: var(--off-black);
+}
+
 body {
     background-color: var(--bg-color);
     overflow-x: none;

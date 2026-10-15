@@ -124,6 +124,9 @@
     width: 50dvw;
     height: 100dvh;
 
+    display: flex;
+    flex-direction: column;
+
     z-index: 5;
 }
 .close_sidebar_button {
@@ -172,6 +175,27 @@
 .sidebar_section_close_sidebar {
     height: calc(var(--hamburger-button-size) * 1.9);
     padding: 0.1rem;
+}
+
+.sidebar_auth {
+    display: flex;
+    flex-direction: column;
+    margin-top: auto;
+    border-top: 1px solid var(--border-color);
+}
+.sidebar_auth > button {
+    min-height: calc(var(--sidebar-section-height) * 1.5);
+    border: none;
+    font-family: var(--standard-font-family);
+    font-size: 2rem;
+    border-radius: 2rem;
+    margin: 0.25rem;
+}
+
+.sidebar_login_button {
+    background-color: var(--button-color-1);
+    color: white;
+    font-weight: bold;
 }
 
 .home_button {
@@ -276,6 +300,11 @@ navbar {
     flex-direction: column;
 }
 
+.auth_popup.is_entering,
+.auth_popup.is_switching_out {
+    transform: translateY(100%);
+}
+
 .auth_popup::backdrop {
     background: rgb(0 0 0 / 55%);
 }
@@ -369,13 +398,19 @@ navbar {
 
 .popup_primary {
     background: var(--button-color-1);
-    color: var(--bg-color);
+    color: var(--off-white);
+}
+
+.popup_switch {
+    margin-top: 0.5rem;
+    background: transparent;
+    color: var(--off-black);
 }
 
 .popup_close {
     margin-top: 0.5rem;
     background: transparent;
-    color: #535d60;
+    color: var(--off-black);
 }
 
 .dropdown_section {
@@ -425,6 +460,10 @@ body:has(.auth_popup[open]) {
     text-align: center;
 }
 
+.log_out_popup_header_container > h3 {
+    font-weight: lighter;
+}
+
 .log_out_popup_buttons_container {
     width: calc(100% - 1rem);
     display: flex;
@@ -457,4 +496,43 @@ body:has(.auth_popup[open]) {
     background-color: var(--log-out-overlay-color);
     opacity: var(--log-out-overlay-opacity);
     z-index: 98;
+}
+
+.mini_popup {
+    position: fixed;
+    top: -100%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    height: auto;
+    background-color: rgba(255,255,255,0.5);
+    backdrop-filter: blur(50px);
+    text-wrap: pretty;
+    font-family: var(--standard-font-family);
+    font-size: 1.5rem;
+    padding: 1rem;
+    z-index: 999;
+    border-bottom-right-radius: 1rem;
+    border-bottom-left-radius: 1rem;
+    transition: top 350ms ease-in-out;
+}
+
+.mini_popup.mini_popup_visible {
+    top: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mini_popup {
+        transition-duration: 1ms;
+    }
+}
+.mini_popup::before {
+    top: -100%;
+    left: 50%;
+    transform: translate(-50%, -100%);
+}
+.mini_popup::after {
+    top: 0;
+    left: 50%;
+    transform: translate(-50%, 0);
 }

@@ -1,111 +1,91 @@
 # RevCapstoneFa26
 
 ## Overview
-This project is a mobile bowling application developed as a York College of Pennsylvania Computer Science Capstone project. The application allows users to record and track bowling games, manage bowling events and locations, view performance data, and connect with other bowlers.
 
-The application is designed to support both casual score tracking and longer-term performance analysis. It also includes on-device video analysis using Pose3D to provide additional information about a user’s bowling performance.
+RevCapstoneFa26 is a mobile bowling application developed as a York College of Pennsylvania Computer Science Capstone project. The application allows users to record and track bowling games, manage bowling events and locations, view performance data, and connect with other bowlers.
 
-The application is built using a web-based frontend and packaged for mobile devices using Capacitor, allowing the same application to be deployed to both iOS and Android.
+The application supports casual score tracking and longer-term performance analysis. It also includes planned on-device video analysis using Pose3D to provide additional information about bowling technique and performance.
+
+The frontend is built using web technologies and packaged for mobile devices using Capacitor, allowing the application to target both iOS and Android.
 
 ## Features
-* User Accounts — Create and manage a personal account, with support for guest users.
-* Profile Customization — Customize profile information, including profile pictures, display names, and preferred bowling hand.
-* Bowling Score Tracking — Record and manage bowling games and scores.
-* Events — Organize and track bowling sessions and events.
-* Bowling Locations — Associate games and events with bowling locations.
-* Performance Tracking — View and track bowling performance and statistics over time.
-* Friends — Connect with other users and manage a personal friends list.
-* Pose3D Analysis — Record bowling videos and use on-device pose analysis to gather additional information about bowling technique and performance.
 
-## Technical Overview
+- **User Accounts** — Create and manage accounts, with support for guest users.
+- **Profile Customization** — Manage profile information, including profile pictures, display names, and preferred bowling hand.
+- **Bowling Score Tracking** — Record and manage bowling games and scores.
+- **Events** — Organize and track bowling sessions and events.
+- **Bowling Locations** — Associate games and events with bowling locations.
+- **Performance Tracking** — View bowling performance and statistics over time.
+- **Friends** — Connect with other users and manage a friends list.
+- **Pose3D Analysis** — Analyze bowling motion using video and pose estimation.
 
-### UI
+## Technology Stack
 
-The user interface is built with **HTML**, **CSS**, and **JavaScript** and follows a mobile-first design.
+### Frontend
 
-### Client
+The frontend uses HTML, CSS, JavaScript, and Vite. It handles the user interface, client-side state, and communication with the Python API.
 
-The client is a **Vite**-based JavaScript application responsible for UI logic, client-side state, local data, and communication with the backend.
+The application follows a mobile-first design and supports both guest and authenticated users.
 
-The client supports both **guest** and **authenticated** users.
+### Python API
 
-### API Communication
+The backend uses FastAPI to define HTTP endpoints and Uvicorn to run the API server.
 
-The client communicates with the backend through an **API** for authentication and persistent application data.
+The JavaScript frontend communicates with the API through HTTP requests using `fetch()`. The API processes requests and returns JSON responses.
 
-API communication is used for operations involving:
+Important files include:
 
-- User accounts
-- Bowling games and scores
-- Events
-- Locations
-- Friendships
-- Performance data
+- `api/main.py` — Defines the FastAPI application and API routes.
+- `api/config.py` — Handles API and database configuration.
+- `js/api_client.js` — Contains JavaScript functions for communicating with the API.
+- `Database/` — Contains existing database connection, entity, and repository code.
 
-### Backend
-
-The backend provides the application's API, business logic, authentication, authorization, and database access.
+The API acts as the intermediary between the frontend and the database. Database credentials should never be embedded in frontend code.
 
 ### Database
 
-The database stores persistent application data, including users, games, events, locations, friendships, and performance information.
+The project supports two database environments:
 
-The client does not access the database directly.
+- **SQLite** — Used for local testing and development.
+- **SQL Server** — Used when running against a configured SQL Server database.
+
+The local SQLite database is initialized using the schema and seed files in `test_database/`.
+
+Database configuration is supplied through environment files. The frontend should communicate with the API rather than connecting directly to the database.
 
 ### Video AI
 
-The application includes an **on-device video analysis pipeline** for analyzing bowling motion.
+The application includes a planned video analysis pipeline for analyzing bowling motion.
 
-The pipeline uses **Python**, **ONNX Runtime**, and a **Pose3D model**.
+The intended processing flow is:
+
+1. Capture bowling video.
+2. Preprocess the video and prepare model input.
+3. Run the Pose3D model.
+4. Postprocess the model output.
+5. Generate bowling analysis.
+
+The planned pipeline uses Python, ONNX Runtime, and a Pose3D model.
+
+Running Python on a development computer does not automatically package a Python runtime into the mobile application. Mobile runtime integration and compatibility with Python dependencies must be addressed separately before this pipeline can run as intended in packaged iOS and Android builds.
+
+## Project Architecture
+
+The intended request flow is:
 
 ```text
-Video Capture
-      ↓
-Preprocessing
-      ↓
-Pose3D Model
-      ↓
-Postprocessing
-      ↓
-Bowling Analysis
-```
-
-## Commands
-
-### Install dependencies
-
-Install the project dependencies listed in `package.json`. Run this after cloning the repository or when dependencies change:
-
-```sh
-npm install
-```
-
-The project already includes Vitest and jsdom as development dependencies. If you need to add them to a fresh or older checkout, use:
-
-```sh
-npm install -D vitest jsdom
-```
-
-### Run the development server
-
-Start Vite's local development server with hot reloading. Open the local URL printed in the terminal (typically `http://localhost:5173`):
-
-```sh
-npm run dev
-```
-
-To make the server available to other devices on your local network, such as a phone used for testing, add the host flag:
-
-```sh
-npm run dev -- --host
-```
-
-### Run tests
-
-Start the Vitest test runner:
-
-```sh
-npm run test
-```
-
-npm run test
+JavaScript Frontend
+        |
+        | HTTP requests
+        v
+Python API
+(FastAPI / Uvicorn)
+        |
+        v
+Database Connection
+        |
+        v
+Database Repositories
+        |
+        v
+SQLite or SQL Server

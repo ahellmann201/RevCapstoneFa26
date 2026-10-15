@@ -6,10 +6,10 @@ import { getDisplayName } from "./requests.js";
 import { parseDisplayName } from "./data_handling.js"
 loadNavbar();
 
-function loadWelcomeMessage(name = "Guest") {
+async function loadWelcomeMessage(name = "Guest") {
     const welcomeMessageElement = document.getElementById("welcome-message");
     if (getAuthToken() != null) {
-        name = parseDisplayName(getDisplayName());
+        name = parseDisplayName(await getDisplayName());
     }
     welcomeMessageElement.textContent = pickRandomWelcomeMessage(name);
 }

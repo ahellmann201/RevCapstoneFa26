@@ -57,7 +57,6 @@ export function getShowFullDisplayName() {
         else return false;
     }
 }
-
 /** Stores whether to show the full display name. @param {boolean} showFull */
 export function setShowFullDisplayName(showFull) {
     sessionStorage.setItem("showFullDisplayName", showFull);
@@ -106,6 +105,15 @@ export function setShotResult(shotId, result) {
 export function getShotResult(shotId) {
     const value = sessionStorage.getItem(`shot:${shotId}:result`);
     return value === null ? null : JSON.parse(value);
+}
+
+export function getUserID() {
+    const userID = sessionStorage.getItem("userID");
+    if (userID == null) return null;
+    else return userID;
+}
+export function setUserID(userID) {
+    sessionStorage.setItem("userID", userID);
 }
 
 window.clearCache = clearCache;

@@ -2,7 +2,15 @@
 import { loadNavbar } from "./navbar.js";
 import * as Requests from "./requests.js";
 import * as Cache from "./cache.js";
+import * as Database from "./database.js";
+import * as Popups from "./popups.js";
 import { addPfpToContainer } from "./data_handling.js";
+
+const cancelDisplayNameButton = document.getElementById("cancel-display-name");
+const saveDisplayNameButton = document.getElementById("save-display-name");
+const displayNameField = document.getElementById("display-name-field");
+
+let initialDisplayName = document.getElementById("display-name-field").value;
 
 const leftHandOverlay = document.getElementById("left-hand-overlay");
 const bothHandsOverlay = document.getElementById("both-hands-overlay");
@@ -11,6 +19,7 @@ const leftHandUnderlay = document.getElementById("left-hand");
 const bothHandsUnderlay = document.getElementById("both-hands");
 const rightHandUnderlay = document.getElementById("right-hand");
 const selection = document.getElementById("mainhand-selection");
+
 
 var mainhand = Requests.getMainhand();
 
@@ -21,28 +30,39 @@ leftHandUnderlay.addEventListener("click", () => {setMainhandSelection("left");}
 bothHandsUnderlay.addEventListener("click", () => {setMainhandSelection("both");})
 rightHandUnderlay.addEventListener("click", () => {setMainhandSelection("right");})
 
+displayNameField.addEventListener("input", () => {
+    if (displayNameField.value != initialDisplayName) {
+        saveDisplayNameButton.disabled = false;
+    }
+    else {
+        saveDisplayNameButton.disabled = true;
+    }
+});
+cancelDisplayNameButton.addEventListener("click", () => {cancelDisplayName()});
+saveDisplayNameButton.addEventListener("click", () => {saveDisplayName()});
+
 loadNavbar();
 loadAccountInfoToFields();
 setShowFullDisplayName();
 
-export function loadAccountInfoToFields() {
+export async function loadAccountInfoToFields() {
     const pfpFieldPictureContainer = document.getElementById("pfp-field-picture-container");
     addPfpToContainer("pfp-field-picture-container", "/icons/default_pfp.png");
 
-    const username = Requests.getUsername();
+    const username = await Requests.getUsername();
     const usernameField = document.getElementById("username-field");
     let usernameValue = usernameField.innerHTML;
     usernameField.innerHTML = usernameValue + username;
 
     const displayNameField = document.getElementById("display-name-field");
-    const displayName = Requests.getDisplayNameBlank();
+    const displayName = await Requests.getDisplayNameBlank();
     if (displayName != null) displayNameField.value = displayName;
 
-    setMainhandSelection(mainhand);
+    await setMainhandSelection(mainhand);
 }
 
-export function setMainhandSelection(setMainhand = "both") {
-    mainhand = setMainhand;
+export async function setMainhandSelection(setMainhand = "both") {
+    mainhand = await setMainhand;
     if (mainhand == "left") {
         selection.style.left = "var(--left-hand-left)";
         leftHandOverlay.style.left = "0rem";
@@ -74,4 +94,25 @@ export function setShowFullDisplayName() {
         displayNameFull = displayNameFullToggle.checked;
         Cache.setShowFullDisplayName(displayNameFull);
     });
+}
+
+export async function saveDisplayName() {
+    const field = document.getElementById("display-name-field");
+    const newDisplayName = field.value;
+
+    const success = await Database.setDisplayName(newDisplayName);
+
+    if (success === true) {
+        Cache.setDisplayName(newDisplayName);
+        saveDisplayNameButton.disabled = true;
+        initialDisplayName = newDisplayName;
+        Popups.showMiniPopup(`Successfully set display name to ${newDisplayName}`);
+    }
+}
+
+export async function cancelDisplayName() {
+    const field = document.getElementById("display-name-field");
+    const displayName = await Requests.getDisplayNameBlank();
+    field.value = displayName
+    saveDisplayNameButton.disabled = true;
 }

@@ -1,75 +1,67 @@
-import { Request } from "./objects/request.js"
-import { DummyAccount } from "./defaults/dummy_account.js";
-import * as Cache from "./cache.js";
 import * as Authentication from "./authentication.js";
-/** Returns the database's mainhand value. */
+import * as API from "./api_client.js";
 
+// Use a Symbol so callers can distinguish an unavailable backend from valid
+// values such as null, an empty string, or false.
 export const DB_UNAVAILABLE = Symbol("Database Unavailable");
 
-/** Provides the application's current user profile values from its data source. */
-export function getMainhand(forceDatabaseUnavailableParam = false, forceInvalidSessionParam = false) {
-    const request = new Request({
-        operation: "get",
-        resource: "mainhand",
-        debug: {
-            forceDatabaseUnavailable: forceDatabaseUnavailableParam,
-            forceInvalidSession: forceInvalidSessionParam
-        }
-    });
-
-    return sendRequest(request);
+// The connectivity flag is a session-level shortcut. Network failures still
+// propagate from api_client.js, where the shared HTTP response handling lives.
+function isUnavailable(forceDatabaseUnavailable = false) {
+    return forceDatabaseUnavailable || sessionStorage.getItem("canReachDatabase") === "false";
 }
 
-/** Returns the database's display name. */
-export function getDisplayName(forceDatabaseUnavailableParam = false, forceInvalidSessionParam = false) {
-    const request = new Request({
-        operation: "get",
-        resource: "displayName",
-        debug: {
-            forceDatabaseUnavailable: forceDatabaseUnavailableParam,
-            forceInvalidSession: forceInvalidSessionParam
-        }
-    });
-
-    return sendRequest(request);
+function getUserID() {
+    const userID = sessionStorage.getItem("userID");
+    if (userID == null) throw new Error("No signed-in user is available.");
+    return userID;
 }
 
-/** Returns the database's username. */
-export function getUsername(forceDatabaseUnavailableParam = false, forceInvalidSessionParam = false) {
-    const request = new Request({
-        operation: "get",
-        resource: "username",
-        debug: {
-            forceDatabaseUnavailable: forceDatabaseUnavailableParam,
-            forceInvalidSession: forceInvalidSessionParam
-        }
-    });
-
-    return sendRequest(request);
-}
-
-//TODO: make this function actually communicate to the db. for now, it just has some dummy output
-export function sendRequest(request = null) {
-    if (request == null) {
-        console.log("Invalid request call");
-        return null;
-    }
-
-    if (request.forceDatabaseUnavailable) {
-        return DB_UNAVAILABLE;
-    }
-    if (request.forceInvalidSession) {
+// Keep profile lookup policy here: reject known-unavailable requests, apply
+// debug-only invalid-session behavior, then let the API client perform HTTP.
+// Passing the reader in avoids repeating this policy for each profile field.
+async function readProfileValue(read, forceDatabaseUnavailable, forceInvalidSession) {
+    if (isUnavailable(forceDatabaseUnavailable)) return DB_UNAVAILABLE;
+    if (forceInvalidSession) {
         Authentication.logOut();
-        return "Logged Out due to invalid auth token (debug)";
+        throw new Error("Logged out due to an invalid session (debug).");
     }
+    return read(getUserID());
+}
 
-    if (request.operation == "get") {
-        if (request.resource == "mainhand") return DummyAccount.mainhand;
-        if (request.resource == "username") return DummyAccount.username;
-        if (request.resource == "displayName") return DummyAccount.displayName;
+export function getMainhand(forceDatabaseUnavailable = false, forceInvalidSession = false) {
+    return readProfileValue(API.getMainhand, forceDatabaseUnavailable, forceInvalidSession);
+}
+
+export function getDisplayName(forceDatabaseUnavailable = false, forceInvalidSession = false) {
+    return readProfileValue(API.getDisplayName, forceDatabaseUnavailable, forceInvalidSession);
+}
+
+export function getUsername(forceDatabaseUnavailable = false, forceInvalidSession = false) {
+    return readProfileValue(API.getUsername, forceDatabaseUnavailable, forceInvalidSession);
+}
+
+export async function setDisplayName(displayName) {
+    if (isUnavailable()) return DB_UNAVAILABLE;
+    // Await the write so true means the server accepted it; otherwise the
+    // caller could report success before the database update completes.
+    await API.setDisplayName(getUserID(), displayName);
+    return true;
+}
+
+/**
+ * Stores the result of the current simulated connectivity check in session
+ * storage. This is a development placeholder until the app checks the API.
+ * `testAnyway` forces a refresh; otherwise an existing session result is kept.
+ */
+export async function testDatabaseConnection(forceFail = false, testAnyway = false) {
+    if (sessionStorage.getItem("canReachDatabase") === null || testAnyway) {
+        sessionStorage.setItem("canReachDatabase", forceFail ? "false" : "true");
     }
+    return sessionStorage.getItem("canReachDatabase");
 }
 
 window.getMainhand = getMainhand;
 window.getUsername = getUsername;
 window.getDisplayName = getDisplayName;
+window.testDatabaseConnection = testDatabaseConnection;
