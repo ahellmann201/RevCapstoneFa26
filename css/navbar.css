@@ -425,6 +425,10 @@ body:has(.auth_popup[open]) {
     text-align: center;
 }
 
+.log_out_popup_header_container > h3 {
+    font-weight: lighter;
+}
+
 .log_out_popup_buttons_container {
     width: calc(100% - 1rem);
     display: flex;
@@ -457,4 +461,33 @@ body:has(.auth_popup[open]) {
     background-color: var(--log-out-overlay-color);
     opacity: var(--log-out-overlay-opacity);
     z-index: 98;
+}
+
+.mini_popup {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translate(-50%, 0);
+    width: 80%;
+    height: auto;
+    background-color: rgba(255,255,255,0.5);
+    backdrop-filter: blur(50px);
+    text-wrap: pretty;
+    font-family: var(--standard-font-family);
+    font-size: 1.5rem;
+    padding: 1rem;
+    z-index: 999;
+    border-bottom-right-radius: 1rem;
+    border-bottom-left-radius: 1rem;
+    transition: top 1s ease-in-out;
+}
+.mini_popup::before {
+    top: -100%;
+    left: 50%;
+    transform: translate(-50%, -100%);
+}
+.mini_popup::after {
+    top: 0;
+    left: 50%;
+    transform: translate(-50%, 0);
 }

@@ -6,12 +6,15 @@ from pydantic import BaseModel
 
 from test_database.connection import get_connection as get_test_connection
 from test_database.login import validate_login
-from api.database import get_user_by_id
+from api.database import *
 from api.config import APP_ENV
 
 class LoginRequest(BaseModel):
     email: str
     password: str
+
+class SetDisplayNameRequest(BaseModel):
+    value: str
 
 app = FastAPI()
 
@@ -72,3 +75,35 @@ def login(credentials: LoginRequest):
         )
 
     return {"User_ID": user_id}
+
+@app.put("/api/users/{user_id}/display-name")
+def set_display_name(
+    user_id: int,
+    request: SetDisplayNameRequest
+):
+    display_name = request.value.strip()
+
+    if not display_name:
+        raise HTTPException(
+            status_code=400,
+            detail="Display name cannot be empty."
+        )
+
+    if len(display_name) > 100:
+        raise HTTPException(
+            status_code=400,
+            detail="Display name cannot exceed 100 characters."
+        )
+
+    success = update_display_name(user_id, display_name)
+
+    if not success:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found."
+        )
+
+    return {
+        "success": True,
+        "displayName": display_name
+    }

@@ -34,6 +34,22 @@ export function getDisplayName(forceDatabaseUnavailableParam = false, forceInval
     return sendRequest(request);
 }
 
+export function setDisplayName(displayName) {
+    const request = new Request({
+        operation: "set",
+        resource: "displayName",
+        parameters: {
+            value: displayName
+        },
+        debug: {
+            forceDatabaseUnavailable: false,
+            forceInvalidSession: false
+        }
+    });
+
+    return sendRequest(request);
+}
+
 /** Returns the database's username. */
 export function getUsername(forceDatabaseUnavailableParam = false, forceInvalidSessionParam = false) {
     const request = new Request({
@@ -48,10 +64,8 @@ export function getUsername(forceDatabaseUnavailableParam = false, forceInvalidS
     return sendRequest(request);
 }
 
-//TODO: make this function actually communicate to the db. for now, it just has some dummy output
 export function sendRequest(request = null) {
-    console.log(sessionStorage.getItem("canReachDatabase"));
-    testDatabaseConnection(false, false);
+    // testDatabaseConnection(false, false);
     const connected = sessionStorage.getItem("canReachDatabase") !== "false";
 
     if (request == null) {
@@ -73,6 +87,12 @@ export function sendRequest(request = null) {
         if (request.resource == "username") return API.getUsername(userID);
         if (request.resource == "displayName") return API.getDisplayName(userID)
     }
+    else if (request.operation == "set") {
+        if (request.resource == "displayName") {
+            API.setDisplayName(request.parameters["value"]);
+            return true;
+        }
+    }
 }
 
 /**
@@ -86,7 +106,6 @@ export function sendRequest(request = null) {
  */
 export async function testDatabaseConnection(forceFail = false, testAnyway = false) {
     if (sessionStorage.getItem("canReachDatabase") === null || testAnyway) {
-
         const controller = new AbortController();
 
         //code waits 5 seconds for a valid response from db before aborting and putting "false" in session storage

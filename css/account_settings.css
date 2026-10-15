@@ -33,6 +33,7 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+
 }
 
 .account_field {
@@ -349,4 +350,26 @@
 
 .switch input:checked + .slider::before {
     transform: translateX(1.5rem);
+}
+
+.save_container {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+
+    width: 90%;
+    margin-top: 1rem;
+}
+.save_container > button {
+    border: none;
+    padding: 0.5rem;
+    font-size: 1.5rem;
+    border-radius: 1rem;
+}
+.cancel_display_name {
+    background-color: var(--field-entry-color-1);
+}
+.save_display_name {
+    background-color: var(--button-color-1);
 }

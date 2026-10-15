@@ -11,9 +11,9 @@ def validate_login(email: str, password: str) -> int | None:
             """
             SELECT User_ID
             FROM USERS
-            WHERE Email = ? AND Password = ?
+            WHERE (Email = ? OR Username = ?) AND Password = ?
             """,
-            (email, password)
+            (email, email, password)
         )
 
         user = cursor.fetchone()

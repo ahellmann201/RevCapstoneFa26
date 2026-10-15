@@ -2,7 +2,15 @@
 import { loadNavbar } from "./navbar.js";
 import * as Requests from "./requests.js";
 import * as Cache from "./cache.js";
+import * as Database from "./database.js";
+import * as Popups from "./popups.js";
 import { addPfpToContainer } from "./data_handling.js";
+
+const cancelDisplayNameButton = document.getElementById("cancel-display-name");
+const saveDisplayNameButton = document.getElementById("save-display-name");
+const displayNameField = document.getElementById("display-name-field");
+
+let initialDisplayName = document.getElementById("display-name-field").value;
 
 const leftHandOverlay = document.getElementById("left-hand-overlay");
 const bothHandsOverlay = document.getElementById("both-hands-overlay");
@@ -12,6 +20,7 @@ const bothHandsUnderlay = document.getElementById("both-hands");
 const rightHandUnderlay = document.getElementById("right-hand");
 const selection = document.getElementById("mainhand-selection");
 
+
 var mainhand = Requests.getMainhand();
 
 leftHandOverlay.addEventListener("click", () => {setMainhandSelection("left");})
@@ -20,6 +29,17 @@ rightHandOverlay.addEventListener("click", () => {setMainhandSelection("right");
 leftHandUnderlay.addEventListener("click", () => {setMainhandSelection("left");})
 bothHandsUnderlay.addEventListener("click", () => {setMainhandSelection("both");})
 rightHandUnderlay.addEventListener("click", () => {setMainhandSelection("right");})
+
+displayNameField.addEventListener("input", () => {
+    if (displayNameField.value != initialDisplayName) {
+        saveDisplayNameButton.disabled = false;
+    }
+    else {
+        saveDisplayNameButton.disabled = true;
+    }
+});
+cancelDisplayNameButton.addEventListener("click", () => {cancelDisplayName()});
+saveDisplayNameButton.addEventListener("click", () => {saveDisplayName()});
 
 loadNavbar();
 loadAccountInfoToFields();
@@ -74,4 +94,23 @@ export function setShowFullDisplayName() {
         displayNameFull = displayNameFullToggle.checked;
         Cache.setShowFullDisplayName(displayNameFull);
     });
+}
+
+export function saveDisplayName() {
+    const field = document.getElementById("display-name-field");
+    const newDisplayName = field.value;
+
+    const success = Database.setDisplayName(newDisplayName);
+
+    if (success) {
+        saveDisplayNameButton.disabled = true;
+        Popups.showMiniPopup(`Successfully set display name to ${Database.getDisplayNameBlank()}`);
+    }
+}
+
+export async function cancelDisplayName() {
+    const field = document.getElementById("display-name-field");
+    const displayName = await Requests.getDisplayNameBlank();
+    field.value = displayName
+    saveDisplayNameButton.disabled = true;
 }

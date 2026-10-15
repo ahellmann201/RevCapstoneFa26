@@ -97,5 +97,33 @@ export async function login(email, password) {
     return result;
 }
 
+export async function setDisplayName(displayName) {
+    const userID = sessionStorage.getItem("userID");
+    const response = await fetch(
+        `${API_BASE_URL}/api/users/${userID}/display-name`,
+        {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                value: displayName
+            })
+        }
+    );
+
+    if (!response.ok) {
+        const error = await response.json();
+        console.error("API Error:", error);
+        throw new Error(JSON.stringify(error.detail));
+    }
+    else {
+        return getDisplayName(userID);
+    }
+
+    return await response.json();
+}
+
 // Expose the function for development testing.
 window.testPython = testPython;
+window.setDisplayName = setDisplayName;

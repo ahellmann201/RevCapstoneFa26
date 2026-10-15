@@ -189,9 +189,19 @@ export function showLogOutPopup() {
 }
 
 export function hideLogOutPopup() {
-    console.log("ehfisefiusi");
     const popup = document.getElementById("log-out-popup");
     popup.classList.add("hidden");
     const overlay = document.getElementById("log-out-overlay");
     overlay.classList.add("hidden");
+}
+
+export async function showMiniPopup(content = "Popup") {
+    document.body.insertAdjacentHTML("beforeend", `
+        <div class="mini_popup" id="mini-popup">${content}</div>
+    `);
+
+    setTimeout(() => {
+        const popup = document.getElementById("mini-popup");
+        popup.remove()
+    }, 2000)
 }

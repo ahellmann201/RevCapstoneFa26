@@ -38,3 +38,23 @@ def get_user_by_id(user_id: int):
 
     finally:
         conn.close()
+
+def update_display_name(user_id: int, display_name: str) -> bool:
+    """Update a user's display name."""
+
+    conn = get_connection()
+
+    try:
+        query = """
+            UPDATE USERS
+            SET Display_Name = ?
+            WHERE User_ID = ?
+        """
+
+        cursor = conn.execute(query, (display_name, user_id))
+        conn.commit()
+
+        return cursor.rowcount > 0
+
+    finally:
+        conn.close()
