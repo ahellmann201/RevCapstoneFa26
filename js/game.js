@@ -1,15 +1,65 @@
 import { loadNavbar } from "./navbar.js";
+import { 
+    setPinLeave,
+    getPinLeave,
+    addFrameShot,
+    getFrameShots,
+    setShotResult,
+    getShotResult
+} from "./cache.js";
 
 loadNavbar();
 
 const FRAME_COUNT = 10;
 let currentFrame = 1;
+let currentShot = 1;
+let gameFinished = false;
+let currentFoul = false;
+
+const ALL_PINS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+const frames = [];
 
 const frameStrip = document.getElementById("frame_strip");
 const pinRack = document.getElementById("pin_rack");
 const frameTitle = document.getElementById("frame_title");
 const nextButton = document.getElementById("next_frame");
 const gameStatus = document.getElementById("game_status");
+const foulButton = document.getElementById("foul_button");
+const gutterButton = document.getElementById("gutter_button");
+const spareButton = document.getElementById("spare_button");
+const strikeButton = document.getElementById("strike_button");
+
+function updateShortcutButtons() {
+    const strikeAllowed = isStrikeOpportunity(currentFrame, currentShot);
+
+    foulButton.disabled = gameFinished;
+    gutterButton.disabled = gameFinished;
+    strikeButton.disabled = gameFinished || !strikeAllowed;
+    spareButton.disabled =
+        gameFinished || currentShot === 1 || strikeAllowed;
+
+    foulButton.setAttribute("aria-pressed", String(currentFoul));
+}
+
+function applyShortcut(type) {
+    if (gameFinished) return;
+
+    const startingPins = getStartingPins(currentFrame, currentShot);
+    currentFoul = type === "foul";
+
+    // Foul and gutter credit zero pins.
+    // Restore the available rack so the following shot starts correctly.
+    const leave =
+        type === "foul" || type === "gutter" ? startingPins : [];
+
+    setPinLeave(getCurrentShotId(), leave);
+    updateFrame();
+}
+
+foulButton.addEventListener("click", () => applyShortcut("foul"));
+gutterButton.addEventListener("click", () => applyShortcut("gutter"));
+spareButton.addEventListener("click", () => applyShortcut("spare"));
+strikeButton.addEventListener("click", () => applyShortcut("strike"));
 
 // Scorecard placeholders only. No score calculations.
 for (let frame = 1; frame <= FRAME_COUNT; frame++) {
@@ -18,6 +68,19 @@ for (let frame = 1; frame <= FRAME_COUNT; frame++) {
     card.dataset.frame = frame;
 
     const rolls = frame === 10 ? 3 : 2;
+
+    const frameId = crypto.randomUUID();
+    const firstShotId = crypto.randomUUID();
+
+    frames.push({
+        id: frameId,
+        number: frame
+    });
+
+    addFrameShot(frameId, firstShotId);
+    setPinLeave(firstShotId, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+
+    card.dataset.frameId = frameId;
 
     card.innerHTML = `
         <span class="frame_number">FRAME ${frame}</span>
@@ -31,7 +94,6 @@ for (let frame = 1; frame <= FRAME_COUNT; frame++) {
 
     frameStrip.appendChild(card);
 }
-
 // Pin positions: back row to front row.
 const pinLayout = [
     { number: 7, row: 1, column: 1 },
@@ -58,6 +120,7 @@ pinLayout.forEach(({ number, row, column }) => {
     pin.type = "button";
     pin.className = "pin";
     pin.textContent = number;
+    pin.dataset.pin = number;
     pin.style.gridRow = row;
     pin.style.gridColumn = `${column} / span 2`;
 
@@ -65,37 +128,47 @@ pinLayout.forEach(({ number, row, column }) => {
     pin.setAttribute("aria-pressed", "false");
 
     pin.addEventListener("click", () => {
-        const knockedDown = pin.getAttribute("aria-pressed") === "true";
-        pin.setAttribute("aria-pressed", String(!knockedDown));
+    if (gameFinished || pin.disabled) return;
+
+    currentFoul = false;
+
+    const knockedDown = pin.getAttribute("aria-pressed") === "true";
+    pin.setAttribute("aria-pressed", String(!knockedDown));
+
+    cacheLeave();
+    updateShortcutButtons();
     });
 
     pinRack.appendChild(pin);
 });
 
 function updateFrame() {
-    frameTitle.textContent = `Frame ${currentFrame}`;
-    gameStatus.textContent = `Frame ${currentFrame} of ${FRAME_COUNT}`;
+    const startingPins = getStartingPins(currentFrame, currentShot);
+    const leave = getPinLeave(getCurrentShotId()) ?? startingPins;
 
-    // Each new frame begins with all pins orange.
+    frameTitle.textContent = `Frame ${currentFrame} · Shot ${currentShot}`;
+
+    gameStatus.textContent = gameFinished
+        ? "Game complete"
+        : `Frame ${currentFrame} of ${FRAME_COUNT} · Shot ${currentShot}`;
+
     pinRack.querySelectorAll(".pin").forEach((pin) => {
-        pin.setAttribute("aria-pressed", "false");
+        const number = Number(pin.dataset.pin);
+
+        pin.setAttribute(
+            "aria-pressed",
+            String(!leave.includes(number))
+        );
+
+        pin.disabled = gameFinished || !startingPins.includes(number);
     });
 
-    let activeCard;
+    renderScorecard();
 
-    frameStrip.querySelectorAll(".frame_card").forEach((card) => {
-        const isCurrent = Number(card.dataset.frame) === currentFrame;
-        card.classList.toggle("is_current", isCurrent);
+    const activeCard = frameStrip.querySelector(
+        `[data-frame="${currentFrame}"]`
+    );
 
-        if (isCurrent) {
-            card.setAttribute("aria-current", "step");
-            activeCard = card;
-        } else {
-            card.removeAttribute("aria-current");
-        }
-    });
-
-    // Move only the scorecard strip, not the whole page.
     const cardBounds = activeCard.getBoundingClientRect();
     const stripBounds = frameStrip.getBoundingClientRect();
 
@@ -105,23 +178,71 @@ function updateFrame() {
             cardBounds.left -
             stripBounds.left -
             (frameStrip.clientWidth - cardBounds.width) / 2,
-        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-            ? "instant"
-            : "smooth"
+        behavior: window.matchMedia(
+            "(prefers-reduced-motion: reduce)"
+        ).matches ? "instant" : "smooth"
     });
 
-    // UI-only flow: stop at frame 10.
-    nextButton.disabled = currentFrame === FRAME_COUNT;
+    nextButton.disabled = gameFinished;
+    nextButton.innerHTML = gameFinished
+        ? "Game complete"
+        : 'Next';
+    
+    updateShortcutButtons();
+}
 
-    nextButton.innerHTML = currentFrame === FRAME_COUNT
-        ? "Final frame"
-        : 'Next frame <span aria-hidden="true">→</span>';
+function startNextShot() {
+    currentShot++;
+
+    const frame = frames[currentFrame - 1];
+    const shots = getFrameShots(frame.id);
+
+    if (!shots[currentShot - 1]) {
+        const shotId = crypto.randomUUID();
+        const startingPins = getStartingPins(currentFrame, currentShot);
+
+        addFrameShot(frame.id, shotId);
+        setPinLeave(shotId, startingPins);
+    }
 }
 
 nextButton.addEventListener("click", () => {
-    if (currentFrame >= FRAME_COUNT) return;
+    if (gameFinished) return;
 
-    currentFrame++;
+    cacheLeave();
+
+    const shotId = getCurrentShotId();
+    const startingPins = getStartingPins(currentFrame, currentShot);
+    const leave = getPinLeave(shotId);
+
+    setShotResult(shotId, {
+        pins: currentFoul ? 0 : startingPins.length - leave.length,
+        foul: currentFoul
+    });
+
+    if (currentFrame < FRAME_COUNT) {
+        if (currentShot === 1 && leave.length > 0) {
+            startNextShot();
+        } else {
+            currentFrame++;
+            currentShot = 1;
+        }
+    } else if (currentShot === 1) {
+        startNextShot();
+    } else if (currentShot === 2) {
+        const shots = getFrameShots(frames[currentFrame - 1].id);
+        const firstLeave = getPinLeave(shots[0]);
+
+        if (firstLeave.length === 0 || leave.length === 0) {
+            startNextShot();
+        } else {
+            gameFinished = true;
+        }
+    } else {
+        gameFinished = true;
+    }
+
+    currentFoul = false;
     updateFrame();
 });
 
@@ -164,6 +285,178 @@ function stopDragging() {
     if (pointer !== null && frameStrip.hasPointerCapture(pointer)) {
         frameStrip.releasePointerCapture(pointer);
     }
+}
+
+function getCurrentShotId() {
+    const frame = frames[currentFrame - 1];
+    return getFrameShots(frame.id)[currentShot - 1];
+}
+
+function getStartingPins(frameNumber, shotNumber) {
+    if (shotNumber === 1) return [...ALL_PINS];
+
+    const frame = frames[frameNumber - 1];
+    const shots = getFrameShots(frame.id);
+    const previousLeave = getPinLeave(shots[shotNumber - 2]);
+
+    if (frameNumber === 10 && previousLeave.length === 0) {
+        return [...ALL_PINS];
+    }
+    
+    return [...previousLeave];
+}
+function cacheLeave() {
+    const leave = Array.from(
+        pinRack.querySelectorAll('.pin[aria-pressed="false"]'),
+        (pin) => Number(pin.dataset.pin)
+    ).sort((a, b) => a - b);
+
+    setPinLeave(getCurrentShotId(), leave);
+    renderScorecard();
+}
+
+function renderScorecard() {
+    const totals = calculateFrameTotals();
+
+    frameStrip.querySelectorAll(".frame_card").forEach((card) => {
+        const frameNumber = Number(card.dataset.frame);
+        const frame = frames[frameNumber - 1];
+        const shots = getFrameShots(frame.id);
+        const isCurrent = frameNumber === currentFrame;
+
+        card.classList.toggle("is_current", isCurrent);
+
+        if (isCurrent) {
+            card.setAttribute("aria-current", "step");
+        } else {
+            card.removeAttribute("aria-current");
+        }
+
+        card.querySelectorAll(".frame_rolls span").forEach((cell, index) => {
+            const shotNumber = index + 1;
+            const shotId = shots[index];
+            const active = isCurrent && shotNumber === currentShot;
+
+            cell.classList.toggle("is_current_shot", active && !gameFinished);
+            cell.textContent = "";
+            cell.removeAttribute("title");
+
+            if (!shotId) return;
+
+            let result = getShotResult(shotId);
+            const leave = getPinLeave(shotId);
+
+            // Preview the active shot before Next confirms it.
+            if (!result && active && leave !== null) {
+                const startingPins = getStartingPins(frameNumber, shotNumber);
+
+                result = {
+                    pins: currentFoul ? 0 : startingPins.length - leave.length,
+                    foul: currentFoul
+                };
+            }
+
+            if (!result) return;
+
+            cell.textContent = getShotSymbol(frameNumber, shotNumber, result);
+            cell.title = result.foul
+                ? "Foul — 0 pins credited"
+                : `${result.pins} pins knocked down`;
+        });
+
+        card.querySelector(".frame_total").textContent =
+            totals[frameNumber - 1] ?? "—";
+    });
+}
+
+function isStrikeOpportunity(frameNumber, shotNumber) {
+    if (shotNumber === 1) return true;
+
+    if (frameNumber !== 10) return false;
+
+    const shots = getFrameShots(frames[frameNumber - 1].id);
+    const previousLeave = getPinLeave(shots[shotNumber - 2]);
+
+    // A fresh bonus rack after a strike or spare.
+    return previousLeave?.length === 0;
+}
+
+function getShotSymbol(frameNumber, shotNumber, result) {
+    if (result.foul) return "F";
+
+    if (result.pins === 10 &&
+        isStrikeOpportunity(frameNumber, shotNumber)) {
+        return "X";
+    }
+
+    const startingPins = getStartingPins(frameNumber, shotNumber);
+
+    if (
+        shotNumber > 1 &&
+        !isStrikeOpportunity(frameNumber, shotNumber) &&
+        result.pins === startingPins.length
+    ) {
+        return "/";
+    }
+
+    return result.pins === 0 ? "–" : String(result.pins);
+}
+
+function calculateFrameTotals() {
+    const results = frames.map((frame) =>
+        getFrameShots(frame.id)
+            .map(getShotResult)
+            .filter((result) => result !== null)
+    );
+
+    const totals = Array(FRAME_COUNT).fill(null);
+    let cumulative = 0;
+
+    for (let index = 0; index < FRAME_COUNT; index++) {
+        const rolls = results[index].map((result) => result.pins);
+
+        if (rolls.length === 0) break;
+
+        // Frame 10 includes its own bonus shots.
+        if (index === 9) {
+            const bonusEarned =
+                rolls[0] === 10 ||
+                (rolls.length >= 2 && rolls[0] + rolls[1] === 10);
+
+            const requiredShots = bonusEarned ? 3 : 2;
+            if (rolls.length < requiredShots) break;
+
+            cumulative += rolls.reduce((sum, pins) => sum + pins, 0);
+            totals[index] = cumulative;
+            break;
+        }
+
+        const followingRolls = results
+            .slice(index + 1)
+            .flatMap((shots) => shots.map((result) => result.pins));
+
+        if (rolls[0] === 10) {
+            if (followingRolls.length < 2) break;
+
+            cumulative += 10 + followingRolls[0] + followingRolls[1];
+        } else {
+            if (rolls.length < 2) break;
+
+            const framePins = rolls[0] + rolls[1];
+
+            if (framePins === 10) {
+                if (followingRolls.length < 1) break;
+
+                cumulative += 10 + followingRolls[0];
+            } else {
+                cumulative += framePins;
+            }
+        }
+
+        totals[index] = cumulative;
+    }
+
+    return totals;
 }
 
 frameStrip.addEventListener("pointerup", stopDragging);

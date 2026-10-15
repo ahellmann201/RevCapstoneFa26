@@ -63,4 +63,49 @@ export function setShowFullDisplayName(showFull) {
     sessionStorage.setItem("showFullDisplayName", showFull);
 }
 
+/** Stores the pins still standing */
+export function setPinLeave(shotId, leave) {
+    const key = `shot${shotId}:leave`;
+    sessionStorage.setItem(key, JSON.stringify(leave));
+}
+
+/** Returns the cached pins still standing, or null when none is stored. */
+export function getPinLeave(shotId) {
+    const key = `shot${shotId}:leave`;
+    const value = sessionStorage.getItem(key);
+    return value === null ? null : JSON.parse(value);
+}
+
+/** Links a shot to its frame */
+export function addFrameShot(frameId, shotId) {
+    const key = `frame${frameId}:shots`;
+    const shots = getFrameShots(frameId);
+
+    if (!shots.includes(shotId)) {
+        shots.push(shotId);
+        sessionStorage.setItem(key, JSON.stringify(shots));
+    }
+}
+
+/** Returns the shot ID belonging to a frame */
+export function getFrameShots(frameId) {
+    const key = `frame${frameId}:shots`;
+    const value = sessionStorage.getItem(key);
+    return value === null ? [] : JSON.parse(value);
+}
+
+/** Stores a confirmed shot result. */
+export function setShotResult(shotId, result) {
+    sessionStorage.setItem(
+        `shot:${shotId}:result`,
+        JSON.stringify(result)
+    );
+}
+
+/** Returns the confirmed result, or null for an unfinished shot. */
+export function getShotResult(shotId) {
+    const value = sessionStorage.getItem(`shot:${shotId}:result`);
+    return value === null ? null : JSON.parse(value);
+}
+
 window.clearCache = clearCache;

@@ -62,22 +62,22 @@
                 ></div>
 
                 <div class="shot_actions" aria-label="Shot shortcuts">
-                    <button type="button" disabled>
+                    <button type="button" id="foul_button" aria-pressed="false">
                         <strong>F</strong>
                         <span>Foul</span>
                     </button>
 
-                    <button type="button" disabled>
-                        <strong>−</strong>
+                    <button type="button" id="gutter_button">
+                        <strong>-</strong>
                         <span>Gutter</span>
                     </button>
 
-                    <button type="button" disabled>
+                    <button type="button" id="spare_button">
                         <strong>/</strong>
                         <span>Spare</span>
                     </button>
 
-                    <button type="button" disabled>
+                    <button type="button" id="strike_button">
                         <strong>X</strong>
                         <span>Strike</span>
                     </button>
@@ -92,7 +92,7 @@
             </div>
 
             <button type="button" id="next_frame" class="next_button">
-                Next frame <span aria-hidden="true">→</span>
+                Next Shot
             </button>
 
             <p id="game_status" class="game_status" aria-live="polite">
