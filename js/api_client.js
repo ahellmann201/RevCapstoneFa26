@@ -8,7 +8,19 @@ async function request(path, options) {
     const data = response.status === 204 ? null : await response.json().catch(() => null);
 
     if (!response.ok) {
-        throw new Error(data?.detail ?? `HTTP error: ${response.status}`);
+        const detail = data?.detail;
+        const message = Array.isArray(detail)
+            ? detail.map((issue) => {
+                const field = Array.isArray(issue.loc)
+                    ? issue.loc.filter((part) => part !== "body").join(".")
+                    : "request";
+                return `${field}: ${issue.msg ?? "Invalid value"}`;
+            }).join("; ")
+            : typeof detail === "string"
+                ? detail
+                : `HTTP error: ${response.status}`;
+
+        throw new Error(message);
     }
 
     return data;
@@ -54,6 +66,14 @@ export function login(email, password) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
+    });
+}
+
+export function createAccount(name, email, password) {
+    return request("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password })
     });
 }
 

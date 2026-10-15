@@ -1,12 +1,22 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from test_database.login import validate_login
-from api.database import get_user_by_id, update_display_name
+from api.database import (
+    create_account,
+    get_user_by_id,
+    update_display_name,
+    validate_login,
+)
 
 
 class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class SignupRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
     email: str
     password: str
 
@@ -73,7 +83,7 @@ def get_user(user_id: int) -> dict:
 @app.post("/api/auth/login")
 def login(credentials: LoginRequest) -> dict[str, int]:
     user_id = validate_login(
-        credentials.email,
+        credentials.email.strip().lower(),
         credentials.password
     )
 
@@ -81,6 +91,27 @@ def login(credentials: LoginRequest) -> dict[str, int]:
         raise HTTPException(
             status_code=401,
             detail="Invalid email or password."
+        )
+
+    return {"User_ID": user_id}
+
+
+@app.post("/api/auth/signup", status_code=status.HTTP_201_CREATED)
+def signup(request: SignupRequest) -> dict[str, int]:
+    name = request.name.strip()
+    email = request.email.strip().lower()
+
+    if not name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Name cannot be empty.",
+        )
+
+    user_id = create_account(name, email, request.password)
+    if user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="An account with this email already exists.",
         )
 
     return {"User_ID": user_id}

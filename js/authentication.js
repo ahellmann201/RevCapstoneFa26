@@ -1,5 +1,4 @@
 /** Stores and retrieves authentication tokens and exposes login/logout helpers. */
-import * as Requests from "./requests.js";
 import * as Cache from "./cache.js";
 import * as API from "./api_client.js";
 
@@ -45,7 +44,35 @@ export function checkAuthToken(forceInvalid = false) {
 export async function submitAuth(type = "login") {
     const isLogin = type === "login";
 
-    if (isLogin) {
+    if (!isLogin) {
+        const nameField = document.getElementById("signup_name");
+        const emailField = document.getElementById("signup_email");
+        const passwordField = document.getElementById("signup_password");
+
+        if (!nameField || !emailField || !passwordField) return;
+
+        const name = nameField.value.trim();
+        const email = emailField.value.trim().toLowerCase();
+        const password = passwordField.value;
+
+        if (!name) {
+            console.error("Name is required to sign up.");
+            return;
+        }
+
+        try {
+            const result = await API.createAccount(name, email, password);
+            const userID = result.User_ID;
+
+            console.log("Account created:", userID);
+            Cache.setUserID(userID);
+            setAuthToken(userID);
+        } catch (error) {
+            console.error("Sign-up failed:", error.message);
+        }
+        return;
+    }
+    else {
         const emailField = document.getElementById(`${type}_email`);
         const passwordField = document.getElementById(`${type}_password`);
 
