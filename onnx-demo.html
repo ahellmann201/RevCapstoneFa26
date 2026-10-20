@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Revmetrix | Android ONNX Test</title>
+    <style>
+      :root { color-scheme: light; font-family: system-ui, sans-serif; }
+      body { margin: 0 auto; max-width: 900px; padding: 24px; color: #1c2635; }
+      h1 { margin-bottom: 8px; }
+      .note { color: #526174; line-height: 1.5; }
+      .controls { display: flex; flex-wrap: wrap; gap: 12px; margin: 20px 0; }
+      button, input::file-selector-button { border: 0; border-radius: 8px; padding: 10px 14px; font: inherit; }
+      button { background: #174ea6; color: white; }
+      button:disabled { opacity: .5; }
+      input { max-width: 100%; }
+      #status { min-height: 1.5em; color: #174ea6; }
+      #preview { position: relative; width: fit-content; max-width: 100%; }
+      canvas { display: block; max-width: 100%; height: auto; }
+      #overlay { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+      pre { overflow: auto; padding: 14px; border-radius: 8px; background: #f1f4f8; white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <a href="/">← Home</a>
+    <h1>Android ONNX lane test</h1>
+    <p class="note">
+      Choose a still image of a bowling lane. This page runs lane and ball
+      detection on the Android phone. Drag the four corners to try the manual
+      correction bridge. It tests one image, not an entire video.
+    </p>
+    <p id="status" role="status">Checking Android ONNX availability…</p>
+    <div class="controls">
+      <input id="image-file" type="file" accept="image/*" />
+      <button id="analyze" type="button" disabled>Run ONNX detection</button>
+      <button id="manual" type="button" disabled>Set manual lane corners</button>
+      <button id="correct" type="button" disabled>Apply lane correction</button>
+    </div>
+    <label for="candidate">Detected lane:</label>
+    <select id="candidate" disabled>
+      <option value="">No detected lane</option>
+    </select>
+    <div id="preview" hidden>
+      <canvas id="frame"></canvas>
+      <canvas id="overlay"></canvas>
+    </div>
+    <h2>Result</h2>
+    <pre id="result">Select an image to begin.</pre>
+    <script type="module" src="/js/onnx_demo.js"></script>
+  </body>
+</html>

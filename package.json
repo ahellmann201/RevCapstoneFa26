@@ -5,18 +5,14 @@
   "type": "module",
   "scripts": {
     "cap": "node scripts/cap.mjs",
-
     "setup": "node scripts/setup.mjs",
-
     "dev": "vite",
     "dev:host": "vite --host",
     "dev:python": "node scripts/dev-python.mjs",
     "dev:full": "node scripts/dev.mjs",
-
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest",
-
     "db:reset": "node scripts/db-reset.mjs"
   },
   "devDependencies": {
@@ -30,8 +26,10 @@
     "@capacitor/android": "^8.5.2",
     "@capacitor/cli": "^8.5.2",
     "@capacitor/core": "^8.5.2",
+    "@capacitor/filesystem": "^8.1.5",
     "@capacitor/haptics": "^8.0.2",
     "@capacitor/ios": "^8.5.2",
+    "@revmetrix/ciclopes-lane-analysis": "file:Ciclopes-API/mobile/capacitor-plugin",
     "dotenv": "^18.0.7"
   }
 }

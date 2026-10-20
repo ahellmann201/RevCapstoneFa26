@@ -69,6 +69,28 @@ The planned pipeline uses Python, ONNX Runtime, and a Pose3D model.
 
 Running Python on a development computer does not automatically package a Python runtime into the mobile application. Mobile runtime integration and compatibility with Python dependencies must be addressed separately before this pipeline can run as intended in packaged iOS and Android builds.
 
+### Android Ciclopes ONNX test
+
+The `onnx-frontend-test` branch includes a Capacitor plugin that runs the
+Ciclopes lane/ball ONNX model on Android, plus a one-image test page. From the
+repository root, install dependencies, build the local plugin package, build
+the web app, sync Android, and launch it on a connected phone:
+
+```sh
+npm install
+npm run build --prefix Ciclopes-API/mobile/capacitor-plugin
+npm run build
+npx cap sync android
+npx cap run android
+```
+
+Open **Android ONNX lane test** from the home page, choose a still image of a
+bowling lane, and run detection. Drag the four displayed points to try lane
+correction. This test runs one still image; video frame sampling, ball
+tracking, and kinematics are not implemented in this path yet. Android builds
+require Android Studio/SDK and a Java 21 JDK. The iPhone frontend path is not
+changed by this Android-only plugin.
+
 ## Project Architecture
 
 The intended request flow is:
