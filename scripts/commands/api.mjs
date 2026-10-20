@@ -19,10 +19,10 @@ const pythonExecutable = resolve(
 );
 
 const testMode = process.argv.includes("--test");
-const lanMode = process.argv.includes("--lan");
+const lanMode = process.argv.includes("--lan") || (!testMode && !process.argv.includes("--local"));
 
 const extraArgs = process.argv.slice(2).filter(
-    (arg) => arg !== "--test" && arg !== "--lan"
+    (arg) => arg !== "--test" && arg !== "--lan" && arg !== "--local"
 );
 
 function fail(message) {

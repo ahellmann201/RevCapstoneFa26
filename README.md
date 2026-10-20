@@ -160,6 +160,16 @@ the SSH server. Use the same destination as your working database tunnel.
 Leave this terminal running. A connected tunnel may produce no output.
 If your tunnel is already open, do not start another on port 14330.
 
+For Andrew's existing authorized setup, the working command is:
+
+```powershell
+ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -L 127.0.0.1:14330:172.18.0.3:1433 root@143.110.146.58
+```
+
+This uses Andrew's existing SSH access; other developers should use their own
+approved account and key. Do not share private keys or place passwords in commands.
+The database destination must be updated if its container address changes.
+
 An existing personal tunnel script may be used instead. Personal scripts
 are optional and should not contain passwords or private-key contents.
 
@@ -171,8 +181,8 @@ In another **local PowerShell terminal**, from the project root:
 npm.cmd run dev:full
 ```
 
-This starts the integrated SQL Server API and Vite frontend. Leave the
-terminal running and open:
+This starts the integrated SQL Server API and Vite frontend on all IPv4
+interfaces for local-network testing. Leave the terminal running and open:
 
 - [Website](http://localhost:5173/)
 - [Interactive API documentation](http://127.0.0.1:8000/docs)
@@ -201,7 +211,48 @@ npm.cmd run dev:python
 The backend can also be started directly:
 
 ```powershell
-.\.venv\Scripts\python.exe -m uvicorn Database.api.main:app --reload --host 127.0.0.1 --port 8000
+.\.venv\Scripts\python.exe -m uvicorn Database.api.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+## Testing from another device on the same network
+
+`npm.cmd run dev:full` now listens on `0.0.0.0` for both Vite (5173) and
+the API (8000). Share Vite's Wi-Fi **Network** URL, for example
+`http://192.168.1.20:5173`, rather than localhost or a virtual-adapter address.
+The frontend automatically sends API requests to that same computer on port 8000.
+Only the host computer needs the SSH database tunnel and database credentials.
+Teammates open the host computer's website address and use their own application
+accounts; they do not run their own frontend, backend, or SSH tunnel for this demo.
+
+The host Wi-Fi address observed during setup was `10.127.37.132`, giving:
+
+- Website: http://10.127.37.132:5173/
+- API health: http://10.127.37.132:8000/health
+
+This address can change when reconnecting or changing networks. Run `ipconfig`
+on the host and use the IPv4 address under **Wireless LAN adapter Wi-Fi**, or
+use Vite's matching Network URL. Avoid the virtual adapter address
+`192.168.56.1` for Wi-Fi teammates.
+
+Before the presentation, open the website from a second device, log in with
+a demo account, and confirm a saved shot can be retrieved after refreshing.
+If the website opens but API requests fail, check port 8000 as well as 5173.
+CORS permits localhost and private IPv4 origins on port 5173, not arbitrary
+public origins or other ports.
+
+Allow the two ports through Windows Firewall for the trusted demo network if
+needed. Campus Wi-Fi can block communication between devices even when both
+are connected; check this if the host works but another device cannot connect.
+The database tunnel remains bound to `127.0.0.1`; do not expose port 14330.
+
+This is HTTP development access: use demo accounts on a trusted network, not
+real personal passwords. Public internet access still needs HTTPS and the
+deployment work described below. `0.0.0.0` is a listening address, not a browser URL.
+
+To keep the combined app restricted to this computer instead:
+
+```powershell
+npm.cmd run dev:full -- --local
 ```
 
 ## Demo walkthrough
@@ -305,7 +356,8 @@ npm.cmd run test -- --run
 
 The build includes all four HTML pages and writes generated files to root
 `dist/`. Capacitor's `webDir` still points there. The current frontend test
-suite checks authentication storage/logout and profile-picture hue behavior;
+suite checks authentication storage/logout, profile-picture hue behavior,
+and API address selection for localhost and LAN hosts;
 it does not replace the manual database workflow checks.
 
 Preview the production build with:
@@ -338,7 +390,7 @@ reset commands delete local SQLite data; they are not needed for normal startup.
 | Database check returns 404 | Enable `API_ENABLE_DB_HEALTH=true` and restart the API. |
 | Login returns 401 | Use the application username/password; SQLite accounts are separate. |
 | A protected request returns 401 | Log in again; the access token may have expired. |
-| Browser reports a CORS error | Use localhost or 127.0.0.1 on port 5173; other origins need explicit configuration. |
+| Browser reports a CORS error | Use localhost, 127.0.0.1, or a private LAN IPv4 address on port 5173; other origins need explicit configuration. |
 | Shot saving cannot be confirmed | Refresh to reload database progress before submitting again. |
 | `/favicon.ico` returns 404 | Harmless browser icon request. |
 
@@ -353,7 +405,8 @@ Server authentication succeeds.
 
 ## Deployment and planned work
 
-The current integrated demo runs locally and accesses SQL Server through SSH.
+The current integrated demo is hosted on a developer computer for local-network
+access and reaches SQL Server through that computer's SSH tunnel.
 A separately deployed backend container has also passed its health checks;
 shared public HTTPS access is not configured yet. Teammates running their own
 local backend need their own authorized database access. Once a shared backend
@@ -363,7 +416,8 @@ application accounts.
 Planned work includes saved-game navigation, score totals, further frontend
 integration, statistics, and video analysis. The intended video pipeline uses
 Pose3D/ONNX, but on-device runtime integration is not implemented. Mobile
-packaging needs additional work, including replacing localhost API addresses.
+packaging needs additional work, including configuring the API address for
+native mobile builds.
 
 Before public deployment, configure HTTPS, authentication rate limiting,
 password recovery, and an appropriate token-revocation strategy. Never expose

@@ -1,4 +1,5 @@
-const API_BASE_URL = "http://127.0.0.1:8000";
+// Use the computer serving the website, including when opened over the LAN.
+const API_BASE_URL = `http://${window.location.hostname}:8000`;
 
 async function request(path, options = {}, authenticated = true) {
     const headers = new Headers(options.headers);
