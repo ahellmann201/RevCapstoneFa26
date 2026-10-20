@@ -198,17 +198,17 @@
     font-weight: bold;
 }
 
-.home_button {
+.sidebar_nav_button {
     width: 100%;
     height: 100%;
     background-color: var(--sidebar-color);
     border: none;
     border-radius: 0;
 }
-.home_button:hover {
+.sidebar_nav_button:hover {
     background-color: var(--field-entry-color-1);
 }
-.home_button:active {
+.sidebar_nav_button:active {
     background-color: var(--field-entry-color-1);
 }
 

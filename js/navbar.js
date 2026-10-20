@@ -29,6 +29,30 @@ export function goHome() {
     window.location.href = "/index.html";
 }
 
+export function goToEvents() {
+    window.location.href = "/events.html";
+}
+
+export function goToCiclops() {
+    window.location.href = "/ciclops.html";
+}
+
+export function goToSmartDot() {
+    window.location.href = "/smart_dot.html";
+}
+
+export function goToStats() {
+    window.location.href = "/stats.html";
+}
+
+export function goToSmartWatch() {
+    window.location.href = "/smart_watch.html";
+}
+
+export function goToBallArsenal() {
+    window.location.href = "/ball_arsenal.html";
+}
+
 
 export function goToAccountSettings() {
     window.location.href = "/account_settings.html";
@@ -84,8 +108,34 @@ export function loadNavbar() {
             </div>
 
             <div class="sidebar_section">
-                <button class="home_button" id="home-button">Home</button>
+                <button class="sidebar_nav_button home_button" id="home-button">Home</button>
             </div>
+
+            <div class="sidebar_section">
+                <button class="sidebar_nav_button event_button" id="event-button">Events</button>
+            </div>
+
+            <div class="sidebar_section">
+                <button class="sidebar_nav_button ciclops_button" id="ciclops-button">Ciclops</button>
+            </div>
+
+            <div class="sidebar_section">
+                <button class="sidebar_nav_button smart_dot_button" id="smart-button">Smart Dot</button>
+            </div>
+
+            <div class="sidebar_section">
+                <button class="sidebar_nav_button stats_button" id="stats-button">Stats</button>
+            </div>
+
+            <div class="sidebar_section">
+                <button class="sidebar_nav_button smart_watch_button" id="smart-watch-button">Smart Watch</button>
+            </div>
+
+            <div class="sidebar_section">
+                <button class="sidebar_nav_button ball_arsenal_button" id="ball-button">Ball Arsenal</button>
+            </div>
+
+            
 
             <div class="sidebar_auth" id="sidebar-auth">
                 <button class="sidebar_login_button" id="sidebar-login-button">Log In</button>
@@ -135,6 +185,30 @@ export function loadNavbar() {
     document
         .getElementById("home-button")
         .addEventListener("click", goHome);
+
+    document
+        .getElementById("event-button")
+        .addEventListener("click", goToEvents);
+
+    document
+        .getElementById("ciclops-button")
+        .addEventListener("click", goToCiclops);
+
+    document
+        .getElementById("smart-button")
+        .addEventListener("click", goToSmartDot);
+
+    document
+        .getElementById("stats-button")
+        .addEventListener("click", goToStats);
+
+    document
+        .getElementById("smart-watch-button")
+        .addEventListener("click", goToSmartWatch);
+
+    document
+        .getElementById("ball-button")
+        .addEventListener("click", goToBallArsenal);
 
     document
         .getElementById("profile-picture-container")
