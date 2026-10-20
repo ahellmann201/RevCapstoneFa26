@@ -1,0 +1,10 @@
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: ciclopes-tunnel
+    profiles:
+      - ngrok
+    depends_on:
+      - ciclopes-api
+    command: tunnel --no-autoupdate --url http://ciclopes-api:8000
+    restart: unless-stopped
