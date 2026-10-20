@@ -88,8 +88,10 @@ Open **Android ONNX lane test** from the home page, choose a still image of a
 bowling lane, and run detection. Drag the four displayed points to try lane
 correction. This test runs one still image; video frame sampling, ball
 tracking, and kinematics are not implemented in this path yet. Android builds
-require Android Studio/SDK and a Java 21 JDK. The iPhone frontend path is not
-changed by this Android-only plugin.
+require Android Studio/SDK and a Java 21 JDK. In Android Studio, set
+**Settings → Build, Execution, Deployment → Build Tools → Gradle → Gradle JDK**
+to JDK 21 before running the app. The iPhone frontend path is not changed by
+this Android-only plugin.
 
 ## Project Architecture
 
