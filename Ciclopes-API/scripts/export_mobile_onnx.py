@@ -18,8 +18,8 @@ CLASS_NAMES = {0: "ball", 1: "lane", 2: "pins"}
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--weights", type=Path, default=DEFAULT_WEIGHTS)
-    parser.add_argument("--imgsz", type=int, default=640,
-                        help="Mobile input size; benchmark 640 and 1024 on target devices")
+    parser.add_argument("--imgsz", type=int, choices=(640,), default=640,
+                        help="This Android adapter currently expects a fixed 640x640 graph")
     parser.add_argument("--opset", type=int, default=17)
     parser.add_argument("--output-dir", type=Path, default=API_ROOT / "mobile" / "models")
     args = parser.parse_args()
@@ -39,6 +39,12 @@ def main() -> None:
         )).resolve()
         destination.write_bytes(exported.read_bytes())
 
+    # The plugin is installed as a Capacitor package, so its model must travel
+    # with the Android library rather than rely on the API repository layout.
+    plugin_assets = API_ROOT / "mobile" / "capacitor-plugin" / "android" / "src" / "main" / "assets"
+    plugin_assets.mkdir(parents=True, exist_ok=True)
+    (plugin_assets / destination.name).write_bytes(destination.read_bytes())
+
     manifest = {
         "model": destination.name,
         "source_weights": weights.name,
@@ -47,21 +53,22 @@ def main() -> None:
                   "dtype": "float32", "range": [0, 1], "imgsz": args.imgsz,
                   "letterbox": True},
         "classes": CLASS_NAMES,
-        "outputs": {
-            "output0": {
+        "output": {
+            "predictions": {
+                "name": "output0",
                 "shape": [1, 300, 38],
-                "layout": "[x1,y1,x2,y2,confidence,class_id,mask_coefficients(32)]",
-                "box_coordinates": "xyxy in letterboxed model-input pixels",
-                "note": "YOLO26 end-to-end top-k detections; filter by confidence. No separate anchor decoding or NMS is required.",
+                "layout": "BNC",
+                "row": "xyxy, confidence, class_id, 32 mask coefficients",
+                "classes": "YOLO26 end-to-end detections; no separate NMS stage",
             },
-            "output1": {
-                "shape": [1, 32, args.imgsz // 4, args.imgsz // 4],
-                "layout": "mask prototypes (channels,height,width)",
+            "mask_prototypes": {
+                "name": "output1",
+                "shape": [1, 32, 160, 160],
+                "layout": "BCHW",
+                "decode": "sigmoid(sum(mask_coefficients * prototypes)); crop to detection box",
             },
         },
-        "mask_reconstruction": "Multiply each detection's 32 mask coefficients by the flattened 32 prototype maps; reshape to prototype resolution, threshold logits, crop to the box, resize, and undo letterboxing.",
         "opset": args.opset,
-        "end_to_end": True,
         "nms_in_graph": False,
     }
     (args.output_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")

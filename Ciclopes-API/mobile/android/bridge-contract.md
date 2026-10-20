@@ -13,10 +13,11 @@ Expose a plugin named `CiclopesLaneAnalysis` with:
 - `isAvailable()`: whether the Android ONNX runtime and compatible model are
   ready;
 - `analyzeFrame({frameUri, width, height, rotation})`: run one selected video
-  frame through local detection, returning normalized lane candidates and
-  health signals; and
-- `applyLaneCorrection({corners, coordinateSpace})`: use a user-adjusted
-  normalized quadrilateral for local homography/trajectory processing; and
+  frame through local detection, returning normalized lane candidates, ball
+  boxes, and health signals; and
+- `applyLaneCorrection({corners, coordinateSpace, frameWidth, frameHeight})`:
+  validate a user-adjusted normalized quadrilateral and return its homography
+  into lane-meter coordinates; and
 - `release()`: free the ONNX session and native buffers when analysis ends.
 
 The JavaScript wrapper can declare this interface with Capacitor's
@@ -31,12 +32,19 @@ export interface CiclopesLaneAnalysisPlugin {
     frameUri: string;
     width: number;
     height: number;
-    rotation: number;
+    rotation: 0 | 90 | 180 | 270;
   }): Promise<LaneFrameResult>;
   applyLaneCorrection(options: {
     corners: Array<{ x: number; y: number }>;
     coordinateSpace: 'normalized_frame';
-  }): Promise<{ accepted: boolean }>;
+    frameWidth: number;
+    frameHeight: number;
+  }): Promise<{
+    accepted: true;
+    homography: number[];
+    laneWidthMeters: number;
+    laneLengthMeters: number;
+  }>;
   release(): Promise<void>;
 }
 
@@ -46,6 +54,10 @@ export interface LaneFrameResult {
   candidates: Array<{
     confidence: number;
     corners: Array<{ x: number; y: number }>;
+  }>;
+  balls: Array<{
+    confidence: number;
+    box: [number, number, number, number];
   }>;
   health: Record<string, number>;
 }
@@ -71,10 +83,11 @@ them.
 
 ## Response shape
 
-Coordinates are normalized against the unrotated source frame. Corner order is
-top-left, top-right, bottom-right, bottom-left. This lets the web UI draw the
-quad over the corresponding video frame and send a correction back without
-depending on pixel resolution.
+Coordinates are normalized against the upright frame returned by
+`analyzeFrame` (rotation has already been applied). Corner order is top-left,
+top-right, bottom-right, bottom-left. The frontend should submit the same
+`frameWidth` and `frameHeight` with the correction so native code can build a
+homography from those exact frame coordinates.
 
 ```json
 {
@@ -91,19 +104,21 @@ depending on pixel resolution.
       ]
     }
   ],
-  "health": {
-    "meanLaneCoverageRatio": 0.08,
-    "homographyConditionNumber": 120.0
-  }
+  "balls": [
+    {"confidence": 0.84, "box": [0.48, 0.71, 0.53, 0.78]}
+  ],
+  "health": {"inferenceMs": 42, "laneCount": 1, "ballCount": 1}
 }
 ```
 
 When detection is empty or fails a calibrated quality gate, JavaScript should
 show a correction UI: choose a detected candidate when there are several, or
-drag the four lane corners. Submit the corrected normalized geometry as
-`source: "userCorrection"`; native processing then uses it to build the
-homography and calculate the ball path. The frontend owns this UI and should
-keep the correction associated with the video/frame used to define it.
+drag the four lane corners. `applyLaneCorrection` validates the normalized
+quadrilateral and returns the homography mapping frame pixels to the regulation
+lane rectangle (1.0541 m by 18.288 m). The current native slice does not yet
+run ball tracking and kinematics across a video with that homography; the
+frontend should keep corrections associated with the video/frame used to
+define them.
 
 ## Android runtime notes
 
@@ -115,12 +130,10 @@ the target phones before choosing it, since accelerator performance depends on
 model operators and device support. Keep the ONNX file as an Android app asset
 or managed model file. Don't add the model to the watch application.
 
-The bridge must preprocess RGB frames to the export manifest's fixed NCHW
-float32 0..1 input and apply letterboxing. This YOLO26 end-to-end export returns
-up to 300 selected detections per frame. Each output row contains an `xyxy`
-box, confidence, class ID, and 32 mask coefficients; the second output contains
-32 prototype maps. Filter detections by confidence, reconstruct each mask from
-its coefficients and prototypes, crop/resize masks, undo letterboxing, and map
-lane corners to normalized source-frame coordinates. No separate anchor decode
-or NMS pass is expected for this export. These steps are not implemented by
-model export alone.
+The initial Capacitor implementation lives in `mobile/capacitor-plugin`. It
+uses the model's `[1,3,640,640]` RGB float32 input, letterboxes, decodes the
+YOLO26 end-to-end `[1,300,38]` detection output and `[1,32,160,160]` mask
+prototypes, and returns lane candidates and ball boxes in normalized upright
+frame coordinates. The 300 rows are already end-to-end detections, so there is
+no extra NMS step. Accuracy and performance still need comparison against the
+Python pipeline and real Android phones.

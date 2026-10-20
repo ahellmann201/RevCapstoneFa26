@@ -1,48 +1,55 @@
-# Ciclopes Capacitor bridge scaffold
+# Ciclopes Capacitor lane analysis plugin
 
-This is a standalone local Capacitor plugin package. It gives the shared web
-frontend a typed API and an Android native entry point without depending on
-the frontend's component framework. The Android methods currently report that
-inference is unavailable; they do not load the ONNX model or analyze frames.
+This local plugin provides the first Android inference and manual-lane geometry
+slice. It expects the host app to use Capacitor and package the ONNX model.
 
-## Frontend usage
+## Model and Android dependency
 
-Build and install this directory from the Capacitor app, then sync Android:
+Export the fixed 640 model from the API directory:
 
 ```sh
-npm install ../path/to/Ciclopes-API/mobile/capacitor-plugin
-npx cap sync android
+python scripts/export_mobile_onnx.py
 ```
 
-The frontend can check availability before taking the local-inference path:
+The exporter writes the ONNX model to `mobile/models` and stages a copy under
+`android/src/main/assets`, where the Android library packages it with the
+plugin. The Android asset is committed so a fresh checkout can run the demo
+without access to the training checkpoint or a model export environment. The
+generated `mobile/models` copy remains ignored. If you regenerate the model,
+review and commit the updated plugin asset. The Android module adds
+`com.microsoft.onnxruntime:onnxruntime-android:1.31.0`; inference currently
+uses the CPU execution provider.
 
-```ts
-import { Capacitor } from '@capacitor/core';
-import { CiclopesLaneAnalysis } from '@revmetrix/ciclopes-lane-analysis';
+Install this directory as a local npm package from the host frontend, then run
+Capacitor's Android sync. Exact install commands depend on the frontend app's
+package layout.
 
-const localInferenceReady =
-  Capacitor.getPlatform() === 'android' &&
-  (await CiclopesLaneAnalysis.isAvailable()).available;
+## Implemented native behavior
+
+- Opens a frame URI, applies the requested rotation, and letterboxes RGB pixels
+  into NCHW float32 640x640 input.
+- Runs the model off the UI thread and decodes its YOLO26 end-to-end detections
+  and 32-channel segmentation prototypes.
+- Reconstructs lane masks to estimate four normalized lane corners; returns
+  normalized ball boxes as well.
+- Validates a user-supplied convex quadrilateral and computes a projective
+  transform from upright frame pixels into regulation lane meters.
+
+The corner estimate is an initial approximation of the Python mask geometry.
+The plugin does not yet process a full video, project a ball track through the
+homography, or calculate kinematics. Those are the next native-port steps.
+
+## Android smoke tests
+
+The `android/src/androidTest` suite checks corner validation and homography
+mapping, then loads the packaged model and runs one bundled synthetic lane
+frame. From the Frontend host's `android` directory, after local package install
+and Capacitor sync, run:
+
+```sh
+./gradlew :revmetrix-ciclopes-lane-analysis:connectedDebugAndroidTest
 ```
 
-The web fallback reports unavailable, so iOS can stay on its existing analysis
-path. Capacitor's required major version range may need narrowing to match the
-frontend app once its version is known.
-
-## Current methods
-
-- `isAvailable()` resolves successfully and reports inference unavailable. This
-  is a bridge handshake and a deliberate placeholder until model loading exists.
-- `analyzeFrame()` validates that a frame URI was supplied, then rejects with a
-  clear not-implemented error.
-- `applyLaneCorrection()` is present in the bridge API but not implemented.
-- `release()` is currently a no-op.
-
-The next native work is to add frame decoding, ONNX Runtime session loading,
-input preprocessing, YOLO26 mask reconstruction, and lane/ball postprocessing.
-See `../android/bridge-contract.md` for tensor shapes, normalized geometry,
-correction behavior, and payload conventions.
-
-Capacitor uses `registerPlugin()` in JavaScript and a native Android class
-extending `Plugin` with `@CapacitorPlugin` and `@PluginMethod` annotations.
-See the [Capacitor Android plugin guide](https://next.capacitorjs.com/docs/next/plugins/android).
+The synthetic fixture only checks that ONNX Runtime and the decoder execute.
+Use a representative bowling frame to judge detection accuracy and compare it
+with the Python pipeline.
