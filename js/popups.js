@@ -5,12 +5,17 @@ export function openAuthPopup(id) {
     const dropdown = document.getElementById("pfp-dropdown");
     const popup = document.getElementById(id);
 
-    dropdown.classList.remove("pfp_dropdown_active");
-    dropdown.classList.add("pfp_dropdown_inactive");
+    if (!popup) return;
+
+    dropdown?.classList.remove("pfp_dropdown_active");
+    dropdown?.classList.add("pfp_dropdown_inactive");
 
     popup.showModal();
     popup.classList.add("is_entering");
-    requestAnimationFrame(() => popup.classList.remove("is_entering"));
+
+    requestAnimationFrame(() => {
+        popup.classList.remove("is_entering");
+    });
 }
 
 export function createAuthPopup(type) {
@@ -23,9 +28,13 @@ export function createAuthPopup(type) {
     const isSignup = type === "signup";
     const title = isSignup ? "Create Account" : "Log In";
     const buttonText = isSignup ? "Sign Up" : "Log In";
-    const switchText = isSignup ? "Log in instead" : "Sign up instead";
-    const switchPopupId = isSignup ? "login_popup" : "signup_popup";
+    const switchText = isSignup
+        ? "Log in instead"
+        : "Sign up instead";
 
+    const switchPopupId = isSignup
+        ? "login_popup"
+        : "signup_popup";
 
     document.body.insertAdjacentHTML("beforeend", `
         <dialog
@@ -51,23 +60,34 @@ export function createAuthPopup(type) {
                         type="text"
                         class="text_input"
                         placeholder="Your username"
+                        autocomplete="username"
+                        minlength="3"
+                        maxlength="100"
                     >
 
-                    <label for="signup_display_name">Display name (optional)</label>
+                    <label for="signup_display_name">
+                        Display name (optional)
+                    </label>
                     <input
                         id="signup_display_name"
                         type="text"
                         class="text_input"
                         placeholder="How your name appears"
+                        autocomplete="nickname"
+                        maxlength="100"
                     >
                 ` : ""}
 
-                <label for="${type}_email">Email</label>
+                <label for="${type}_email">
+                    ${isSignup ? "Email" : "Username"}
+                </label>
                 <input
                     id="${type}_email"
-                    type="email"
+                    type="${isSignup ? "email" : "text"}"
                     class="text_input"
-                    placeholder="Your email"
+                    placeholder="${isSignup ? "Your email" : "Your username"}"
+                    autocomplete="${isSignup ? "email" : "username"}"
+                    maxlength="${isSignup ? "255" : "100"}"
                 >
 
                 <label for="${type}_password">Password</label>
@@ -75,7 +95,9 @@ export function createAuthPopup(type) {
                     id="${type}_password"
                     type="password"
                     class="text_input"
-                    placeholder="Your password"
+                    placeholder="${isSignup ? "At least 8 characters" : "Your password"}"
+                    autocomplete="${isSignup ? "new-password" : "current-password"}"
+                    maxlength="128"
                 >
 
                 <button type="button" class="popup_primary">
@@ -94,36 +116,73 @@ export function createAuthPopup(type) {
     `);
 
     const popup = document.getElementById(popupId);
+
     setupPopupDrag(popup);
 
-    const submitButton = popup.querySelector(".popup_primary");
-    submitButton?.addEventListener("click", () => {
-        console.log(type);
-        submitAuth(type);
-    });
+    popup.querySelector(".popup_primary")?.addEventListener(
+        "click",
+        () => submitAuth(type),
+    );
 
-    popup.querySelector(".popup_switch")?.addEventListener("click", () => {
-        popup.classList.add("is_switching_out");
-
-        const finishSwitch = () => {
-            popup.close();
-            popup.classList.remove("is_switching_out");
-            openAuthPopup(switchPopupId);
-        };
-
-        popup.addEventListener("transitionend", (event) => {
-            if (event.target === popup && event.propertyName === "transform") {
-                finishSwitch();
+    popup.querySelector(".popup_switch")?.addEventListener(
+        "click",
+        () => {
+            if (popup.querySelector(".popup_primary")?.disabled) {
+                return;
             }
-        }, { once: true });
 
-        // Keep the switch working if the transition is disabled or interrupted.
-        window.setTimeout(() => {
-            if (popup.open && popup.classList.contains("is_switching_out")) {
-                finishSwitch();
-            }
-        }, 250);
-    });
+            popup.classList.add("is_switching_out");
+
+            let switched = false;
+
+            const finishSwitch = () => {
+                if (switched) return;
+                switched = true;
+
+                popup.close();
+                popup.classList.remove("is_switching_out");
+                openAuthPopup(switchPopupId);
+            };
+
+            const onTransitionEnd = (event) => {
+                if (
+                    event.target === popup
+                    && event.propertyName === "transform"
+                ) {
+                    popup.removeEventListener(
+                        "transitionend",
+                        onTransitionEnd,
+                    );
+
+                    if (popup.open) {
+                        finishSwitch();
+                    }
+                }
+            };
+
+            popup.addEventListener(
+                "transitionend",
+                onTransitionEnd,
+            );
+
+            // Handle disabled or interrupted transitions.
+            window.setTimeout(() => {
+                popup.removeEventListener(
+                    "transitionend",
+                    onTransitionEnd,
+                );
+
+                if (
+                    popup.open
+                    && popup.classList.contains("is_switching_out")
+                ) {
+                    finishSwitch();
+                } else {
+                    popup.classList.remove("is_switching_out");
+                }
+            }, 250);
+        },
+    );
 }
 
 // Shared pointer and close behavior for authentication dialogs.
@@ -140,7 +199,10 @@ function setupPopupDrag(popup) {
         activePointer = null;
         distance = 0;
 
-        if (pointer !== null && dragArea.hasPointerCapture(pointer)) {
+        if (
+            pointer !== null
+            && dragArea.hasPointerCapture(pointer)
+        ) {
             dragArea.releasePointerCapture(pointer);
         }
 
@@ -187,71 +249,102 @@ function setupPopupDrag(popup) {
     dragArea.addEventListener("pointercancel", resetDrag);
     dragArea.addEventListener("lostpointercapture", resetDrag);
 
-    popup.querySelector(".popup_close").addEventListener("click", () => {
-        popup.close();
-    });
+    popup.querySelector(".popup_close")?.addEventListener(
+        "click",
+        () => popup.close(),
+    );
 
     popup.addEventListener("close", resetDrag);
 }
 
 // Logout confirmation dialog
 export function createLogoutPopup() {
+    if (document.getElementById("log-out-popup")) {
+        return;
+    }
+
     document.body.insertAdjacentHTML("beforeend", `
-        <div class="log_out_overlay hidden" id="log-out-overlay">asdfghj</div>
+        <div
+            class="log_out_overlay hidden"
+            id="log-out-overlay"
+        ></div>
+
         <div class="log_out_popup hidden" id="log-out-popup">
             <div class="log_out_popup_header_container">
                 <h1>Log Out?</h1>
-                <h3>You will not have access to your data on this device until you log in again.</h3>
+                <h3>
+                    You will not have access to your data on this
+                    device until you log in again.
+                </h3>
             </div>
+
             <div class="log_out_popup_buttons_container">
-                <button class="log_out_popup_button log_out_cancel_button" id="log-out-cancel">Cancel</button>
-                <button class="log_out_popup_button log_out_confirm_button" id="log-out-confirm">Confirm</button>
+                <button
+                    class="log_out_popup_button log_out_cancel_button"
+                    id="log-out-cancel"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    class="log_out_popup_button log_out_confirm_button"
+                    id="log-out-confirm"
+                >
+                    Confirm
+                </button>
             </div>
         </div>
     `);
 
-    const logOutCancelButton = document.getElementById("log-out-cancel");
-    logOutCancelButton?.addEventListener("click", hideLogOutPopup);
-    const logOutConfirmButton = document.getElementById("log-out-confirm");
-    logOutConfirmButton?.addEventListener("click", logOut);
+    document.getElementById("log-out-cancel")?.addEventListener(
+        "click",
+        hideLogOutPopup,
+    );
+
+    document.getElementById("log-out-confirm")?.addEventListener(
+        "click",
+        logOut,
+    );
 }
 
 export function showLogOutPopup() {
-    const popup = document.getElementById("log-out-popup");
-    popup.classList.remove("hidden");
+    document.getElementById("log-out-popup")
+        ?.classList.remove("hidden");
 
-    const overlay = document.getElementById("log-out-overlay");
-    overlay.classList.remove("hidden");
+    document.getElementById("log-out-overlay")
+        ?.classList.remove("hidden");
 }
 
 export function hideLogOutPopup() {
-    const popup = document.getElementById("log-out-popup");
-    popup.classList.add("hidden");
+    document.getElementById("log-out-popup")
+        ?.classList.add("hidden");
 
-    const overlay = document.getElementById("log-out-overlay");
-    overlay.classList.add("hidden");
+    document.getElementById("log-out-overlay")
+        ?.classList.add("hidden");
 }
 
 // Transient notification
 export function showMiniPopup(content = "Popup") {
     const popup = document.createElement("div");
+
     popup.className = "mini_popup";
     popup.textContent = content;
+
     document.body.append(popup);
 
-    // Apply the visible state on the next frame so the browser can animate
-    // from the initial offscreen position.
-    requestAnimationFrame(() => popup.classList.add("mini_popup_visible"));
+    requestAnimationFrame(() => {
+        popup.classList.add("mini_popup_visible");
+    });
 
     setTimeout(() => {
         popup.classList.remove("mini_popup_visible");
+
         popup.addEventListener(
             "transitionend",
             () => popup.remove(),
             { once: true },
         );
 
-        // Keep cleanup reliable if transitions are disabled or interrupted.
         setTimeout(() => popup.remove(), 400);
     }, 2000);
 }

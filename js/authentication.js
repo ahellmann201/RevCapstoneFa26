@@ -1,117 +1,152 @@
-/** Stores and retrieves authentication tokens and exposes login/logout helpers. */
 import * as Cache from "./cache.js";
 import * as API from "./api_client.js";
 
-/** Clears the stored authentication token, reloads the page, and returns its stored value. */
 export function clearAuthToken() {
-    sessionStorage.setItem("authentication_token", null); //Session storage can only hold strings, so this isnt actually null
+    Cache.clearCache();
     window.location.reload();
-    return sessionStorage.getItem("authentication_token");
+    return null;
 }
 
-/** Stores an authentication token, reloads the page, and returns its stored value.
- * @param {string|null} token
- */
 export function setAuthToken(token = null) {
+    if (!token) {
+        return clearAuthToken();
+    }
+
     sessionStorage.setItem("authentication_token", token);
     window.location.reload();
-    return sessionStorage.getItem("authentication_token");
+    return token;
 }
 
-/** Returns the stored token, or null when absent or forceNoToken is true.
- * @param {boolean} forceNoToken
- */
 export function getAuthToken(forceNoToken = false) {
-    const authToken = sessionStorage.getItem("authentication_token");
-    if (forceNoToken || authToken == "null") return null; //also checks for "null" string to know to return an actual null since session storage only stores strings
-    return authToken;
+    if (forceNoToken) return null;
+
+    const token = sessionStorage.getItem("authentication_token");
+
+    return token && token !== "null" ? token : null;
 }
 
-/** Clears authentication and cached data, then reloads the page. */
 export function logOut() {
     clearAuthToken();
-    Cache.clearCache()
 }
 
-/** Checks auth token against db to verify a valid session */
-//TODO: implement fully when db is connected
-export function checkAuthToken(forceInvalid = false) {
-    if (forceInvalid) return false;
+export async function checkAuthToken(forceInvalid = false) {
+    if (forceInvalid || !getAuthToken()) {
+        return false;
+    }
 
-    return true; //Just standin for now
+    try {
+        await API.getUser();
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+async function completeLogin(username, password) {
+    const result = await API.login(username, password);
+
+    if (!result.access_token) {
+        throw new Error("The API did not return an access token.");
+    }
+
+    // Clear any account data left by a previous session.
+    Cache.clearCache();
+
+    sessionStorage.setItem(
+        "authentication_token",
+        result.access_token,
+    );
+
+    try {
+        const user = await API.getUser();
+
+        Cache.setUserID(user.User_ID);
+        Cache.setUsername(user.Username);
+        Cache.setDisplayName(user.Display_Name);
+        Cache.setEmail(user.Email);
+        Cache.setMainhand(user.Main_Hand);
+
+        sessionStorage.setItem("canReachDatabase", "true");
+    } catch (error) {
+        Cache.clearCache();
+        throw error;
+    }
+
+    window.location.reload();
 }
 
 export async function submitAuth(type = "login") {
-    const isLogin = type === "login";
+    const isSignup = type === "signup";
+    const popup = document.getElementById(`${type}_popup`);
+    const button = popup?.querySelector(".popup_primary");
 
-    if (!isLogin) {
-        const usernameField = document.getElementById("signup_username");
-        const displayNameField = document.getElementById("signup_display_name");
-        const emailField = document.getElementById("signup_email");
-        const passwordField = document.getElementById("signup_password");
+    if (button?.disabled) return;
 
-        if (!usernameField || !emailField || !passwordField) return;
+    if (button) button.disabled = true;
 
-        const username = usernameField.value.trim();
-        const displayName = displayNameField?.value.trim() ?? "";
-        const email = emailField.value.trim().toLowerCase();
-        const password = passwordField.value;
+    let accountCreated = false;
 
-        if (!username) {
-            console.error("Username is required to sign up.");
-            return;
-        }
+    try {
+        const password = document.getElementById(
+            `${type}_password`,
+        )?.value ?? "";
 
-        try {
-            const result = await API.createAccount(username, email, password);
-            const userID = result.User_ID;
+        if (isSignup) {
+            const username = document.getElementById(
+                "signup_username",
+            )?.value.trim() ?? "";
 
-            if (displayName) {
-                try {
-                    await API.setDisplayName(userID, displayName);
-                    Cache.setDisplayName(displayName);
-                } catch (error) {
-                    console.error(
-                        "Account created, but the display name could not be saved:",
-                        error.message,
-                    );
-                }
+            const email = document.getElementById(
+                "signup_email",
+            )?.value.trim().toLowerCase() ?? "";
+
+            const displayName = document.getElementById(
+                "signup_display_name",
+            )?.value.trim() ?? "";
+
+            if (!username || !email || !password) {
+                throw new Error(
+                    "Enter a username, email, and password.",
+                );
             }
 
-            console.log("Account created:", userID);
-            Cache.setUserID(userID);
-            setAuthToken(userID);
-        } catch (error) {
-            console.error("Sign-up failed:", error.message);
+            if (password.length < 8 || password.length > 128) {
+                throw new Error(
+                    "Use a password between 15 and 128 characters.",
+                );
+            }
+
+            await API.createAccount(
+                username,
+                email,
+                password,
+                displayName,
+            );
+
+            accountCreated = true;
+            await completeLogin(username, password);
+        } else {
+            // Retain the existing element ID for popup compatibility.
+            const username = document.getElementById(
+                "login_email",
+            )?.value.trim() ?? "";
+
+            if (!username || !password) {
+                throw new Error(
+                    "Enter your app username and password.",
+                );
+            }
+
+            await completeLogin(username, password);
         }
-        return;
-    }
-    else {
-        const emailField = document.getElementById(`${type}_email`);
-        const passwordField = document.getElementById(`${type}_password`);
+    } catch (error) {
+        const prefix = accountCreated
+            ? "Your account was created, but login failed. Try logging in. "
+            : "";
 
-        if (!emailField || !passwordField) return;
-
-        const email = emailField.value.trim()
-        const password = passwordField.value;
-
-        console.log(`email: ${email}`);
-        console.log(`password: ${password}`);
-
-        if (!email || !password) {
-            console.error("Invalid email or password"); //TODO: make this actual ui feedback
-            return;
-        }
-
-        try {
-            const result = await API.login(email, password);
-            const userID = result.User_ID;
-            console.log("Authenticated User ID:", userID);
-            Cache.setUserID(userID);
-            setAuthToken(userID); //TODO: replace with actual auth token functionality
-        } catch (error) {
-            console.error("Login failed:", error.message);
-        }
+        window.alert(prefix + error.message);
+    } finally {
+        if (button) button.disabled = false;
     }
 }
 
