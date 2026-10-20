@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from api.database import (
+from legacy.api.database import (
     create_account,
     get_user_by_id,
     update_display_name,

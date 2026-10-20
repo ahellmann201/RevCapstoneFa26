@@ -26,7 +26,7 @@ const commands = {
     },
 
     "test-app": {
-        description: "Start the frontend, API, and SQLite test database configuration.",
+        description: "Archived SQLite launcher notice; use the integrated SQL Server app.",
         script: "scripts/commands/test-app.mjs",
     },
 

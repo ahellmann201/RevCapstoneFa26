@@ -19,10 +19,10 @@ describe('authentication', () => {
         expect(getAuthToken()).toBeNull()
     })
 
-    it('treats a stored "null" value as no token', () => {
+    it('removes the stored token when null is supplied', () => {
         setAuthToken(null)
 
-        expect(sessionStorage.getItem('authentication_token')).toBe('null')
+        expect(sessionStorage.getItem('authentication_token')).toBeNull()
         expect(getAuthToken()).toBeNull()
     })
 

@@ -35,21 +35,21 @@ The JavaScript frontend communicates with the API through HTTP requests using `f
 
 Important files include:
 
-- `api/main.py` — Defines the FastAPI application and API routes.
-- `api/config.py` — Handles API and database configuration.
-- `js/api_client.js` — Contains JavaScript functions for communicating with the API.
+- `Database/api/main.py` — Defines the FastAPI application and API routes.
+- `Database/database/connection.py` — Opens the configured SQL Server connection.
+- `frontend/js/api_client.js` — Contains JavaScript functions for communicating with the API.
 - `Database/` — Contains existing database connection, entity, and repository code.
 
 The API acts as the intermediary between the frontend and the database. Database credentials should never be embedded in frontend code.
 
 ### Database
 
-The project supports two database environments:
+The integrated application uses SQL Server. The earlier SQLite prototype is archived:
 
-- **SQLite** — Used for local testing and development.
+- **SQLite** — Archived prototype only; it does not implement the integrated JWT API contract.
 - **SQL Server** — Used when running against a configured SQL Server database.
 
-The local SQLite database is initialized using the schema and seed files in `test_database/`.
+The local SQLite database is initialized using the schema and seed files in `legacy/test_database/`.
 
 Database configuration is supplied through environment files. The frontend should communicate with the API rather than connecting directly to the database.
 
@@ -89,3 +89,83 @@ Database Repositories
         |
         v
 SQLite or SQL Server
+
+## Repository layout and integrated development
+
+```text
+frontend/                HTML pages, js/, css/, and public assets
+Database/api/            Integrated JWT-protected FastAPI backend
+Database/database/       SQL Server connection and schema
+Database/entities/       Existing database entities
+Database/repositories/   Existing database repositories
+Database/scripts/        Database helper scripts
+legacy/                  Earlier API, SQLite files, unused starter source
+scripts/                 Project setup, startup, diagnostics, and build commands
+Statistics/              Statistics work
+android/, ios/           Capacitor native projects
+dist/                    Generated frontend build (ignored)
+```
+
+Run commands from the repository root. Keep `.env` and `.venv` here;
+never copy database passwords or the JWT secret into `frontend/`.
+
+### Setup
+
+```powershell
+npm.cmd run setup
+```
+
+This installs JavaScript and integrated SQL Server Python dependencies.
+It does not modify database tables or initialize/reset SQLite by default.
+Install Microsoft ODBC Driver 18 separately and configure the existing root
+`.env` with `DB_SERVER`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, and `JWT_SECRET`.
+The optional database health route uses `API_ENABLE_DB_HEALTH=true`.
+
+### Start
+
+Keep your existing SSH database tunnel running in a separate terminal when
+using its local forwarded database address. Then:
+
+```powershell
+npm.cmd run dev:full
+```
+
+Or start the components separately:
+
+```powershell
+npm.cmd run dev
+npm.cmd run dev:python
+```
+
+- Website: http://localhost:5173
+- API docs: http://127.0.0.1:8000/docs
+- API health: http://127.0.0.1:8000/health
+- Optional DB health: http://127.0.0.1:8000/health/db
+
+Login uses the application username and password, not SQL Server credentials.
+The integrated frontend uses JWT bearer tokens. Logout clears its saved token.
+The game screen saves events, sessions, games, frames, and shots to SQL Server
+and restores recorded shots after a refresh. It does not calculate scores yet.
+
+After pulling this reorganization, restart existing Vite/API processes so
+they load the new configuration. URLs such as `/game.html` remain unchanged.
+
+### Build, preview, and checks
+
+```powershell
+npm.cmd run build
+npm.cmd run preview
+npm.cmd run test -- --run
+```
+
+Vite builds all four HTML pages into root `dist/`; Capacitor continues to use
+that directory. Preview is on a different origin from the development server;
+authenticated API use there requires an explicit CORS entry for that origin.
+The default SQL Server API command is still:
+
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn Database.api.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+See `legacy/README.md` for the isolated SQLite prototype. Do not run
+`dev:full -- --test` with the integrated frontend; those login contracts differ.

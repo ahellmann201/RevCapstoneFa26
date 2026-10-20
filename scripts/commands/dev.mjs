@@ -6,6 +6,10 @@ import { fileURLToPath } from "node:url";
 const projectRoot = resolve(fileURLToPath(new URL("../../", import.meta.url)));
 const args = process.argv.slice(2);
 const testMode = args.includes("--test");
+if (testMode) {
+    console.error("The integrated frontend requires SQL Server. Use npm run legacy:api for the archived SQLite API alone.");
+    process.exit(1);
+}
 const lanMode = args.includes("--lan");
 const extraArgs = args.filter((arg) => arg !== "--test" && arg !== "--lan");
 

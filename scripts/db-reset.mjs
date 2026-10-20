@@ -11,7 +11,7 @@ const python = resolve(
     isWindows ? "Scripts" : "bin",
     isWindows ? "python.exe" : "python",
 );
-const database = resolve(projectRoot, "test_database", "capstone_test.db");
+const database = resolve(projectRoot, "legacy", "test_database", "capstone_test.db");
 
 if (!existsSync(python)) {
     console.error("Python environment not found. Run `npm run setup` first.");
@@ -19,7 +19,7 @@ if (!existsSync(python)) {
 }
 
 rmSync(database, { force: true });
-const result = spawnSync(python, ["-m", "test_database.connection"], {
+const result = spawnSync(python, ["-m", "legacy.test_database.connection"], {
     cwd: projectRoot,
     stdio: "inherit",
 });

@@ -29,20 +29,20 @@ const paths = {
     vite: resolve(projectRoot, "node_modules", "vite"),
     vitest: resolve(projectRoot, "node_modules", "vitest"),
     typescript: resolve(projectRoot, "node_modules", "typescript"),
-    api: resolve(projectRoot, "api", "main.py"),
+    api: resolve(projectRoot, "Database", "api", "main.py"),
     testDatabase: resolve(
         projectRoot,
-        "test_database",
+        "legacy", "test_database",
         "capstone_test.db",
     ),
     databaseSchema: resolve(
         projectRoot,
-        "test_database",
+        "legacy", "test_database",
         "schema.sql",
     ),
     databaseSeed: resolve(
         projectRoot,
-        "test_database",
+        "legacy", "test_database",
         "seed.sql",
     ),
 };

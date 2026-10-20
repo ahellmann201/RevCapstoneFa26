@@ -38,6 +38,10 @@ function main() {
         );
     }
 
+    if (testMode) {
+        console.warn("Legacy API only: incompatible with the integrated frontend login contract.");
+    }
+
     const envFile = resolve(
         projectRoot,
         testMode ? ".env.test" : ".env"
@@ -75,7 +79,7 @@ function main() {
 
     console.log(
         `Starting the Python API in ${
-            testMode ? "TEST" : "DEVELOPMENT"
+            testMode ? "LEGACY SQLITE" : "INTEGRATED SQL SERVER"
         } mode...`
     );
 
@@ -90,7 +94,7 @@ function main() {
         [
             "-m",
             "uvicorn",
-            "api.main:app",
+            testMode ? "legacy.api.main:app" : "Database.api.main:app",
             "--reload",
             "--host",
             lanMode ? "0.0.0.0" : "127.0.0.1",
