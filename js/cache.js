@@ -93,6 +93,54 @@ export function getFrameShots(frameId) {
     return value === null ? [] : JSON.parse(value);
 }
 
+/** Links a frame to its game, in bowling order. */
+export function addGameFrame(gameId, frameId) {
+    const frames = getGameFrames(gameId);
+    if (!frames.includes(frameId)) {
+        frames.push(frameId);
+        sessionStorage.setItem(`game${gameId}:frames`, JSON.stringify(frames));
+    }
+}
+
+/** Returns the frame IDs belonging to a game. */
+export function getGameFrames(gameId) {
+    const value = sessionStorage.getItem(`game${gameId}:frames`);
+    return value === null ? [] : JSON.parse(value);
+}
+
+/** Stores game progress and metadata separately from its frames and shots. */
+export function setGameState(gameId, state) {
+    sessionStorage.setItem(`game${gameId}:state`, JSON.stringify(state));
+}
+
+export function getGameState(gameId) {
+    const value = sessionStorage.getItem(`game${gameId}:state`);
+    return value === null ? null : JSON.parse(value);
+}
+
+export function setActiveGameId(gameId) {
+    if (gameId === null) sessionStorage.removeItem("activeGameId");
+    else sessionStorage.setItem("activeGameId", gameId);
+}
+
+export function getActiveGameId() {
+    return sessionStorage.getItem("activeGameId");
+}
+
+/** Discards only this game's cached frames and shots. */
+export function removeGame(gameId) {
+    for (const frameId of getGameFrames(gameId)) {
+        for (const shotId of getFrameShots(frameId)) {
+            sessionStorage.removeItem(`shot${shotId}:leave`);
+            sessionStorage.removeItem(`shot:${shotId}:result`);
+        }
+        sessionStorage.removeItem(`frame${frameId}:shots`);
+    }
+    sessionStorage.removeItem(`game${gameId}:frames`);
+    sessionStorage.removeItem(`game${gameId}:state`);
+    if (getActiveGameId() === gameId) setActiveGameId(null);
+}
+
 /** Stores a confirmed shot result. */
 export function setShotResult(shotId, result) {
     sessionStorage.setItem(

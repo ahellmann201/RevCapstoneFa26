@@ -5,7 +5,7 @@ import { defineConfig } from "vite";
 export default defineConfig({
     build: {
         rollupOptions: {
-            input: ["index.html", "events.html", "ciclops.html", "smart_dot.html",
+            input: ["index.html", "game.html", "events.html", "ciclops.html", "smart_dot.html",
                 "stats.html", "smart_watch.html", "ball_arsenal.html"]
                 .map((file) => fileURLToPath(new URL(file, import.meta.url))),
         },

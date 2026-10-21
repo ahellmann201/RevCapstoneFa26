@@ -1,20 +1,34 @@
 import { loadNavbar } from "./navbar.js";
+import { getAuthToken } from "./authentication.js";
+import { openAuthPopup } from "./popups.js";
 import { 
     setPinLeave,
     getPinLeave,
     addFrameShot,
     getFrameShots,
     setShotResult,
-    getShotResult
+    getShotResult,
+    addGameFrame,
+    getGameFrames,
+    setGameState,
+    getGameState,
+    setActiveGameId,
+    getActiveGameId,
+    removeGame,
+    getUserID
 } from "./cache.js";
 
 loadNavbar();
 
 const FRAME_COUNT = 10;
-let currentFrame = 1;
-let currentShot = 1;
-let gameFinished = false;
-let currentFoul = false;
+// A new game gets a UUID; reloads (including login) resume the same game.
+const gameId = getActiveGameId() ?? crypto.randomUUID();
+const gameState = getGameState(gameId) ?? { createdAt: new Date().toISOString() };
+setActiveGameId(gameId);
+let currentFrame = gameState.currentFrame ?? 1;
+let currentShot = gameState.currentShot ?? 1;
+let gameFinished = gameState.gameFinished ?? false;
+let currentFoul = gameState.currentFoul ?? false;
 
 const ALL_PINS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const frames = [];
@@ -28,6 +42,42 @@ const foulButton = document.getElementById("foul_button");
 const gutterButton = document.getElementById("gutter_button");
 const spareButton = document.getElementById("spare_button");
 const strikeButton = document.getElementById("strike_button");
+const finishPopup = document.getElementById("finish_game_popup");
+
+function cacheGameProgress() {
+    Object.assign(gameState, { currentFrame, currentShot, gameFinished, currentFoul });
+    setGameState(gameId, gameState);
+}
+
+function finishGame() {
+    if (getAuthToken() === null) {
+        finishPopup.showModal();
+        return;
+    }
+
+    // TODO: persist this game -> frames -> shots hierarchy to the database.
+    gameState.userID = getUserID();
+    gameState.finishedAt = new Date().toISOString();
+    gameState.finishRequested = false;
+    cacheGameProgress();
+    setActiveGameId(null);
+    window.location.href = "/index.html";
+}
+
+document.getElementById("stay_signed_out").addEventListener("click", () => {
+    removeGame(gameId);
+    window.location.href = "/index.html";
+});
+
+for (const type of ["login", "signup"]) {
+    document.getElementById(`finish_${type}`).addEventListener("click", () => {
+        // Authentication reloads the page. Keep this completed game pending.
+        gameState.finishRequested = true;
+        cacheGameProgress();
+        finishPopup.close();
+        openAuthPopup(`${type}_popup`);
+    });
+}
 
 function updateShortcutButtons() {
     const strikeAllowed = isStrikeOpportunity(currentFrame, currentShot);
@@ -61,7 +111,8 @@ gutterButton.addEventListener("click", () => applyShortcut("gutter"));
 spareButton.addEventListener("click", () => applyShortcut("spare"));
 strikeButton.addEventListener("click", () => applyShortcut("strike"));
 
-// Scorecard placeholders only. No score calculations.
+// Frame order is stored on the game, just as shot order is stored on each frame.
+const cachedFrames = getGameFrames(gameId);
 for (let frame = 1; frame <= FRAME_COUNT; frame++) {
     const card = document.createElement("div");
     card.className = "frame_card";
@@ -69,16 +120,19 @@ for (let frame = 1; frame <= FRAME_COUNT; frame++) {
 
     const rolls = frame === 10 ? 3 : 2;
 
-    const frameId = crypto.randomUUID();
-    const firstShotId = crypto.randomUUID();
+    const frameId = cachedFrames[frame - 1] ?? crypto.randomUUID();
 
     frames.push({
         id: frameId,
         number: frame
     });
 
-    addFrameShot(frameId, firstShotId);
-    setPinLeave(firstShotId, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    addGameFrame(gameId, frameId);
+    if (getFrameShots(frameId).length === 0) {
+        const firstShotId = crypto.randomUUID();
+        addFrameShot(frameId, firstShotId);
+        setPinLeave(firstShotId, [...ALL_PINS]);
+    }
 
     card.dataset.frameId = frameId;
 
@@ -86,7 +140,7 @@ for (let frame = 1; frame <= FRAME_COUNT; frame++) {
         <span class="frame_number">FRAME ${frame}</span>
 
         <div class="frame_rolls">
-            ${"<span>–</span>".repeat(rolls)}
+            ${"<span>-</span>".repeat(rolls)}
         </div>
 
         <span class="frame_total">—</span>
@@ -137,6 +191,7 @@ pinLayout.forEach(({ number, row, column }) => {
 
     cacheLeave();
     updateShortcutButtons();
+    cacheGameProgress();
     });
 
     pinRack.appendChild(pin);
@@ -183,12 +238,12 @@ function updateFrame() {
         ).matches ? "instant" : "smooth"
     });
 
-    nextButton.disabled = gameFinished;
-    nextButton.innerHTML = gameFinished
-        ? "Game complete"
+    nextButton.textContent = gameFinished
+        ? "Finish"
         : 'Next';
     
     updateShortcutButtons();
+    cacheGameProgress();
 }
 
 function startNextShot() {
@@ -207,7 +262,10 @@ function startNextShot() {
 }
 
 nextButton.addEventListener("click", () => {
-    if (gameFinished) return;
+    if (gameFinished) {
+        finishGame();
+        return;
+    }
 
     cacheLeave();
 
@@ -399,7 +457,7 @@ function getShotSymbol(frameNumber, shotNumber, result) {
         return "/";
     }
 
-    return result.pins === 0 ? "–" : String(result.pins);
+    return result.pins === 0 ? "-" : String(result.pins);
 }
 
 function calculateFrameTotals() {
@@ -464,3 +522,8 @@ frameStrip.addEventListener("pointercancel", stopDragging);
 frameStrip.addEventListener("lostpointercapture", stopDragging);
 
 updateFrame();
+
+// Complete the pending Finish action after a successful login or signup reload.
+if (gameFinished && gameState.finishRequested && getAuthToken() !== null) {
+    finishGame();
+}
