@@ -32,7 +32,7 @@ function validateEnvironment() {
     if (!existsSync(environmentFile)) {
         fail(
             "The .env file was not found.\n" +
-            "Create it using .env.example as a reference, then configure your SQL Server connection.",
+            "Configure the root .env as documented in README.md.",
         );
     }
 
@@ -83,8 +83,7 @@ function main() {
     console.log(" RevCapstone Remote Development");
     console.log("========================================");
     console.log("Database: SQL Server");
-    console.log(`Server: ${environment.DB_SERVER}`);
-    console.log(`Database name: ${environment.DB_NAME}`);
+    console.log("SQL Server connection: configured");
     console.log("Credentials: configured");
     console.log("\nStarting the frontend and Python API...");
     console.log("Database writes may persist on the remote server.\n");

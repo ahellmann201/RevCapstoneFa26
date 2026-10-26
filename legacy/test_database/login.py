@@ -1,4 +1,4 @@
-from test_database.connection import get_connection
+from legacy.test_database.connection import get_connection
 
 
 def validate_login(email: str, password: str) -> int | None:

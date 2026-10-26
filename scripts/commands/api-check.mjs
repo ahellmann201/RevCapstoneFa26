@@ -102,7 +102,7 @@ function runPythonCheck() {
 }
 
 async function checkApiHealth() {
-    const healthUrl = `${apiUrl}/api/health`;
+    const healthUrl = `${apiUrl}${testMode ? "/api/health" : "/health"}`;
 
     console.log(`\nChecking API endpoint: ${healthUrl}`);
 
@@ -156,8 +156,8 @@ async function main() {
 
     console.log("\n1. Checking project files");
 
-    checkFile("api/main.py");
-    checkFile("api/config.py");
+    checkFile(testMode ? "legacy/api/main.py" : "Database/api/main.py");
+    if (testMode) checkFile("legacy/api/config.py");
     checkFile("requirements.txt", false);
 
     console.log("\n2. Checking Python environment");
@@ -183,12 +183,12 @@ async function main() {
     if (testMode) {
         const databasePath = path.join(
             projectRoot,
-            "test_database",
+            "legacy", "test_database",
             "capstone_test.db"
         );
 
-        checkFile("test_database/schema.sql");
-        checkFile("test_database/seed.sql");
+        checkFile("legacy/test_database/schema.sql");
+        checkFile("legacy/test_database/seed.sql");
 
         if (existsSync(databasePath)) {
             pass("Local SQLite test database exists");
@@ -256,7 +256,7 @@ async function main() {
     }
 
     console.log(
-        "\nNote: A successful /api/health response confirms HTTP API availability, " +
+        "\nNote: A successful health response confirms HTTP API availability, " +
         "not necessarily a successful database connection."
     );
 }

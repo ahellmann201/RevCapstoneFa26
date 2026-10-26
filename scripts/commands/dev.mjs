@@ -6,8 +6,12 @@ import { fileURLToPath } from "node:url";
 const projectRoot = resolve(fileURLToPath(new URL("../../", import.meta.url)));
 const args = process.argv.slice(2);
 const testMode = args.includes("--test");
-const lanMode = args.includes("--lan");
-const extraArgs = args.filter((arg) => arg !== "--test" && arg !== "--lan");
+if (testMode) {
+    console.error("The integrated frontend requires SQL Server. Use npm run legacy:api for the archived SQLite API alone.");
+    process.exit(1);
+}
+const lanMode = !args.includes("--local");
+const extraArgs = args.filter((arg) => arg !== "--test" && arg !== "--lan" && arg !== "--local");
 
 const apiScript = resolve(projectRoot, "scripts", "commands", "api.mjs");
 const frontendScript = resolve(projectRoot, "scripts", "commands", "frontend.mjs");
@@ -70,6 +74,9 @@ if (testMode) apiArgs.push("--test");
 if (lanMode) {
     apiArgs.push("--lan");
     frontendArgs.push("--lan");
+} else {
+    apiArgs.push("--local");
+    frontendArgs.push("--local");
 }
 
 startProcess("Python API", apiScript, apiArgs);

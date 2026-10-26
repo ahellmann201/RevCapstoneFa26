@@ -4,7 +4,8 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const projectRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
-const wantsSqlServer = process.argv.includes("--sqlserver");
+const wantsSqlServer = true;
+const wantsLegacy = process.argv.includes("--legacy");
 const isWindows = process.platform === "win32";
 
 function run(command, args, options = {}) {
@@ -108,10 +109,12 @@ try {
     }
 
     // Create the local SQLite test database from the committed schema and seed data.
-    run(venvPython, ["-m", "test_database.connection"]);
+    if (wantsLegacy) {
+        run(venvPython, ["-m", "legacy.test_database.connection"]);
+    }
 
     console.log("\nSetup complete.");
-    console.log("Start local test mode with: npm run dev:full -- --test");
+    console.log("Start the integrated app with: npm run dev:full (requires the database tunnel)");
     if (!wantsSqlServer) {
         console.log("For SQL Server dependencies, run: npm run setup -- --sqlserver");
     }

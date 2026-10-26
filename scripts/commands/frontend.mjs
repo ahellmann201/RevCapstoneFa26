@@ -32,10 +32,12 @@ function main() {
     const lanMode = args.includes("--lan");
 
     const extraArgs = args.filter(
-        (arg) => arg !== "--lan"
+        (arg) => arg !== "--lan" && arg !== "--local"
     );
 
-    if (lanMode) {
+    if (args.includes("--local")) {
+        extraArgs.push("--host", "127.0.0.1");
+    } else if (lanMode) {
         extraArgs.push("--host", "0.0.0.0");
     }
 
