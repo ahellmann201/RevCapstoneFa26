@@ -322,6 +322,35 @@ navbar {
     outline-offset: 4px;
 }
 
+.frame_rolls span.is_current_shot {
+    background: var(--game-orange);
+    color: #132c33;
+    font-weight: bold;
+}
+
+.pin:disabled {
+    cursor: default;
+    opacity: 0.55;
+}
+
+.shot_actions button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.shot_actions button:not(:disabled) {
+    cursor: pointer;
+}
+
+.shot_actions button[aria-pressed="true"] {
+    border-color: var(--game-orange);
+    background: #43504a;
+}
+
+.frame_rolls span {
+    min-height: 32px;
+}
+
 @media (max-width: 360px) {
     .game_page {
         padding-inline: 10px;
