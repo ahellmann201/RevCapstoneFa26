@@ -412,3 +412,15 @@ native mobile builds.
 Before public deployment, configure HTTPS, authentication rate limiting,
 password recovery, and an appropriate token-revocation strategy. Never expose
 database credentials to the frontend or commit local environment files.
+# Android ONNX lane analysis demo
+
+The `onnx-demo.html` page is an optional Android Capacitor demo for local
+lane/ball frame detection. It is served from `frontend/onnx-demo.html` and is
+available from the home page. Install the root npm dependencies, build the
+frontend, sync Capacitor, and run the Android app using the existing Android
+setup above. The ONNX plugin and model asset live in `Ciclopes-API/mobile`.
+
+The demo can upload a clip and inspect sampled frames on device. The Ciclopes
+server-side frame-results endpoint is an optional separate integration; its
+request contract is in `Ciclopes-API/mobile/frame-results-api.md`. The
+existing `/laneballs/run` route remains a separate full-video inference path.
