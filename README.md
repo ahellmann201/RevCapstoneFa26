@@ -160,16 +160,6 @@ the SSH server. Use the same destination as your working database tunnel.
 Leave this terminal running. A connected tunnel may produce no output.
 If your tunnel is already open, do not start another on port 14330.
 
-For Andrew's existing authorized setup, the working command is:
-
-```powershell
-ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -L 127.0.0.1:14330:172.18.0.3:1433 root@143.110.146.58
-```
-
-This uses Andrew's existing SSH access; other developers should use their own
-approved account and key. Do not share private keys or place passwords in commands.
-The database destination must be updated if its container address changes.
-
 An existing personal tunnel script may be used instead. Personal scripts
 are optional and should not contain passwords or private-key contents.
 
