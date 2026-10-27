@@ -10,7 +10,9 @@ import dotenv from "dotenv";
 const projectRoot = fileURLToPath(new URL("../../", import.meta.url));
 
 const args = process.argv.slice(2);
-const testMode = args.includes("--test");
+const databaseArgument = args.find((arg) => arg.startsWith("--db="));
+const testMode = args.includes("--test")
+    || databaseArgument?.slice("--db=".length) === "test";
 
 const urlArgument = args.find((arg) => arg.startsWith("--url="));
 const apiUrl = (
@@ -102,7 +104,8 @@ function runPythonCheck() {
 }
 
 async function checkApiHealth() {
-    const healthUrl = `${apiUrl}${testMode ? "/api/health" : "/health"}`;
+    const healthPath = testMode ? "/health/db" : "/health";
+    const healthUrl = `${apiUrl}${healthPath}`;
 
     console.log(`\nChecking API endpoint: ${healthUrl}`);
 
@@ -151,13 +154,12 @@ async function main() {
     console.log("==================================");
     console.log("       Python API Diagnostics");
     console.log("==================================");
-    console.log(`Mode: ${testMode ? "TEST (SQLite)" : "DEVELOPMENT (SQL Server)"}`);
+    console.log(`Mode: ${testMode ? "TEST (SQLite)" : "REAL (SQL Server)"}`);
     console.log(`Project: ${projectRoot}`);
 
     console.log("\n1. Checking project files");
 
-    checkFile(testMode ? "legacy/api/main.py" : "Database/api/main.py");
-    if (testMode) checkFile("legacy/api/config.py");
+    checkFile("Database/api/main.py");
     checkFile("requirements.txt", false);
 
     console.log("\n2. Checking Python environment");
@@ -183,19 +185,22 @@ async function main() {
     if (testMode) {
         const databasePath = path.join(
             projectRoot,
-            "legacy", "test_database",
-            "capstone_test.db"
+            "test_database",
+            "revmetrix_test.db"
         );
 
-        checkFile("legacy/test_database/schema.sql");
-        checkFile("legacy/test_database/seed.sql");
+        checkFile("Database/database/sqlite_schema.py");
+
+        if (environment.DB_TYPE !== "sqlite") {
+            fail(".env.test must set DB_TYPE=sqlite");
+        }
 
         if (existsSync(databasePath)) {
-            pass("Local SQLite test database exists");
+            pass("Current app's SQLite test database exists");
         } else {
             warn(
                 "Local SQLite database does not exist yet. " +
-                "Initialize it with the database init command."
+                "Initialize it with npm run db:test:init."
             );
         }
     } else {

@@ -5,13 +5,19 @@ import { fileURLToPath } from "node:url";
 
 const projectRoot = resolve(fileURLToPath(new URL("../../", import.meta.url)));
 const args = process.argv.slice(2);
-const testMode = args.includes("--test");
-if (testMode) {
-    console.error("The integrated frontend requires SQL Server. Use npm run legacy:api for the archived SQLite API alone.");
+const databaseArgument = args.find((arg) => arg.startsWith("--db="));
+const databaseMode = databaseArgument?.slice("--db=".length)
+    ?? (args.includes("--test") ? "test" : "real");
+if (!["test", "real"].includes(databaseMode)) {
+    console.error("Choose a database with --db=test or --db=real.");
     process.exit(1);
 }
+const testMode = databaseMode === "test";
 const lanMode = !args.includes("--local");
-const extraArgs = args.filter((arg) => arg !== "--test" && arg !== "--lan" && arg !== "--local");
+const extraArgs = args.filter((arg) =>
+    arg !== "--test" && !arg.startsWith("--db=")
+    && arg !== "--lan" && arg !== "--local"
+);
 
 const apiScript = resolve(projectRoot, "scripts", "commands", "api.mjs");
 const frontendScript = resolve(projectRoot, "scripts", "commands", "frontend.mjs");
@@ -70,7 +76,7 @@ console.log(
 
 const apiArgs = [...extraArgs];
 const frontendArgs = [...extraArgs];
-if (testMode) apiArgs.push("--test");
+apiArgs.push(`--db=${databaseMode}`);
 if (lanMode) {
     apiArgs.push("--lan");
     frontendArgs.push("--lan");

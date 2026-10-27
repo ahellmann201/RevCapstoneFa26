@@ -4,14 +4,13 @@ from datetime import datetime, timedelta, timezone
 from typing import Annotated, Literal
 
 import jwt
-import pyodbc
 from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt.exceptions import InvalidTokenError
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, SecretStr
 from pwdlib import PasswordHash
 
-from Database.database.connection import get_connection
+from Database.database.connection import DatabaseError, IntegrityError, get_connection
 
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -97,7 +96,7 @@ def database():
         finally:
             connection.close()
 
-    except (pyodbc.Error, KeyError):
+    except (DatabaseError, KeyError):
         # Do not expose raw database errors or configuration values.
         raise HTTPException(
             status_code=503,
@@ -112,6 +111,15 @@ def user_response(row) -> UserResponse:
         username=row[2],
         email=row[3],
         main_hand=row[4],
+    )
+
+
+def inserted_columns() -> str:
+    columns = "user_id, display_name, username, email, main_hand"
+    if os.getenv("DB_TYPE", "sqlserver").strip().lower() == "sqlite":
+        return f"RETURNING {columns}"
+    return "OUTPUT " + ", ".join(
+        f"INSERTED.{column}" for column in columns.split(", ")
     )
 
 
@@ -133,7 +141,7 @@ def register(data: RegisterRequest) -> UserResponse:
 
         try:
             try:
-                cursor.execute(
+                insert_sql = (
                     """
                     INSERT INTO users (
                         display_name,
@@ -142,14 +150,24 @@ def register(data: RegisterRequest) -> UserResponse:
                         email,
                         main_hand
                     )
-                    OUTPUT
-                        INSERTED.user_id,
-                        INSERTED.display_name,
-                        INSERTED.username,
-                        INSERTED.email,
-                        INSERTED.main_hand
                     VALUES (?, ?, ?, ?, ?)
-                    """,
+                    RETURNING user_id, display_name, username, email, main_hand
+                    """
+                    if os.getenv("DB_TYPE", "sqlserver").strip().lower() == "sqlite"
+                    else f"""
+                    INSERT INTO users (
+                        display_name,
+                        username,
+                        password_hash,
+                        email,
+                        main_hand
+                    )
+                    {inserted_columns()}
+                    VALUES (?, ?, ?, ?, ?)
+                    """
+                )
+                cursor.execute(
+                    insert_sql,
                     (
                         data.display_name.strip(),
                         data.username,
@@ -162,7 +180,7 @@ def register(data: RegisterRequest) -> UserResponse:
                 result = user_response(cursor.fetchone())
                 connection.commit()
 
-            except pyodbc.IntegrityError:
+            except IntegrityError:
                 connection.rollback()
 
                 raise HTTPException(
