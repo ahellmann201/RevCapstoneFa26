@@ -64,7 +64,7 @@ function runProcess(command, args, name) {
 async function runJavaScriptTests() {
     if (!existsSync(vitestCli)) {
         console.error(
-            "Vitest was not found. Run `npm run cap -- setup` first.",
+            "Vitest was not found. Run `npm run setup` first.",
         );
         return 1;
     }
@@ -80,15 +80,20 @@ async function runPythonTests() {
     if (!existsSync(pythonExecutable)) {
         console.error(
             "The Python virtual environment was not found. " +
-            "Run `npm run cap -- setup` first.",
+            "Run `npm run setup` first.",
         );
         return 1;
     }
 
     const result = await runProcess(
         pythonExecutable,
-        ["-m", "pytest", ...extraArgs],
-        "Python tests",
+        [
+            "-m", "unittest", "discover",
+            "-s", "Database/database",
+            "-p", "test_*.py",
+            ...extraArgs,
+        ],
+        "Python database tests",
     );
 
     return result;
@@ -98,9 +103,9 @@ async function main() {
     if (!["js", "python", "all"].includes(testType)) {
         console.error(`
 Usage:
-  npm run cap -- test js
-  npm run cap -- test python
-  npm run cap -- test all
+  npm run test:js
+  npm run test:python
+  npm run test:all
 `);
         process.exitCode = 1;
         return;

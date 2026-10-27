@@ -46,7 +46,7 @@ function requirePython() {
     if (!existsSync(pythonExecutable)) {
         fail(
             "The Python virtual environment was not found.\n" +
-            "Run `npm run cap -- setup` first.",
+            "Run `npm run setup` first.",
         );
 
         return false;

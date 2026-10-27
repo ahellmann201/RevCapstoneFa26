@@ -87,6 +87,7 @@ from Database.api.auth import (
     UserResponse,
     current_user,
     database,
+    inserted_columns,
     router as auth_router,
     user_response,
 )
@@ -120,18 +121,23 @@ def update_display_name(
         cursor = connection.cursor()
 
         try:
-            cursor.execute(
+            update_sql = (
                 """
                 UPDATE users
                 SET display_name = ?
-                OUTPUT
-                    INSERTED.user_id,
-                    INSERTED.display_name,
-                    INSERTED.username,
-                    INSERTED.email,
-                    INSERTED.main_hand
                 WHERE user_id = ?
-                """,
+                RETURNING user_id, display_name, username, email, main_hand
+                """
+                if os.getenv("DB_TYPE", "sqlserver").strip().lower() == "sqlite"
+                else f"""
+                UPDATE users
+                SET display_name = ?
+                {inserted_columns()}
+                WHERE user_id = ?
+                """
+            )
+            cursor.execute(
+                update_sql,
                 (data.value, user.user_id),
             )
 

@@ -4,8 +4,6 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const projectRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
-const wantsSqlServer = true;
-const wantsLegacy = process.argv.includes("--legacy");
 const isWindows = process.platform === "win32";
 
 function run(command, args, options = {}) {
@@ -101,23 +99,14 @@ try {
     run(venvPython, ["-m", "pip", "install", "--upgrade", "pip"]);
     run(venvPython, ["-m", "pip", "install", "-r", "requirements.txt"]);
 
-    if (wantsSqlServer) {
-        run(venvPython, ["-m", "pip", "install", "-r", "requirements-sqlserver.txt"]);
-        console.log(
-            "\nSQL Server Python dependencies installed. You must also install the Microsoft ODBC Driver 18 for SQL Server for your operating system and configure .env.",
-        );
-    }
-
-    // Create the local SQLite test database from the committed schema and seed data.
-    if (wantsLegacy) {
-        run(venvPython, ["-m", "legacy.test_database.connection"]);
-    }
+    run(venvPython, ["-m", "pip", "install", "-r", "requirements-sqlserver.txt"]);
+    console.log(
+        "\nSQL Server Python dependencies installed. You must also install the Microsoft ODBC Driver 18 for SQL Server for your operating system and configure .env.",
+    );
 
     console.log("\nSetup complete.");
-    console.log("Start the integrated app with: npm run dev:full (requires the database tunnel)");
-    if (!wantsSqlServer) {
-        console.log("For SQL Server dependencies, run: npm run setup -- --sqlserver");
-    }
+    console.log("Start with the test database: npm run dev:full:test");
+    console.log("Start with SQL Server: npm run dev:full:real");
 } catch (error) {
     console.error(`\nSetup failed: ${error.message}`);
     process.exit(1);
