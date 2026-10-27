@@ -1,13 +1,27 @@
-import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
+import { fileURLToPath } from "node:url";
 
-// Include the new sidebar pages alongside the existing home entry point.
+const rootPath = (relative) => fileURLToPath(new URL(relative, import.meta.url));
+
 export default defineConfig({
+    root: rootPath("./frontend/"),
+    server: { host: "0.0.0.0", port: 5173, strictPort: true },
     build: {
+        outDir: rootPath("./dist/"),
+        emptyOutDir: true,
         rollupOptions: {
-            input: ["index.html", "game.html", "events.html", "ciclops.html", "smart_dot.html",
-                "stats.html", "smart_watch.html", "ball_arsenal.html"]
-                .map((file) => fileURLToPath(new URL(file, import.meta.url))),
+            input: [
+                "index.html",
+                "game.html",
+                "account_settings.html",
+                "schedule_event.html",
+                "events.html",
+                "ciclops.html",
+                "smart_dot.html",
+                "stats.html",
+                "smart_watch.html",
+                "ball_arsenal.html",
+            ].map((file) => rootPath(`./frontend/${file}`)),
         },
     },
 });

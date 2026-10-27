@@ -2,12 +2,12 @@ import hashlib
 import hmac
 import secrets
 
-from api.config import DB_TYPE
+from legacy.api.config import DB_TYPE
 
 # Select the configured adapter once; API handlers use the same repository
 # functions regardless of whether development SQL Server or test SQLite is active.
 if DB_TYPE == "sqlite":
-    from test_database.connection import get_connection
+    from legacy.test_database.connection import get_connection
 elif DB_TYPE == "sqlserver":
     from Database.database.connection import get_connection
 else:

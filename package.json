@@ -5,19 +5,18 @@
   "type": "module",
   "scripts": {
     "cap": "node scripts/cap.mjs",
-
     "setup": "node scripts/setup.mjs",
-
     "dev": "vite",
     "dev:host": "vite --host",
     "dev:python": "node scripts/dev-python.mjs",
     "dev:full": "node scripts/dev.mjs",
-
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest",
-
-    "db:reset": "node scripts/db-reset.mjs"
+    "db:reset": "node scripts/db-reset.mjs",
+    "legacy:api": "node scripts/commands/api.mjs --test",
+    "legacy:db:init": "node scripts/commands/database.mjs init",
+    "legacy:db:reset": "node scripts/commands/database.mjs reset"
   },
   "devDependencies": {
     "concurrently": "^10.0.6",

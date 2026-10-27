@@ -19,10 +19,10 @@ const pythonExecutable = resolve(
 );
 
 const testMode = process.argv.includes("--test");
-const lanMode = process.argv.includes("--lan");
+const lanMode = process.argv.includes("--lan") || (!testMode && !process.argv.includes("--local"));
 
 const extraArgs = process.argv.slice(2).filter(
-    (arg) => arg !== "--test" && arg !== "--lan"
+    (arg) => arg !== "--test" && arg !== "--lan" && arg !== "--local"
 );
 
 function fail(message) {
@@ -36,6 +36,10 @@ function main() {
             "The project's Python virtual environment was not found.\n" +
             "Run `npm run cap -- setup` first."
         );
+    }
+
+    if (testMode) {
+        console.warn("Legacy API only: incompatible with the integrated frontend login contract.");
     }
 
     const envFile = resolve(
@@ -75,7 +79,7 @@ function main() {
 
     console.log(
         `Starting the Python API in ${
-            testMode ? "TEST" : "DEVELOPMENT"
+            testMode ? "LEGACY SQLITE" : "INTEGRATED SQL SERVER"
         } mode...`
     );
 
@@ -90,7 +94,7 @@ function main() {
         [
             "-m",
             "uvicorn",
-            "api.main:app",
+            testMode ? "legacy.api.main:app" : "Database.api.main:app",
             "--reload",
             "--host",
             lanMode ? "0.0.0.0" : "127.0.0.1",

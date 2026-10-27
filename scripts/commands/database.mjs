@@ -19,19 +19,19 @@ const pythonExecutable = resolve(
 
 const databasePath = resolve(
     projectRoot,
-    "test_database",
+    "legacy", "test_database",
     "capstone_test.db",
 );
 
 const schemaPath = resolve(
     projectRoot,
-    "test_database",
+    "legacy", "test_database",
     "schema.sql",
 );
 
 const seedPath = resolve(
     projectRoot,
-    "test_database",
+    "legacy", "test_database",
     "seed.sql",
 );
 
@@ -96,7 +96,7 @@ async function initializeDatabase() {
     if (!existsSync(schemaPath) || !existsSync(seedPath)) {
         fail(
             "The SQLite schema or seed file is missing.\n" +
-            "Expected test_database/schema.sql and test_database/seed.sql.",
+            "Expected legacy/test_database/schema.sql and legacy/test_database/seed.sql.",
         );
 
         return;
@@ -107,7 +107,7 @@ async function initializeDatabase() {
 
     const result = await runPython([
         "-m",
-        "test_database.connection",
+        "legacy.test_database.connection",
     ]);
 
     if (result !== 0) {
@@ -124,7 +124,7 @@ async function resetDatabase() {
     if (!existsSync(schemaPath) || !existsSync(seedPath)) {
         fail(
             "The SQLite schema or seed file is missing.\n" +
-            "Expected test_database/schema.sql and test_database/seed.sql.",
+            "Expected legacy/test_database/schema.sql and legacy/test_database/seed.sql.",
         );
 
         return;
@@ -145,7 +145,7 @@ async function resetDatabase() {
 
     const result = await runPython([
         "-m",
-        "test_database.connection",
+        "legacy.test_database.connection",
     ]);
 
     if (result !== 0) {
@@ -161,7 +161,7 @@ async function checkDatabase() {
         process.env.CAP_API_URL || "http://127.0.0.1:8000"
     ).replace(/\/+$/, "");
 
-    const healthUrl = `${baseUrl}/api/health`;
+    const healthUrl = `${baseUrl}/health`;
 
     console.log(`Checking API health at ${healthUrl}...`);
 
