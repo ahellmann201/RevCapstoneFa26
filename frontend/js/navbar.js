@@ -34,7 +34,6 @@ export function goToCiclops() {window.location.href = "/ciclops.html";}
 export function goToSmartDot() {window.location.href = "/smart_dot.html";}
 export function goToStats() {window.location.href = "/stats.html";}
 export function goToSmartWatch() {window.location.href = "/smart_watch.html";}
-export function goToBallArsenal() {window.location.href = "/ball_arsenal.html";}
 export function goToAccountSettings() {window.location.href = "/account_settings.html";}
 
 export function togglePfpDropdown() {
@@ -101,29 +100,20 @@ export function loadNavbar() {
             <div class="sidebar_section">
                 <button class="sessions_button sidebar_button" id="sessions-button">Sessions</button>
             </div>
-
             <div class="sidebar_section">
-                <button class="sidebar_nav_button event_button" id="event-button">Events</button>
+                <button class="sidebar_button event_button" id="event-button">Events</button>
             </div>
-
             <div class="sidebar_section">
-                <button class="sidebar_nav_button ciclops_button" id="ciclops-button">Ciclops</button>
+                <button class="sidebar_button ciclops_button" id="ciclops-button">Ciclops</button>
             </div>
-
             <div class="sidebar_section">
-                <button class="sidebar_nav_button smart_dot_button" id="smart-button">Smart Dot</button>
+                <button class="sidebar_button smart_dot_button" id="smart-button">Smart Dot</button>
             </div>
-
             <div class="sidebar_section">
-                <button class="sidebar_nav_button stats_button" id="stats-button">Stats</button>
+                <button class="sidebar_button stats_button" id="stats-button">Stats</button>
             </div>
-
             <div class="sidebar_section">
-                <button class="sidebar_nav_button smart_watch_button" id="smart-watch-button">Smart Watch</button>
-            </div>
-
-            <div class="sidebar_section">
-                <button class="sidebar_nav_button ball_arsenal_button" id="ball-button">Ball Arsenal</button>
+                <button class="sidebar_button smart_watch_button" id="smart-watch-button">Smart Watch</button>
             </div>
 
             
@@ -211,10 +201,6 @@ export function loadNavbar() {
         .addEventListener("click", goToSmartWatch);
 
     document
-        .getElementById("ball-button")
-        .addEventListener("click", goToBallArsenal);
-
-    document
         .getElementById("profile-picture-container")
         .addEventListener("click", togglePfpDropdown);
 
@@ -227,7 +213,7 @@ export function loadNavbar() {
         }
     }
     document
-        .getElementById("sidebar-logout-button")?.addEventListener("click", () => showLogOutPopup);
+        .getElementById("sidebar-logout-button")?.addEventListener("click", showLogOutPopup);
     if (getAuthToken() == null) {
         const element = document.getElementById("sidebar-logout-button")
         if (element != null && !element.classList.contains("hidden")) {

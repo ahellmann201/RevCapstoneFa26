@@ -124,6 +124,23 @@ export function createAuthPopup(type) {
         () => submitAuth(type),
     );
 
+    popup.addEventListener("keydown", (event) => {
+        if (
+            event.key !== "Enter"
+            || event.isComposing
+            || !(event.target instanceof HTMLInputElement)
+        ) {
+            return;
+        }
+
+        event.preventDefault();
+
+        const submitButton = popup.querySelector(".popup_primary");
+        if (!submitButton?.disabled) {
+            submitAuth(type);
+        }
+    });
+
     popup.querySelector(".popup_switch")?.addEventListener(
         "click",
         () => {

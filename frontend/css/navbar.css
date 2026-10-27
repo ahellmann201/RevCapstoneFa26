@@ -203,6 +203,11 @@
     color: white;
     font-weight: bold;
 }
+.sidebar_logout_button {
+    background-color: var(--button-color-1);
+    color: white;
+    font-weight: bold;
+}
 
 .sidebar_button {
     width: 100%;
@@ -452,6 +457,10 @@ body:has(.auth_popup[open]) {
     font-family: var(--standard-font-family);
 
     z-index: 99;
+}
+
+.log_out_popup.hidden {
+    display: none;
 }
 
 .log_out_popup_header_container {
