@@ -1,5 +1,5 @@
-// Use the computer serving the website, including when opened over the LAN.
-const API_BASE_URL = `http://${window.location.hostname}:8000`;
+// Shared backend hosted on DigitalOcean.
+const API_BASE_URL = "https://api.revmetrix.io";
 
 async function request(path, options = {}, authenticated = true) {
     const headers = new Headers(options.headers);
