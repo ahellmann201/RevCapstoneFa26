@@ -228,11 +228,16 @@
     height: 7rem;
     aspect-ratio: 3/2;
     right: 0;
-    top: var(--navbar-height);
+    top: 100%;
     margin-right: calc(var(--pfp-right-margin) / 2);
+    z-index: 3;
+    color: black;
 }
 .pfp_dropdown_inactive {
     display: none;
+}
+.pfp_dropdown_active {
+    display: block;
 }
 
 .dropdown_arrow_container {
