@@ -25,9 +25,11 @@ export function closeSidebar() {
 }
 
 
-export function goHome() {
-    window.location.href = "/index.html";
-}
+export function goHome() {window.location.href = "/index.html";}
+export function goToBallArsenal() {window.location.href = "/ball_arsenal.html";}
+export function goToEstablishments() {window.location.href = "/establishments.html";}
+export function goToEvents() {window.location.href = "/events.html";}
+export function goToSessions() {window.location.href = "/sessions.html";}
 
 
 export function goToAccountSettings() {
@@ -84,11 +86,24 @@ export function loadNavbar() {
             </div>
 
             <div class="sidebar_section">
-                <button class="home_button" id="home-button">Home</button>
+                <button class="home_button sidebar_button" id="home-button">Home</button>
+            </div>
+            <div class="sidebar_section">
+                <button class="ball_arsenal_button sidebar_button" id="ball-arsenal-button">Ball Arsenal</button>
+            </div>
+            <div class="sidebar_section">
+                <button class="establishments_button sidebar_button" id="establishments-button">Establishments</button>
+            </div>
+            <div class="sidebar_section">
+                <button class="events_button sidebar_button" id="events-button">Events</button>
+            </div>
+            <div class="sidebar_section">
+                <button class="sessions_button sidebar_button" id="sessions-button">Sessions</button>
             </div>
 
             <div class="sidebar_auth" id="sidebar-auth">
                 <button class="sidebar_login_button" id="sidebar-login-button">Log In</button>
+                <button class="sidebar_logout_button" id="sidebar-logout-button">Log Out</button>
             </div>
         </div>
 
@@ -135,6 +150,18 @@ export function loadNavbar() {
     document
         .getElementById("home-button")
         .addEventListener("click", goHome);
+    document
+        .getElementById("ball-arsenal-button")
+        .addEventListener("click", goToBallArsenal);
+    document
+        .getElementById("establishments-button")
+        .addEventListener("click", goToEstablishments);
+    document
+        .getElementById("events-button")
+        .addEventListener("click", goToEvents);
+    document
+        .getElementById("sessions-button")
+        .addEventListener("click", goToSessions);
 
     document
         .getElementById("profile-picture-container")
@@ -143,7 +170,18 @@ export function loadNavbar() {
     document
         .getElementById("sidebar-login-button")?.addEventListener("click", () => openAuthPopup("login_popup"));
     if (getAuthToken() != null) {
-        document.getElementById("sidebar-auth").remove();
+        const element = document.getElementById("sidebar-login-button")
+        if (element != null && !element.classList.contains("hidden")) {
+            element.classList.add("hidden");
+        }
+    }
+    document
+        .getElementById("sidebar-logout-button")?.addEventListener("click", () => showLogOutPopup);
+    if (getAuthToken() == null) {
+        const element = document.getElementById("sidebar-logout-button")
+        if (element != null && !element.classList.contains("hidden")) {
+            element.classList.add("hidden");
+        }
     }
     
 
