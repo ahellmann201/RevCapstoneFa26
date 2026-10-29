@@ -15,7 +15,9 @@ def isolated_environment(monkeypatch):
 def modules():
     from unittest.mock import patch
     # Prevent main.py from loading a developer's real .env during collection.
-    with patch("dotenv.load_dotenv", return_value=False):
+    with patch("dotenv.load_dotenv", return_value=False), patch.dict(
+        "os.environ", {"DB_TYPE": "sqlserver"}
+    ):
         from Database.api import main, auth, balls, bowling, resource_routes
     return main, auth, balls, bowling, resource_routes
 

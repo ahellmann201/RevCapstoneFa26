@@ -17,7 +17,7 @@
     <main class="game_page">
         <header class="game_heading">
             <div>
-                <p class="game_eyebrow">LET’S BOWL</p>
+                <p class="game_eyebrow">LET'S BOWL</p>
             </div>
 
             <span class="game_badge">Game 01</span>
@@ -62,22 +62,22 @@
                 ></div>
 
                 <div class="shot_actions" aria-label="Shot shortcuts">
-                    <button type="button" disabled>
+                    <button type="button" id="foul_button" aria-pressed="false">
                         <strong>F</strong>
                         <span>Foul</span>
                     </button>
 
-                    <button type="button" disabled>
-                        <strong>−</strong>
+                    <button type="button" id="gutter_button">
+                        <strong>-</strong>
                         <span>Gutter</span>
                     </button>
 
-                    <button type="button" disabled>
+                    <button type="button" id="spare_button">
                         <strong>/</strong>
                         <span>Spare</span>
                     </button>
 
-                    <button type="button" disabled>
+                    <button type="button" id="strike_button">
                         <strong>X</strong>
                         <span>Strike</span>
                     </button>
@@ -92,7 +92,7 @@
             </div>
 
             <button type="button" id="next_frame" class="next_button">
-                Next frame <span aria-hidden="true">→</span>
+                Next Shot
             </button>
 
             <p id="game_status" class="game_status" aria-live="polite">
@@ -100,6 +100,24 @@
             </p>
         </footer>
     </main>
+
+    <dialog
+        id="finish_game_popup"
+        class="auth_popup"
+        aria-labelledby="finish_game_title"
+        aria-describedby="finish_game_description"
+    >
+        <div class="popup_content">
+            <h2 id="finish_game_title">Finish game?</h2>
+            <p id="finish_game_description" class="popup_description">
+                Your game will not be saved if you stay signed out.
+                Log in or sign up to keep it.
+            </p>
+            <button type="button" id="finish_login" class="popup_primary">Log In</button>
+            <button type="button" id="finish_signup" class="popup_switch">Sign Up</button>
+            <button type="button" id="stay_signed_out" class="popup_close">Stay Signed Out</button>
+        </div>
+    </dialog>
 
     <script type="module" src="/js/game.js"></script>
 </body>

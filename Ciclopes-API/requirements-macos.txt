@@ -1,0 +1,3 @@
+# Native macOS install. pip selects the macOS PyTorch wheels (MPS on Apple Silicon).
+-r requirements.txt
+termcolor

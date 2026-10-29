@@ -1,5 +1,7 @@
-// Shared backend hosted on DigitalOcean.
-const API_BASE_URL = "https://api.revmetrix.io";
+import { snapshotGuestGame, restoreGuestGame } from "./cache.js";
+
+// Hosted by default; the combined local launcher supplies /api via Vite.
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://api.revmetrix.io";
 
 async function request(path, options = {}, authenticated = true) {
     const headers = new Headers(options.headers);
@@ -30,7 +32,9 @@ async function request(path, options = {}, authenticated = true) {
 
     if (!response.ok) {
         if (response.status === 401 && authenticated) {
+            const localGame = snapshotGuestGame(false);
             sessionStorage.clear();
+            restoreGuestGame(localGame);
         }
 
         const detail = data?.detail;

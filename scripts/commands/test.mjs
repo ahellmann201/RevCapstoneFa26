@@ -64,7 +64,7 @@ function runProcess(command, args, name) {
 async function runJavaScriptTests() {
     if (!existsSync(vitestCli)) {
         console.error(
-            "Vitest was not found. Run `npm run cap -- setup` first.",
+            "Vitest was not found. Run `npm run setup` first.",
         );
         return 1;
     }
@@ -98,9 +98,9 @@ async function main() {
     if (!["js", "python", "all"].includes(testType)) {
         console.error(`
 Usage:
-  npm run cap -- test js
-  npm run cap -- test python
-  npm run cap -- test all
+  npm run test:frontend
+  npm run test:backend
+  npm run test
 `);
         process.exitCode = 1;
         return;

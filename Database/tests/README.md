@@ -7,7 +7,7 @@ Run from the project root in PowerShell:
 .\.venv\Scripts\python.exe -m pytest Database/tests -q
 ```
 
-These offline API and unit tests need no SSH tunnel, running server, SQL Server
+These offline API, unit, and temporary SQLite integration tests need no SSH tunnel, running server, SQL Server
 credentials, or installed ODBC system driver. The Python pyodbc package is still
 required to import the backend. Tests block real pyodbc connections, prevent API
 startup from loading .env, and use a temporary test signing key.
@@ -23,3 +23,11 @@ Server ownership expressions or prove live database isolation. SQL syntax,
 constraints, cascades, concurrency, and complete save/reload workflows still need
 integration tests against an explicitly designated disposable SQL Server database.
 No tests here create or delete records on the shared development server.
+
+
+The combined command `npm.cmd run test` also includes the frontend tests. The
+SQLite schema tests and isolated API scenario create temporary databases, not the
+persistent app test database. The scenario exercises real SQL for accounts,
+establishment details, a complete saved game, statistics, updates, cross-account
+rejections, and cascading deletion. SQL Server unit tests still use mocks; the
+migration tests do not apply changes to a real SQL Server instance.

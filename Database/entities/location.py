@@ -17,3 +17,8 @@ class UserEstablishment:
     address: str | None = None
     location_id: int | None = None
     establishment_id: int | None = None
+    nickname: str | None = None
+    type: str | None = None
+    phone: str | None = None
+    home_house: bool = False
+    enabled: bool = True

@@ -87,9 +87,11 @@ from Database.api.auth import (
     UserResponse,
     current_user,
     database,
+    inserted_columns,
     router as auth_router,
     user_response,
 )
+from Database.database.connection import DB_TYPE
 from Database.api.balls import router as balls_router
 from Database.api.bowling import router as bowling_router
 from Database.api.statistics import router as statistics_router
@@ -122,18 +124,23 @@ def update_display_name(
         cursor = connection.cursor()
 
         try:
-            cursor.execute(
+            update_sql = (
                 """
                 UPDATE users
                 SET display_name = ?
-                OUTPUT
-                    INSERTED.user_id,
-                    INSERTED.display_name,
-                    INSERTED.username,
-                    INSERTED.email,
-                    INSERTED.main_hand
                 WHERE user_id = ?
-                """,
+                RETURNING user_id, display_name, username, email, main_hand
+                """
+                if DB_TYPE == "sqlite"
+                else f"""
+                UPDATE users
+                SET display_name = ?
+                {inserted_columns()}
+                WHERE user_id = ?
+                """
+            )
+            cursor.execute(
+                update_sql,
                 (data.value, user.user_id),
             )
 

@@ -53,6 +53,8 @@ def get_statistics(
     records = {}
     frame_ids = {}
     for game_id, date_time, frame_id, frame_number, shot_number, mask in rows:
+        if isinstance(date_time, str):
+            date_time = datetime.fromisoformat(date_time)
         record = records.setdefault(game_id, RecordedGame(game_id, date_time, {}))
         if frame_id is None:
             continue

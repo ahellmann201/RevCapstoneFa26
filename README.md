@@ -1,18 +1,14 @@
-# RevCapstoneFa26 — RevMetrix
+# RevMetrix
 
-RevMetrix is a York College of Pennsylvania Computer Science Capstone project
-for recording bowling games and tracking bowling activity. It uses an
-HTML/CSS/JavaScript frontend, FastAPI, and SQL Server. Capacitor projects are
-included for Android and iOS development.
+RevMetrix is a York College of Pennsylvania CS400 capstone project for recording
+bowling games and tracking performance. The frontend uses HTML, CSS, JavaScript,
+Vite, and Capacitor. FastAPI connects to SQL Server for shared use or SQLite for
+local development and integration tests.
 
-## Quick start for frontend developers
+## Start the frontend with the shared backend
 
-The shared backend is available at **https://api.revmetrix.io**. Teammates do
-not need a local Python server, SSH tunnel, ODBC driver, database credentials,
-or JWT signing secret to use it.
-
-Install Node.js with npm (the project has been developed with Node.js 24).
-Open PowerShell at your checkout root:
+Install Node.js with npm (development currently uses Node.js 24), then run from
+the repository root in Windows PowerShell:
 
 ```powershell
 cd C:\SCHOOL\capstone\RevCapstoneFa26
@@ -20,287 +16,161 @@ npm.cmd install
 npm.cmd run dev
 ```
 
-Replace the checkout path if yours differs. Open
-[http://localhost:5173](http://localhost:5173), register an application account,
-and log in. Leave Vite running while using the website.
+Use your own checkout path. Open [http://localhost:5173](http://localhost:5173).
+Normal frontend startup calls **https://api.revmetrix.io** and needs no Python,
+database credentials, ODBC driver, or personal SSH tunnel.
 
-The API address in `frontend/js/api_client.js` is:
+The hosted API accepts localhost and private IPv4 frontend origins on port 5173.
+Preview servers on other ports and other public origins need CORS configuration.
+If npm is not recognized, install Node.js and fully reopen VS Code.
 
-```javascript
-const API_BASE_URL = "https://api.revmetrix.io";
-```
+## Run everything locally with SQLite
 
-Requests from localhost and private IPv4 frontend addresses on port **5173**
-are allowed by the backend's current CORS configuration. Other origins,
-including preview servers on different ports, need explicit backend configuration.
-
-If npm is not recognized after installing Node.js, fully close and reopen VS Code:
+Install Python 3.10 or newer as well as Node.js. From the repository root:
 
 ```powershell
-node --version
-npm.cmd --version
+npm.cmd run setup
+npm.cmd run db:test:init
+npm.cmd run dev:full:test
 ```
 
-## Architecture
+Setup installs JavaScript dependencies and creates/reuses root `.venv` with
+backend and test dependencies. It does not reset a database. Initialization
+creates or upgrades `test_database/revmetrix_test.db` using the SQLite schema
+and starter locations. It does not create a starter login; register your own
+test account in the UI. SQLite accounts and data are separate from SQL Server.
+
+The combined launcher sets `VITE_API_BASE_URL=/api`. Vite forwards `/api/*` to
+the local FastAPI service on port 8000, so the website uses the local database
+without editing source files. SQLite mode binds to loopback by default.
+Stop both processes with Ctrl+C in the launcher terminal.
+
+The checked-in `.env.test` contains **local-only test settings**, including a
+public development signing key. Never use those settings on a public deployment.
+No SQL credentials, SQL Server, system ODBC driver, or SSH tunnel is needed for
+SQLite mode.
+
+```powershell
+npm.cmd run db:test:status
+```
+
+To erase local test records and recreate the test database, stop the app first:
+
+```powershell
+npm.cmd run db:test:reset
+```
+
+Reset deletes data only at the dedicated local SQLite path. The manager refuses
+other configured paths. `db:test:init` preserves existing records; it applies
+missing establishment columns without deleting the database.
+
+## Current workflows
+
+- Register, log in, log out, and update the display name.
+- Record a guest game locally, including strike, spare, gutter, and foul shortcuts.
+- Use **Next Shot** to confirm shots in browser session storage.
+- Use **Start saved game** to create a database game, or **Save shot** to create
+  it and upload all confirmed shots. Authentication is required for database writes.
+- Reload the saved game URL to retrieve database progress. Cached unuploaded shots
+  remain available in the same browser session. Ambiguous saves block blind retries
+  until progress is reconciled; an uncertain initial game creation may need manual
+  inspection before retrying.
+- Display cumulative scores, including tenth-frame bonus shots, in the scorecard.
+- On Finish, guests can log in/sign up to preserve progress or discard the local
+  game. Signed-in users must upload confirmed shots before finishing.
+- Add and edit owned establishments, including nickname, type, phone, home-house,
+  enabled status, lane count, and address.
+
+Browser caching is **sessionStorage**, not an offline synchronization service.
+Closing the browser session can lose unuploaded progress. Foul markers are retained
+locally; the database currently records their zero credited pinfall without a
+separate foul flag. Do not assume unuploaded shots are in SQL Server or SQLite.
+
+Saved game URLs look like `http://localhost:5173/game.html?game_id=6`. Use an ID
+owned by your application account and bookmark it while saved-game browsing is
+unfinished. Application credentials are distinct from database credentials.
+
+The sidebar also contains Ball Arsenal, Events, Sessions, Stats, Ciclops, Smart
+Dot, and Smart Watch destinations. Several are navigation placeholders, not
+complete interfaces. Their presence does not imply the corresponding UI or device
+integration is implemented. Stats calculations exist in the API; the Stats page
+does not yet display them.
+
+## Architecture and API selection
 
 ```text
-Browser → Vite frontend on localhost or LAN, port 5173
-   |
-   | HTTPS / JSON, JWT bearer token for protected requests
-   v
-https://api.revmetrix.io
-   |
-   v
-Nginx Proxy Manager → FastAPI container on DigitalOcean
-                            |
-                            | Private Docker network, pyodbc + ODBC Driver 18
-                            v
-                        SQL Server
+Normal startup:
+Browser → local Vite frontend → HTTPS api.revmetrix.io
+                                    ↓
+                           Nginx Proxy Manager
+                                    ↓
+                              FastAPI container
+                                    ↓
+                         SQL Server over private Docker network
+
+Combined local startup:
+Browser → Vite /api proxy → local FastAPI → SQLite or SQL Server
 ```
 
-The browser calls the API and never connects directly to SQL Server. The
-DigitalOcean backend uses its server-side database configuration; teammates
-do not depend on a developer computer or personal SSH tunnel being online.
-Existing entities and repositories remain under `Database/`; current API
-routes also execute parameterized SQL directly.
+`frontend/js/api_client.js` defaults to `https://api.revmetrix.io` and supports a
+non-secret `VITE_API_BASE_URL` override. The combined launcher selects `/api` for
+local development automatically. `npm.cmd run dev` alone always uses the hosted
+default unless you explicitly provide an override. Vite environment values are
+included in client code: never put database credentials or JWT signing secrets in
+`VITE_*` values. Restart Vite after changing an override.
 
-## Current functionality
+Existing entities/repositories remain in `Database/`. The current API also uses
+parameterized SQL directly, with separate SQL Server and SQLite syntax where needed.
+Ownership is validated through event → session → game → frame → shot. Shared
+locations are authenticated read-only reference data. Other users' records return
+404; linked-record conflicts return 409. Deletes can cascade to descendants.
 
-- Register and log in using an application username and password.
-- Update the authenticated profile's display name.
-- Create saved practice games and record their frames and shots.
-- Reload a game URL to retrieve saved progress.
-- Restrict protected records to their owning account.
-- Manage bowling equipment and other bowling resources through the API.
-- Retrieve completed-game count, average score, highest score, and recent
-  completed games through the authenticated `/statistics` endpoint.
+## API documentation and statistics
 
-Statistics calculate ten-pin scores from recorded shots, including strike,
-spare, and tenth-frame bonuses. Incomplete games are excluded. Invalid saved
-sequences are excluded and reported by `invalid_games`. An empty average or
-highest score is `null`; a completed zero-score game still counts.
+- Hosted docs: https://api.revmetrix.io/docs
+- Local docs: http://127.0.0.1:8000/docs when running a local API
+- Health: `/health`; optional database check: `/health/db`
 
-The game scorecard displays shot marks. The statistics calculations do not
-write totals back into `game_score`, and frontend statistics display remains
-separate work. Saved-game browsing, friends, additional profile controls,
-and complete video-analysis/mobile integration remain incomplete.
+Registration hashes passwords using Argon2. Passwords must have 8–128 characters.
+Login returns a JWT access token with a 30-minute expiry. Protected calls use
+`Authorization: Bearer TOKEN`. In Swagger Authorize, paste the token without quotes
+or the word Bearer. Log in again when changing backends; their signing keys/accounts
+may differ. Browser logout clears local authorization but does not revoke issued tokens.
 
-## Repository layout
-
-```text
-RevCapstoneFa26/
-├── frontend/                # HTML pages, JavaScript, CSS, public assets
-│   └── js/test/             # Frontend tests
-├── Database/
-│   ├── api/                 # JWT-protected FastAPI routes
-│   ├── database/            # SQL Server connection and schema
-│   ├── entities/
-│   ├── repositories/
-│   ├── Queries/
-│   ├── scripts/
-│   └── tests/               # Offline backend tests
-├── Statistics/              # Pure scoring/statistics calculations and notes
-├── scripts/                 # Setup, launch, build, diagnostic commands
-├── legacy/                  # Earlier API and SQLite prototype
-├── android/
-├── ios/
-├── requirements.txt
-├── requirements-sqlserver.txt
-├── requirements-dev.txt
-├── package.json
-├── vite.config.js
-└── dist/                    # Generated frontend build output
-```
-
-Run commands from the project root. Local `.env`, `.venv`, and `node_modules`
-belong at the root and must not be committed.
-
-## Demo workflow
-
-1. Run `npm.cmd run dev` and open the website.
-2. Register a unique username and email with an 8–128-character password.
-3. Log in, change the display name, and confirm it persists after logging in again.
-4. Start a saved game and confirm its saved game ID appears.
-5. Select knocked-down pins and save a shot.
-6. Continue through the shots and frames, then refresh to check persistence.
-
-Game URLs retain the database ID, for example:
-
-```text
-http://localhost:5173/game.html?game_id=6
-```
-
-Use your own account's game ID. Bookmark the URL to reopen it while a saved-games
-browser is unfinished. Application logins are not SQL Server accounts. Access
-tokens are stored in browser session storage; saved game data lives in SQL Server.
-The legacy SQLite accounts and database are separate from this hosted system.
-
-## API documentation and authentication
-
-- [Interactive API documentation](https://api.revmetrix.io/docs)
-- [API health](https://api.revmetrix.io/health)
-- [Optional database health](https://api.revmetrix.io/health/db)
-
-Registration hashes passwords with Argon2. Login returns a JWT access token
-that expires after 30 minutes. Protected requests include:
-
-```http
-Authorization: Bearer YOUR_ACCESS_TOKEN
-```
-
-In Swagger's **Authorize** dialog, paste only the token, without quotes or
-the word `Bearer`. Do not share tokens. Clearing browser authorization does
-not revoke an already issued token on the server.
-
-| Resource | Operations |
+| Routes | Purpose |
 | --- | --- |
-| `/health` | GET: API availability without connecting to the database |
-| `/health/db` | GET: optional SQL connectivity check |
-| `/auth/register` | POST: create an application account |
-| `/auth/login` | POST: obtain an access token |
-| `/auth/me` | GET: authenticated profile |
-| `/auth/me/display-name` | PUT: update the authenticated display name |
-| `/balls` | Create, list, get, replace, and delete owned balls |
-| `/locations` | Authenticated read-only access to shared locations |
-| `/establishments` | CRUD for owned establishments |
-| `/events` | CRUD for owned events |
-| `/sessions` | CRUD under owned events |
-| `/games` | CRUD under owned sessions |
-| `/frames` | CRUD under owned games |
-| `/shots` | CRUD under owned frames |
-| `/statistics` | GET: owned completed-game statistics; `recent_limit` defaults to 10, maximum 100 |
+| `POST /auth/register`, `POST /auth/login` | Application accounts and access tokens |
+| `GET /auth/me`, `PUT /auth/me/display-name` | Authenticated profile |
+| `/balls` | Owned bowling-ball CRUD |
+| `/locations` | Authenticated reads of shared locations |
+| `/establishments`, `/events` | Owned establishment/event CRUD |
+| `/sessions`, `/games`, `/frames`, `/shots` | Owned bowling hierarchy CRUD |
+| `GET /statistics` | Completed-game count, average, high score, and recent games |
 
-See Swagger for exact request schemas and item routes. Resource lists use
-`limit` and `offset`, with a maximum page size of 100. `PUT` replaces editable
-fields, so include optional values you want to retain. The statistics recent
-limit affects only the recent list, not all-time totals. Recent games are
-ordered by session date, then game ID; undated games appear last.
+Resource lists accept `limit`/`offset` with maximum page size 100. PUT replaces
+editable fields. Statistics accept `recent_limit` from 1 to 100, default 10; it
+limits only the recent list, not all-time totals. Scores are calculated from
+recorded remaining pins, not editable score fields. Incomplete games are excluded;
+invalid games are excluded and counted by `invalid_games`. Empty average/highest
+are null, while completed zero games count normally. Recent games use session date
+descending, then game ID; undated games are last. See [statistics notes](Statistics/README.md).
 
-Ownership follows event → session → game → frame → shot. Linked balls and
-establishments must also belong to the requesting account. Inaccessible
-records return 404. Deletes may cascade to child records or return 409 when
-other linked records prevent deletion.
+`/health` requires no database connection. `/health/db` runs SELECT 1 only if enabled
+with `API_ENABLE_DB_HEALTH=true` at startup. A generic 503 means connectivity is
+unavailable; 404 means the optional route is disabled. No raw database errors or
+credentials are returned.
 
-Check the hosted service from PowerShell:
+## Test and build
 
-```powershell
-Invoke-RestMethod https://api.revmetrix.io/health
-Invoke-RestMethod https://api.revmetrix.io/health/db
-```
-
-Expected responses are `{"status":"ok"}` and
-`{"status":"ok","database":"reachable"}`. Database health is registered
-only when `API_ENABLE_DB_HEALTH=true` at API startup; 404 means it is disabled.
-A generic 503 means the database check is unavailable. Raw driver errors and
-credentials are not returned.
-
-## Optional local backend development on Windows
-
-Use this when changing or debugging Python backend code. It is not required
-for normal frontend development against the hosted API.
-
-Install Python 3.10 or newer and Microsoft ODBC Driver 18 for SQL Server.
-The ODBC driver is a system dependency; installing `pyodbc` does not install it.
-[Download ODBC Driver 18](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server).
-
-```powershell
-py -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements-sqlserver.txt
-```
-
-Reuse the root `.venv` if it already exists. Alternatively, `npm.cmd run setup`
-installs both JavaScript and backend Python dependencies; it does not configure
-database access or create SQL Server tables.
-
-Create an ignored root `.env` using authorized development database details:
-
-```dotenv
-API_ENABLE_DB_HEALTH=true
-DB_SERVER=127.0.0.1,14330
-DB_NAME=replace_with_database_name
-DB_USER=replace_with_database_user
-DB_PASSWORD="replace_with_database_password"
-JWT_SECRET=replace_with_generated_secret
-```
-
-Generate your own local signing secret:
-
-```powershell
-.\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_hex(32))"
-```
-
-Keep it at least 64 characters long and stable between restarts. Local and
-hosted signing secrets can differ: log in again when switching backends.
-Never put credentials, private keys, tokens, or `JWT_SECRET` in frontend code
-or `VITE_*` variables.
-
-For local access to the private remote SQL Server, keep an authorized SSH
-tunnel running in a separate PowerShell terminal:
-
-```powershell
-ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -L 127.0.0.1:14330:DB_HOST:DB_PORT SSH_USER@SSH_HOST
-```
-
-Replace the uppercase placeholders. The database destination is reached from
-the SSH server; obtain current details from the project administrator. A
-working tunnel can be silent. Do not expose local port 14330 to the network.
-
-Start the local backend:
-
-```powershell
-npm.cmd run dev:python
-```
-
-Or bind directly to this computer only:
-
-```powershell
-.\.venv\Scripts\python.exe -m uvicorn Database.api.main:app --reload --host 127.0.0.1 --port 8000
-```
-
-Local docs are at http://127.0.0.1:8000/docs. The frontend still targets the
-hosted API unless you temporarily change `API_BASE_URL` to
-`"http://127.0.0.1:8000"` for same-computer testing. For LAN testing, use the
-local backend computer's reachable IPv4 address instead. Restore the shared
-HTTPS address before sharing the frontend change.
-
-`npm.cmd run dev:full` starts both local processes but does not change that API
-address. Use it only when intentionally testing a local backend. Restart the
-backend after changing `.env`. The local `/health` endpoint needs no SQL
-credentials, ODBC system driver, or SSH tunnel; database endpoints do.
-
-## Sharing the frontend over the LAN
-
-Vite listens on all IPv4 interfaces on port 5173. Share its Wi-Fi Network URL,
-such as `http://192.168.1.20:5173`, with devices on the same trusted network.
-Those browsers still call the shared HTTPS backend, not a local port 8000.
-Only the Vite host needs to run the frontend; no participant needs an SQL tunnel.
-
-If needed, allow Vite through Windows Firewall for the trusted network. Campus
-Wi-Fi may block connections between devices. Avoid virtual-adapter addresses.
-`0.0.0.0` is a listening address, not a browser URL.
-
-## Build and tests
-
-Run all frontend, backend, and statistics tests once with:
+After setup, run **all frontend, backend, statistics, and SQLite integration tests**:
 
 ```powershell
 npm.cmd run test
 ```
 
-The runner executes both suites even if one fails and exits unsuccessfully if
-any suite fails. Console messages are streamed for passing tests too, and Python
-warnings appear in the warnings summary. Warnings alone do not fail the run.
-No SSH tunnel, database credentials, or running API is needed.
-Install JavaScript dependencies with `npm.cmd install` and prepare the Python
-test dependencies once:
-
-```powershell
-py -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
-```
-
-Skip virtual-environment creation if the root `.venv` already exists.
-To run individual suites, watch frontend tests, or build the website:
+The runner executes both suites once, streams console messages, shows Python
+warning details, and exits unsuccessfully if either suite fails. It still runs
+the backend tests after frontend failures. Warnings alone do not fail the command.
 
 ```powershell
 npm.cmd run test:frontend
@@ -309,85 +179,161 @@ npm.cmd run test:watch
 npm.cmd run build
 ```
 
-The build writes to root `dist/`, which Capacitor also uses. Frontend tests
-mock API requests and verify that localhost and LAN pages all use the shared
-HTTPS backend address. These are offline checks, not live connectivity tests.
+`test:js`/`test:python` are aliases for individual suites; `test:all` runs both.
+No running server, SSH tunnel, credentials, or initialized persistent test database
+is needed for tests. Backend unit tests block real pyodbc connections. SQLite
+integration tests create temporary databases and exercise actual registration,
+CRUD, scoring, account isolation, and deletion cascades. SQL Server syntax,
+production constraints, and concurrency still require dedicated SQL Server
+integration verification. Tests do not write to the hosted database.
 
-Backend tests, with no SSH tunnel or database credentials:
+For manual dependency setup:
 
 ```powershell
 py -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
-.\.venv\Scripts\python.exe -m pytest Database/tests -q
 ```
 
-Skip virtual-environment creation if it already exists. The initial suite
-passed 126 tests covering authentication, CRUD behavior, validation, error
-handling, cleanup, and scoring/statistics. Database connections are mocked
-and real pyodbc connections are blocked. These tests still need the Python
-dependencies, but do not need the system ODBC driver or a running SQL Server.
-They do not prove SQL syntax, live account isolation, database constraints,
-or concurrency; those need a dedicated SQL Server integration test database.
+Reuse `.venv` if it exists. The development requirements include pyodbc for SQL
+Server mock tests; SQLite runtime itself does not import pyodbc.
+Build type-checks source and emits all 12 HTML pages to root `dist/`, also used
+by Capacitor. Backend test instructions are in [Database/tests/README.md](Database/tests/README.md).
 
-For statistics behavior and limitations, see [Statistics/README.md](Statistics/README.md).
-Backend test instructions are in [Database/tests/README.md](Database/tests/README.md).
+## Optional local SQL Server development
 
-`npm.cmd run preview` uses a different frontend origin; configure CORS for it
-before using it with the hosted API. Use Vite port 5173 for normal development.
+Install [Microsoft ODBC Driver 18](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server)
+as a system dependency. Installing pyodbc with pip does not install this driver.
+Use authorized development credentials in an ignored root `.env`:
 
-## Hosted deployment
+```dotenv
+DB_TYPE=sqlserver
+DB_SERVER=127.0.0.1,14330
+DB_NAME=replace_with_database_name
+DB_USER=replace_with_database_user
+DB_PASSWORD="replace_with_database_password"
+JWT_SECRET=replace_with_generated_local_secret
+API_ENABLE_DB_HEALTH=true
+```
 
-The API currently runs as a Docker container on DigitalOcean. Nginx Proxy
-Manager forwards `api.revmetrix.io` over HTTPS to `revmetrix-fastapi:8000` on
-their shared Docker network. SQL Server is reached through its private Docker
-network. The host's API port 8000 remains bound to loopback.
+Generate a local signing secret (at least 64 characters) and keep it stable:
 
-The server checkout was updated from `integration-demo`. The deployment
-Dockerfile installs `requirements-sqlserver.txt` and copies both `Database/`
-and `Statistics/`. Server deployment files currently exist only on the server;
-they are not supplied by a fresh repository clone.
+```powershell
+.\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_hex(32))"
+```
 
-The Compose service uses a prebuilt `revmetrix-fastapi:dev` image, so its
-`docker-compose build` command skips the service. An authorized administrator
-can rebuild and replace just the API from the server checkout:
+For access to the remote private database, keep an authorized tunnel running:
+
+```powershell
+ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -L 127.0.0.1:14330:DB_HOST:DB_PORT SSH_USER@SSH_HOST
+```
+
+Replace placeholders with administrator-provided values. The SQL destination is
+reached from the SSH server. Leave the tunnel running and do not expose port 14330.
+
+```powershell
+npm.cmd run dev:full:real
+```
+
+This starts both local processes and points the frontend at the local SQL-backed API.
+`npm.cmd run dev:full` defaults to the same mode. `dev:api`/`dev:python` start only
+the local SQL-backed API; `dev:frontend` starts only Vite. Combined real mode allows
+LAN access unless `-- --local` is supplied. Use `ipconfig`/Vite's Wi-Fi URL to share
+port 5173; campus Wi-Fi/firewalls may block peer devices. The local proxy forwards
+API calls, so participants need not connect directly to port 8000.
+
+## Important SQL Server migration before deploying this merge
+
+The establishment form now uses five additional columns: `nickname`, `type`,
+`phone`, `home_house`, and `enabled`. Fresh schemas include these fields; an
+existing SQL Server database needs the additive migration before the merged API
+is deployed. Back up the intended database and confirm the configured target first.
+
+```powershell
+.\.venv\Scripts\python.exe -m Database.scripts.migrate_establishments
+.\.venv\Scripts\python.exe -m Database.scripts.migrate_establishments --apply
+```
+
+The first command only describes the plan. `--apply` adds missing columns in a
+transaction, preserves records, and can be repeated. It requires ALTER permission.
+No schema modification occurs automatically at API startup. SQLite initialization
+handles the equivalent migration with `npm.cmd run db:test:init`.
+
+**Merging/pushing main does not update the running DigitalOcean container or
+apply its database migration.** Until deployment, hosted behavior remains at the
+previous release; new establishment fields will not save through the old API.
+
+## Server deployment
+
+The server checkout is `/opt/revmetrix/RevCapstoneFa26`. Its Dockerfile and Compose
+files currently live on the server rather than in a fresh clone. Nginx Proxy
+Manager forwards HTTPS `api.revmetrix.io` to `revmetrix-fastapi:8000`; SQL Server
+is on a private Docker network. The API host port remains loopback-only.
+
+An authorized administrator must back up/migrate SQL Server as described above,
+update the server checkout to **main**, and build the image. Using the current
+server's older Docker/Compose installation:
 
 ```bash
-git pull --ff-only origin integration-demo
+git fetch origin main
+git switch main
+git pull --ff-only origin main
 DOCKER_API_VERSION=1.43 docker build -f Dockerfile.api -t revmetrix-fastapi:dev .
+```
+
+Run the migration using the intended server database credentials, with a login
+authorized for schema changes. Never copy local tunnel settings into the server
+configuration. Only after migration and a successful image build, recreate the API:
+
+```bash
 DOCKER_API_VERSION=1.43 docker-compose -p revmetrix-fastapi -f docker-compose.fastapi.yml up -d --no-deps --force-recreate api
 ```
 
-Proceed to container recreation only if the build succeeds. These commands
-reflect the current server's older Docker/Compose installation. Preserve its
-ignored configuration and exclude environment files from the image. Verify
-health and authenticated behavior after an update. The older API container
-has been kept available for rollback; the domain now forwards to FastAPI.
+The Dockerfile must install `requirements-sqlserver.txt` and copy `Database/` and
+`Statistics/`. Compose references a prebuilt image, so `docker-compose build` skips
+it. Keep environment files out of the image. Verify health, authenticated saves,
+establishments, and statistics after updating. The older .NET API container remains
+available, but the public API hostname forwards to FastAPI.
 
-## Legacy prototype and remaining work
+## Repository layout
 
-The earlier API and SQLite data are retained under `legacy/`. They use a
-different login contract and are not the backend for the current application.
-See [legacy/README.md](legacy/README.md) for isolated legacy commands. Do not
-use `dev:full -- --test` or legacy database reset commands for normal startup.
+```text
+frontend/                 HTML pages, CSS, public assets, JavaScript and JS tests
+Database/api/             FastAPI routes and validation
+Database/database/        Connections, SQL Server/SQLite schemas, SQLite seed data
+Database/entities/        Domain data classes
+Database/repositories/    Existing SQL Server repositories
+Database/scripts/         Explicit schema and database lifecycle utilities
+Database/tests/           Unit, schema, scoring, and isolated SQLite API tests
+Statistics/               Pure scoring/statistics calculations
+scripts/commands/         Development, test, build, and diagnostic launchers
+test_database/            Generated local SQLite data, ignored by Git
+legacy/                   Earlier API/SQLite starter and superseded game scripts
+android/, ios/            Capacitor platform projects
+dist/                     Generated frontend build, ignored by Git
+```
 
-Remaining work includes statistics UI integration, saved-game browsing,
-expanded SQL Server integration tests, video-analysis/mobile integration,
-authentication rate limiting, password recovery, and token revocation.
+Generated Gradle caches and build reports are ignored. Historical duplicate game
+scripts are archived under `legacy/frontend-game/`; active game persistence lives
+in `frontend/js/game_persistence.js`. The old `npm run cap` command was removed in
+favor of the direct package scripts above. Root `.env`, `.venv`, and `node_modules`
+stay local. Never commit real credentials, tokens, private keys, or database files.
 
-## Troubleshooting
+## Remaining work and troubleshooting
+
+Remaining work includes frontend statistics integration, saved-game browsing,
+remote SQL Server integration tests, durable foul flags, video analysis/mobile
+validation, rate limiting, password recovery, and token revocation. Imported
+Ciclopes notes/platform scaffolding do not mean end-to-end inference works.
 
 | Problem | Check |
 | --- | --- |
-| npm is not recognized | Install Node.js, reopen VS Code, and use `npm.cmd`. |
-| Frontend still calls local port 8000 | Check `API_BASE_URL`, refresh, and restart Vite if needed. |
-| Hosted `/health` fails | Check server/proxy availability and HTTPS; a personal SQL tunnel is not involved. |
-| Hosted database health returns 503 | An administrator must check server-side SQL connectivity/configuration. |
-| Local database health returns 503 | Check the local tunnel, root `.env`, credentials, and ODBC Driver 18. |
-| Database health returns 404 | The optional route is disabled on that backend. |
-| Login or protected calls return 401 | Use the application username/password and log in again; tokens expire. |
-| Browser reports CORS failure | Use an allowed frontend origin on port 5173; other origins need configuration. |
-| Shot save is uncertain | Reload saved progress before submitting the shot again. |
-| Statistics are empty | Only complete, valid ten-frame games count; incomplete games are excluded. |
-
-Never commit real secrets or share proxy-administrator credentials with frontend
-clients. Frontend users need only the public API address and application accounts.
+| npm is not recognized | Install Node.js and reopen VS Code. |
+| API test dependencies missing | Run setup or install requirements-dev.txt in root .venv. |
+| Test database missing | Run db:test:init before starting dev:full:test. |
+| Changes seem saved to the wrong database | Check the launcher mode; normal dev uses hosted API, dev:full:test uses local SQLite. |
+| Establishments return 422 or 503 on hosted API | Deploy the merged backend and apply the SQL Server migration first. |
+| Protected calls return 401 | Log in again with that backend's application account. |
+| CORS failure | Use port 5173 and an allowed origin; configure others explicitly. |
+| Uncertain shot save | Reload/reconcile before resubmitting; do not blindly duplicate writes. |
+| Empty statistics | Only complete legal games count; Stats UI is still a placeholder. |
+| jsdom navigation messages in tests | The simulated browser does not navigate; inspect the test results separately. |

@@ -21,18 +21,20 @@ export function closeSidebar() {
     sidebar.classList.remove("sidebar_active");
     sidebar.classList.add("sidebar_inactive");
 
-    navigator.vibrate(10);
+    navigator.vibrate?.(10);
 }
 
 
-export function goHome() {
-    window.location.href = "/index.html";
-}
-
-
-export function goToAccountSettings() {
-    window.location.href = "/account_settings.html";
-}
+export function goHome() {window.location.href = "/index.html";}
+export function goToBallArsenal() {window.location.href = "/ball_arsenal.html";}
+export function goToEstablishments() {window.location.href = "/establishments.html";}
+export function goToEvents() {window.location.href = "/events.html";}
+export function goToSessions() {window.location.href = "/sessions.html";}
+export function goToCiclops() {window.location.href = "/ciclops.html";}
+export function goToSmartDot() {window.location.href = "/smart_dot.html";}
+export function goToStats() {window.location.href = "/stats.html";}
+export function goToSmartWatch() {window.location.href = "/smart_watch.html";}
+export function goToAccountSettings() {window.location.href = "/account_settings.html";}
 
 export function togglePfpDropdown() {
     const dropdown = document.getElementById("pfp-dropdown");
@@ -84,11 +86,38 @@ export function loadNavbar() {
             </div>
 
             <div class="sidebar_section">
-                <button class="home_button" id="home-button">Home</button>
+                <button class="home_button sidebar_button" id="home-button">Home</button>
             </div>
+            <div class="sidebar_section">
+                <button class="ball_arsenal_button sidebar_button" id="ball-arsenal-button">Ball Arsenal</button>
+            </div>
+            <div class="sidebar_section">
+                <button class="establishments_button sidebar_button" id="establishments-button">Establishments</button>
+            </div>
+            <div class="sidebar_section">
+                <button class="events_button sidebar_button" id="events-button">Events</button>
+            </div>
+            <div class="sidebar_section">
+                <button class="sessions_button sidebar_button" id="sessions-button">Sessions</button>
+            </div>
+            <div class="sidebar_section">
+                <button class="sidebar_button ciclops_button" id="ciclops-button">Ciclops</button>
+            </div>
+            <div class="sidebar_section">
+                <button class="sidebar_button smart_dot_button" id="smart-button">Smart Dot</button>
+            </div>
+            <div class="sidebar_section">
+                <button class="sidebar_button stats_button" id="stats-button">Stats</button>
+            </div>
+            <div class="sidebar_section">
+                <button class="sidebar_button smart_watch_button" id="smart-watch-button">Smart Watch</button>
+            </div>
+
+
 
             <div class="sidebar_auth" id="sidebar-auth">
                 <button class="sidebar_login_button" id="sidebar-login-button">Log In</button>
+                <button class="sidebar_logout_button" id="sidebar-logout-button">Log Out</button>
             </div>
         </div>
 
@@ -135,6 +164,35 @@ export function loadNavbar() {
     document
         .getElementById("home-button")
         .addEventListener("click", goHome);
+    document
+        .getElementById("ball-arsenal-button")
+        .addEventListener("click", goToBallArsenal);
+    document
+        .getElementById("establishments-button")
+        .addEventListener("click", goToEstablishments);
+    document
+        .getElementById("events-button")
+        .addEventListener("click", goToEvents);
+    document
+        .getElementById("sessions-button")
+        .addEventListener("click", goToSessions);
+
+
+    document
+        .getElementById("ciclops-button")
+        .addEventListener("click", goToCiclops);
+
+    document
+        .getElementById("smart-button")
+        .addEventListener("click", goToSmartDot);
+
+    document
+        .getElementById("stats-button")
+        .addEventListener("click", goToStats);
+
+    document
+        .getElementById("smart-watch-button")
+        .addEventListener("click", goToSmartWatch);
 
     document
         .getElementById("profile-picture-container")
@@ -143,9 +201,20 @@ export function loadNavbar() {
     document
         .getElementById("sidebar-login-button")?.addEventListener("click", () => openAuthPopup("login_popup"));
     if (getAuthToken() != null) {
-        document.getElementById("sidebar-auth").remove();
+        const element = document.getElementById("sidebar-login-button")
+        if (element != null && !element.classList.contains("hidden")) {
+            element.classList.add("hidden");
+        }
     }
-    
+    document
+        .getElementById("sidebar-logout-button")?.addEventListener("click", showLogOutPopup);
+    if (getAuthToken() == null) {
+        const element = document.getElementById("sidebar-logout-button")
+        if (element != null && !element.classList.contains("hidden")) {
+            element.classList.add("hidden");
+        }
+    }
+
 
     const accountSettingsButton = document.getElementById("account-settings-button");
     accountSettingsButton?.addEventListener("click", goToAccountSettings);

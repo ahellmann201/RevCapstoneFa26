@@ -18,11 +18,16 @@ const pythonExecutable = resolve(
         : ["bin", "python"])
 );
 
-const testMode = process.argv.includes("--test");
+const args = process.argv.slice(2);
+const legacyMode = args.includes("--legacy-test");
+const databaseArgument = args.find((arg) => arg.startsWith("--db="));
+const testMode = legacyMode || args.includes("--test")
+    || databaseArgument?.slice("--db=".length) === "test";
 const lanMode = process.argv.includes("--lan") || (!testMode && !process.argv.includes("--local"));
 
-const extraArgs = process.argv.slice(2).filter(
-    (arg) => arg !== "--test" && arg !== "--lan" && arg !== "--local"
+const extraArgs = args.filter(
+    (arg) => arg !== "--test" && arg !== "--legacy-test"
+        && !arg.startsWith("--db=") && arg !== "--lan" && arg !== "--local"
 );
 
 function fail(message) {
@@ -34,11 +39,11 @@ function main() {
     if (!existsSync(pythonExecutable)) {
         fail(
             "The project's Python virtual environment was not found.\n" +
-            "Run `npm run cap -- setup` first."
+            "Run `npm run setup` first."
         );
     }
 
-    if (testMode) {
+    if (legacyMode) {
         console.warn("Legacy API only: incompatible with the integrated frontend login contract.");
     }
 
@@ -70,22 +75,31 @@ function main() {
 
     // Preserve terminal overrides while using the environment file
     // for variables that have not already been defined.
-    const environment = {
-        ...loaded.parsed,
-        ...process.env,
-        APP_ENV: testMode ? "test" : "development",
-        DB_TYPE: testMode ? "sqlite" : "sqlserver"
-    };
+    // In test mode the checked-in test config wins over shell-level values so
+    // an exported production DB_* variable cannot redirect the test run.
+    const environment = testMode
+        ? {
+            ...process.env,
+            ...loaded.parsed,
+            APP_ENV: "test",
+            DB_TYPE: "sqlite",
+        }
+        : {
+            ...loaded.parsed,
+            ...process.env,
+            APP_ENV: "development",
+            DB_TYPE: "sqlserver",
+        };
 
     console.log(
         `Starting the Python API in ${
-            testMode ? "LEGACY SQLITE" : "INTEGRATED SQL SERVER"
+            legacyMode ? "LEGACY SQLITE" : testMode ? "TEST SQLITE" : "SQL SERVER"
         } mode...`
     );
 
     console.log(
         testMode
-            ? "Database: local SQLite test database"
+            ? `Database: ${environment.DB_PATH || "local SQLite test database"}`
             : "Database: configured SQL Server"
     );
 
@@ -94,7 +108,7 @@ function main() {
         [
             "-m",
             "uvicorn",
-            testMode ? "legacy.api.main:app" : "Database.api.main:app",
+            legacyMode ? "legacy.api.main:app" : "Database.api.main:app",
             "--reload",
             "--host",
             lanMode ? "0.0.0.0" : "127.0.0.1",

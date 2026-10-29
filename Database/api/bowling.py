@@ -39,6 +39,11 @@ class EstablishmentInput(InputModel):
     lane_count: PositiveNumber | None = None
     address: str | None = Field(default=None, max_length=500)
     location_id: Id | None = None
+    nickname: str | None = Field(default=None, max_length=100)
+    type: str | None = Field(default=None, max_length=100)
+    phone: str | None = Field(default=None, max_length=50)
+    home_house: bool = False
+    enabled: bool = True
 
 
 class EventInput(InputModel):
