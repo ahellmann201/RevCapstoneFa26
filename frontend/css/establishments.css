@@ -19,7 +19,7 @@ body {
 .establishments-page {
     width: min(100%, 720px);
     margin: 0 auto;
-    padding: 24px 16px calc(24px + env(safe-area-inset-bottom));
+    padding: 24px 16px calc(104px + env(safe-area-inset-bottom));
 }
 
 .establishments-heading, .dialog-heading, .establishment-card-title {
@@ -40,7 +40,12 @@ body {
 .establishments-heading h1 { font-size: 2rem; line-height: 1.2; overflow-wrap: anywhere; }
 .establishments-subtitle { margin-top: 8px; color: var(--establishment-muted); font-size: .9rem; }
 .add-establishment {
-    flex: 0 0 auto;
+    position: fixed;
+    right: calc(20px + env(safe-area-inset-right));
+    bottom: calc(20px + env(safe-area-inset-bottom));
+    z-index: 10;
+    display: grid;
+    place-items: center;
     width: 56px;
     height: 56px;
     border: 0;
@@ -49,6 +54,7 @@ body {
     color: #132c33;
     font: 400 2rem/1 var(--standard-font-family);
     cursor: pointer;
+    box-shadow: 0 6px 20px #0006;
 }
 .add-establishment:hover, .apply-establishment:hover { background: var(--button-color-2); }
 .establishment-list { display: grid; gap: 12px; list-style: none; }

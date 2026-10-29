@@ -99,6 +99,19 @@ app.include_router(balls_router)
 app.include_router(bowling_router)
 
 
+@app.on_event("startup")
+def migrate_local_establishments():
+    from Database.database.connection import DB_TYPE, get_connection
+    if DB_TYPE == "sqlite":
+        from Database.database.sqlite_schema import migrate_establishments
+        connection = get_connection()
+        try:
+            migrate_establishments(connection)
+            connection.commit()
+        finally:
+            connection.close()
+
+
 class DisplayNameRequest(BaseModel):
     model_config = ConfigDict(
         extra="forbid",

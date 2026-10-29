@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from Database.api.resource_routes import Resource, add_resource_routes
+from Database.database.connection import DB_TYPE
 
 
 router = APIRouter()
@@ -39,6 +40,12 @@ class EstablishmentInput(InputModel):
     lane_count: PositiveNumber | None = None
     address: str | None = Field(default=None, max_length=500)
     location_id: Id | None = None
+    if DB_TYPE == "sqlite":
+        nickname: str | None = Field(default=None, max_length=100)
+        type: str | None = Field(default=None, max_length=100)
+        phone: str | None = Field(default=None, max_length=50)
+        home_house: bool = False
+        enabled: bool = True
 
 
 class EventInput(InputModel):

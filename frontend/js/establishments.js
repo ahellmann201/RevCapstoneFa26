@@ -1,5 +1,6 @@
-/** Establishments UI prototype. Data lives only in memory until refresh. */
 import { loadNavbar } from "./navbar.js";
+import { request } from "./api_client.js";
+import { getAuthToken } from "./authentication.js";
 
 loadNavbar();
 
@@ -21,6 +22,7 @@ function openEditor(index = null) {
     if (index !== null) {
         for (const [key, value] of Object.entries(establishments[index])) {
             const input = form.elements.namedItem(key);
+            if (!input) continue;
             if (input.type === "checkbox") input.checked = value;
             else input.value = value ?? "";
         }
@@ -87,8 +89,13 @@ dialog.addEventListener("close", () => {
     editingIndex = null;
 });
 form.elements.namedItem("name").addEventListener("input", (event) => event.target.setCustomValidity(""));
-form.addEventListener("submit", (event) => {
+form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (applyButton.disabled) return;
+    if (!getAuthToken()) {
+        window.alert("Please log in to save establishments.");
+        return;
+    }
     const nameInput = form.elements.namedItem("name");
     if (!nameInput.value.trim()) nameInput.setCustomValidity("Enter an establishment name.");
     if (!form.reportValidity()) return;
@@ -100,12 +107,63 @@ form.addEventListener("submit", (event) => {
     entry.enabled = data.has("enabled");
     const wasEditing = editingIndex !== null;
     const changedIndex = wasEditing ? editingIndex : establishments.length;
-    if (wasEditing) establishments[editingIndex] = entry;
-    else establishments.push(entry);
+    const previous = wasEditing ? establishments[editingIndex] : null;
+    applyButton.disabled = true;
+    try {
+        const saved = await request(previous ? `/establishments/${previous.id}` : "/establishments", {
+            method: previous ? "PUT" : "POST",
+            body: JSON.stringify({
+                establishment_name: entry.name,
+                lane_count: entry.lanes,
+                address: entry.address,
+                location_id: previous?.locationId ?? null,
+                nickname: entry.nickname,
+                type: entry.type,
+                phone: entry.phone,
+                home_house: entry.homeHouse,
+                enabled: entry.enabled,
+            }),
+        });
+        const record = fromDatabase(saved);
+        if (wasEditing) establishments[changedIndex] = record;
+        else establishments.push(record);
+    } catch (error) {
+        window.alert(error.message);
+        return;
+    } finally {
+        applyButton.disabled = false;
+    }
     dialog.close();
     renderEstablishments();
     list.children[changedIndex].firstElementChild.focus();
-    status.textContent = `${entry.name} ${wasEditing ? "updated" : "added"} for this preview. Changes reset on refresh.`;
+    status.textContent = `${entry.name} ${wasEditing ? "updated" : "saved"}.`;
 });
 
+function fromDatabase(record) {
+    return {
+        id: record.establishment_id,
+        locationId: record.location_id,
+        name: record.establishment_name,
+        lanes: record.lane_count,
+        address: record.address,
+        nickname: record.nickname,
+        type: record.type,
+        phone: record.phone,
+        homeHouse: record.home_house,
+        enabled: record.enabled,
+    };
+}
+
 renderEstablishments();
+if (getAuthToken()) {
+    try {
+        for (let offset = 0; ; offset += 100) {
+            const records = await request(`/establishments?limit=100&offset=${offset}`);
+            establishments.push(...records.map(fromDatabase));
+            if (records.length < 100) break;
+        }
+        renderEstablishments();
+    } catch (error) {
+        status.textContent = error.message;
+    }
+}
