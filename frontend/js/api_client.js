@@ -82,6 +82,11 @@ export async function getUser(_userID) {
     return frontendProfile(await request("/auth/me"));
 }
 
+// The API scopes this request to the authenticated user from the bearer token.
+export function getBalls(_userID) {
+    return request("/balls");
+}
+
 export async function getUsername(userID) {
     return (await getUser(userID)).Username;
 }

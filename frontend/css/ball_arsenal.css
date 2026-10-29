@@ -119,3 +119,8 @@ body {
     padding: 0 1rem 1rem;
     color: white;
 }
+
+.ball_image {
+    height: calc(var(--ball-list-item-height) * 0.9);
+    aspect-ratio: 1/1;
+}
