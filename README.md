@@ -281,17 +281,37 @@ Wi-Fi may block connections between devices. Avoid virtual-adapter addresses.
 
 ## Build and tests
 
-Frontend build and tests:
+Run all frontend, backend, and statistics tests once with:
 
 ```powershell
+npm.cmd run test
+```
+
+The runner executes both suites even if one fails and exits unsuccessfully if
+any suite fails. Console messages are streamed for passing tests too, and Python
+warnings appear in the warnings summary. Warnings alone do not fail the run.
+No SSH tunnel, database credentials, or running API is needed.
+Install JavaScript dependencies with `npm.cmd install` and prepare the Python
+test dependencies once:
+
+```powershell
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+```
+
+Skip virtual-environment creation if the root `.venv` already exists.
+To run individual suites, watch frontend tests, or build the website:
+
+```powershell
+npm.cmd run test:frontend
+npm.cmd run test:backend
+npm.cmd run test:watch
 npm.cmd run build
-npm.cmd run test -- --run
 ```
 
 The build writes to root `dist/`, which Capacitor also uses. Frontend tests
-mock API requests. The existing API-address tests still expect the earlier
-hostname-based local backend and need updating for the shared HTTPS address.
-That mismatch is not a live connectivity test.
+mock API requests and verify that localhost and LAN pages all use the shared
+HTTPS backend address. These are offline checks, not live connectivity tests.
 
 Backend tests, with no SSH tunnel or database credentials:
 
@@ -368,7 +388,6 @@ authentication rate limiting, password recovery, and token revocation.
 | Browser reports CORS failure | Use an allowed frontend origin on port 5173; other origins need configuration. |
 | Shot save is uncertain | Reload saved progress before submitting the shot again. |
 | Statistics are empty | Only complete, valid ten-frame games count; incomplete games are excluded. |
-| API-address frontend tests fail | Their old local-URL expectations need updating for the hosted backend. |
 
 Never commit real secrets or share proxy-administrator credentials with frontend
 clients. Frontend users need only the public API address and application accounts.

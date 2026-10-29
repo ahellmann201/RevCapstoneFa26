@@ -12,11 +12,14 @@
     "dev:full": "node scripts/dev.mjs",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "vitest",
+    "test": "node scripts/commands/test.mjs all",
     "db:reset": "node scripts/db-reset.mjs",
     "legacy:api": "node scripts/commands/api.mjs --test",
     "legacy:db:init": "node scripts/commands/database.mjs init",
-    "legacy:db:reset": "node scripts/commands/database.mjs reset"
+    "legacy:db:reset": "node scripts/commands/database.mjs reset",
+    "test:frontend": "node scripts/commands/test.mjs js",
+    "test:backend": "node scripts/commands/test.mjs python",
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "concurrently": "^10.0.6",

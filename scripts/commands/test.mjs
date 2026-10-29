@@ -80,15 +80,15 @@ async function runPythonTests() {
     if (!existsSync(pythonExecutable)) {
         console.error(
             "The Python virtual environment was not found. " +
-            "Run `npm run cap -- setup` first.",
+            "Create the root .venv and install requirements-dev.txt first.",
         );
         return 1;
     }
 
     const result = await runProcess(
         pythonExecutable,
-        ["-m", "pytest", ...extraArgs],
-        "Python tests",
+        ["-m", "pytest", "Database/tests", "-q", "-W", "default", "-r", "w", "--capture=tee-sys", ...extraArgs],
+        "Backend and statistics tests",
     );
 
     return result;
