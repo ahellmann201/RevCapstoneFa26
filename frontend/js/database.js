@@ -58,6 +58,11 @@ export async function createBall(ball) {
     return API.createBall(getUserID(), ball);
 }
 
+export async function deleteBall(ballID) {
+    if (isUnavailable()) return DB_UNAVAILABLE;
+    return API.deleteBall(getUserID(), ballID);
+}
+
 export async function setDisplayName(displayName) {
     if (isUnavailable()) return DB_UNAVAILABLE;
     // Await the write so true means the server accepted it; otherwise the

@@ -75,5 +75,18 @@ export async function createBall(ball) {
     return createdBall;
 }
 
+/** Deletes one of the signed-in user's balls. */
+export async function deleteBall(ballID) {
+    if (getAuthToken() == null) {
+        throw new Error("Please log in to delete a ball.");
+    }
+
+    const result = await Database.deleteBall(ballID);
+    if (result === Database.DB_UNAVAILABLE) {
+        throw new Error("The database is currently unavailable.");
+    }
+    return result;
+}
+
 window.requestUsername = getUsername;
 window.requestBalls = getBalls;

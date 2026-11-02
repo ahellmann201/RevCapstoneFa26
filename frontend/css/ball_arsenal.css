@@ -44,7 +44,7 @@ navbar {
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem 10dvw;
+    padding: 2rem 10dvw;
     background-image: linear-gradient(var(--bg-color), rgba(0,0,0,0));
 }
 .header > div,
@@ -232,6 +232,17 @@ navbar {
     line-height: 2.5rem;
 }
 
+.ball_delete_button {
+    margin-top: 0.75rem;
+    padding: 0.5rem 1rem;
+    border: 0;
+    border-radius: 12px;
+    background: var(--error-color);
+    color: var(--off-white);
+    font-size: 1rem;
+    cursor: pointer;
+}
+
 .ball_image_container {
     border-radius: 100%;
 }
@@ -362,6 +373,11 @@ navbar {
     background: var(--field-color);
 }
 
+.ball_popup_actions .ball_delete_confirm {
+    background: var(--error-color);
+    color: var(--off-white);
+}
+
 .ball_popup_actions button:disabled {
     cursor: wait;
     opacity: 0.65;
@@ -370,4 +386,22 @@ navbar {
 .ball_popup_error {
     margin: -0.4rem 0 1rem;
     color: var(--error-color);
+}
+
+.no_balls_container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 1.5rem;
+}
+.no_balls_add_button {
+    background-color: var(--button-color-1);
+    color: white;
+    padding: 0.5rem;
+    border: none;
+    border-radius: 10px;
+    font-size: 1.5rem;
+    margin-top: 1rem;
 }

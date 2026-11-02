@@ -1,11 +1,13 @@
 /** Initializes the ball arsenal page and shared site navigation. */
 import { loadNavbar } from "./navbar.js";
-import { createBall, getBalls } from "./requests.js";
+import { createBall, deleteBall as deleteBallRequest, getBalls } from "./requests.js";
 import {
     createBallFilterPopup,
     createBallPopup,
+    createDeleteBallPopup,
     openBallFilterPopup,
     openBallPopup,
+    openDeleteBallPopup,
     showMiniPopup,
 } from "./popups.js";
 
@@ -32,6 +34,21 @@ createBallPopup(async (values) => {
     resetSearch();
     await loadAndRenderBalls(activeFilters);
     showMiniPopup("Ball added to your arsenal");
+});
+
+createDeleteBallPopup(async (ball) => {
+    await deleteBallRequest(ball.ball_id);
+    resetSearch();
+    const deletedItem = [...ballListContainer.querySelectorAll("ball-list-item")]
+        .find((item) => item.dataset.ballId === String(ball.ball_id));
+    deletedItem?.remove();
+    if (!ballListContainer.querySelector("ball-list-item")) {
+        renderBalls([]);
+    }
+    showMiniPopup(`${ball.ball_name} deleted`);
+    loadAndRenderBalls(activeFilters).catch((error) => {
+        console.error("Could not refresh balls after deletion:", error);
+    });
 });
 
 createBallFilterPopup(async (filters) => {
@@ -142,6 +159,26 @@ async function loadAndRenderBalls(filters = {}) {
 
 function renderBalls(balls) {
     ballListContainer.replaceChildren();
+
+    if (balls.length === 0) {
+        const emptyState = document.createElement("div");
+        emptyState.className = "no_balls_container";
+
+        const message = document.createElement("p");
+        message.textContent = "Whoops! You have no balls!";
+
+        const addButton = document.createElement("button");
+        addButton.id = "no-balls-add-button";
+        addButton.className = "no_balls_add_button";
+        addButton.type = "button";
+        addButton.textContent = "Add a Ball";
+        addButton.addEventListener("click", openBallPopup);
+
+        emptyState.append(message, addButton);
+        ballListContainer.appendChild(emptyState);
+        return;
+    }
+
     for (const ball of balls) {
         addBall(ball);
     }
@@ -234,6 +271,7 @@ class BallListItem extends HTMLElement {
                 </div>
                 <div class="ball_details" hidden>
                     <p>${this.getAttribute("details")}</p>
+                    <button class="ball_delete_button" type="button">Delete ball</button>
                 </div>
             `;
 
@@ -250,6 +288,13 @@ class BallListItem extends HTMLElement {
                 const button = event.currentTarget;
                 const expanded = button.getAttribute("aria-expanded") !== "true";
                 this.setExpanded(expanded);
+            });
+
+            this.querySelector(".ball_delete_button").addEventListener("click", () => {
+                openDeleteBallPopup({
+                    ball_id: this.dataset.ballId,
+                    ball_name: this.getAttribute("name"),
+                });
             });
         }
     }
@@ -291,8 +336,6 @@ if (!customElements.get("ball-list-item")) {
 
 export function addBall(ball) {
     const container = document.getElementById("ball-list-container");
-
-    console.log(ball);
 
     const item = document.createElement("ball-list-item");
     item.dataset.ballId = String(ball.ball_id);

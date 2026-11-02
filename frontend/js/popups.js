@@ -551,6 +551,78 @@ export function createBallFilterPopup(onApply) {
     });
 }
 
+export function createDeleteBallPopup(onConfirm) {
+    if (document.getElementById("delete-ball-popup")) return;
+
+    document.body.insertAdjacentHTML("beforeend", `
+        <dialog
+            id="delete-ball-popup"
+            class="auth_popup ball_popup"
+            aria-labelledby="delete-ball-title"
+            aria-describedby="delete-ball-question"
+        >
+            <div class="popup_drag_area">
+                <span class="popup_handle"></span>
+            </div>
+
+            <div class="popup_content">
+                <h2 id="delete-ball-title">Delete Ball?</h2>
+                <p id="delete-ball-question"></p>
+                <p class="ball_popup_error" id="delete-ball-error" role="alert" hidden></p>
+                <div class="ball_popup_actions">
+                    <button class="popup_close" type="button">Cancel</button>
+                    <button class="popup_primary ball_delete_confirm" type="button">Delete</button>
+                </div>
+            </div>
+        </dialog>
+    `);
+
+    const popup = document.getElementById("delete-ball-popup");
+    const confirmButton = popup.querySelector(".ball_delete_confirm");
+    const errorMessage = popup.querySelector("#delete-ball-error");
+
+    setupPopupDrag(popup);
+
+    confirmButton.addEventListener("click", async () => {
+        if (!popup.dataset.ballId) return;
+
+        errorMessage.hidden = true;
+        confirmButton.disabled = true;
+        try {
+            await onConfirm?.({
+                ball_id: popup.dataset.ballId,
+                ball_name: popup.dataset.ballName,
+            });
+            popup.close();
+        } catch (error) {
+            errorMessage.textContent = error?.message || "Could not delete this ball.";
+            errorMessage.hidden = false;
+        } finally {
+            confirmButton.disabled = false;
+        }
+    });
+
+    popup.addEventListener("click", (event) => {
+        if (event.target === popup) popup.close();
+    });
+    popup.addEventListener("close", () => {
+        delete popup.dataset.ballId;
+        delete popup.dataset.ballName;
+    });
+}
+
+export function openDeleteBallPopup(ball) {
+    const popup = document.getElementById("delete-ball-popup");
+    if (!popup || popup.open || !ball) return;
+
+    popup.dataset.ballId = String(ball.ball_id);
+    popup.dataset.ballName = ball.ball_name;
+    popup.querySelector("#delete-ball-question").textContent =
+        `Are you sure you want to delete “${ball.ball_name}”? This cannot be undone.`;
+    popup.querySelector("#delete-ball-error").hidden = true;
+    openPopupWithAnimation(popup);
+}
+
 export function openBallFilterPopup(filters = {}) {
     const popup = document.getElementById("filter-balls-popup");
     if (!popup) return;

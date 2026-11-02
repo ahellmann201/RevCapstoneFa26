@@ -102,6 +102,12 @@ export function createBall(_userID, ball) {
     });
 }
 
+export function deleteBall(_userID, ballID) {
+    return request(`/balls/${encodeURIComponent(ballID)}`, {
+        method: "DELETE",
+    });
+}
+
 export async function getUsername(userID) {
     return (await getUser(userID)).Username;
 }
