@@ -24,13 +24,10 @@
         <p class="game_eyebrow">VIDEO</p>
         <h2 id="video-title">Upload a bowling video</h2>
         <p class="panel-copy">
-          Import an existing clip or record a new shot. Selecting a video or
-          stopping a recording starts upload and on-device frame detection.
+          Import a clip or record a shot. Ciclopes stores the video and returns
+          its video key; the Android phone then detects sample frames locally.
         </p>
-        <label class="field-label" for="upload-token">Upload access token</label>
-        <input id="upload-token" class="token-input" type="password" autocomplete="off"
-          placeholder="Paste your RevMetrix upload token" />
-        <label class="field-label" for="ciclopes-api-base">Ciclopes API URL (optional)</label>
+        <label class="field-label" for="ciclopes-api-base">Ciclopes API URL</label>
         <input id="ciclopes-api-base" class="token-input" type="url" inputmode="url"
           placeholder="For example: http://192.168.1.20:8000" />
         <label class="file-picker" for="video-file">
@@ -51,7 +48,14 @@
         <button id="send-ciclopes-analysis" class="secondary-button" type="button" disabled>
           Analyze reviewed frames with Ciclopes
         </button>
-        <pre id="upload-result" class="upload-result" hidden></pre>
+        <section id="ciclopes-analysis-result" class="ciclopes-analysis-result" aria-live="polite" hidden>
+          <h3>What happened to the ball</h3>
+          <div id="analysis-summary" class="analysis-summary"></div>
+          <details class="technical-details">
+            <summary>Technical details</summary>
+            <pre id="upload-result" class="upload-result"></pre>
+          </details>
+        </section>
       </section>
 
       <section class="panel lane_panel inference-panel" aria-labelledby="inference-title">

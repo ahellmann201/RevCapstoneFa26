@@ -1,0 +1,229 @@
+classDiagram
+    direction LR
+
+    namespace Phone_App {
+      class FrontendDemo {
+        <<module>>
+        +processVideo(file)
+        +uploadVideo(file)
+        +detectVideoFrames(file)
+        +runFrameInference()
+        +showVideoFrame(index)
+      }
+      class CapacitorBridge {
+        <<interface>>
+        +isAvailable()
+        +analyzeFrame(options)
+        +applyLaneCorrection(options)
+        +release()
+      }
+      class AndroidONNXPlugin {
+        <<module>>
+        +isAvailable(call)
+        +analyzeFrame(call)
+        +applyLaneCorrection(call)
+        +release(call)
+      }
+      class LaneInferenceEngine {
+        <<module>>
+        +analyze(context, uri, rotation)
+        +letterbox(source)
+        +makeInput(bitmap)
+        +decode(rows, proto, frameWidth, frameHeight)
+        +close()
+      }
+      class OrtSession {
+        <<module>>
+        +createSession(modelPath, options)
+        +run(inputs)
+      }
+      class ONNXModelAsset {
+        <<asset>>
+        +file ciclopes_lane_ball.onnx
+        +inputShape 1x3x640x640
+        +outputNames output0, output1
+      }
+      class LaneGeometry {
+        <<module>>
+        +validateQuad(corners)
+        +homography(corners, width, height)
+      }
+      class RevMetrixVideoUploadAPI {
+        <<module>>
+        +uploadVideo(file, token)
+        +returnVideoKey()
+      }
+      class LaneFrameResult {
+        <<data class>>
+        +int frameWidth
+        +int frameHeight
+        +LaneCandidate[] candidates
+        +BallCandidate[] balls
+        +InferenceHealth health
+      }
+      class LaneCorrectionResult {
+        <<data class>>
+        +bool accepted
+        +Matrix3x3 homography
+        +double laneWidthMeters
+        +double laneLengthMeters
+      }
+    }
+
+    namespace Ciclopes_API {
+      class BackendMain {
+        <<module>>
+        +create_app()
+        +lifespan(app)
+        +_global_exception_handler(request, exc)
+      }
+      class LaneBallsRoute {
+        <<module>>
+        +run_lane_ball_pipeline(request, payload)
+        +_run_lane_ball_pipeline_inner(request, payload)
+        +query_lane_ball_shots(payload)
+      }
+      class AggregatedRoute {
+        <<module>>
+        +run_aggregate_pipeline(request, payload)
+        +query_aggregated_shots(payload)
+      }
+      class SpacesApiClient {
+        <<module>>
+        +query_video_via_api_to_temp_file(key, credentials)
+        +query_json_via_api(key, credentials)
+      }
+      class FrameSplit {
+        <<module>>
+        +split_video_into_frames(path, max_frames, max_dimension)
+      }
+      class InferenceEngine {
+        <<module>>
+        +forward_lane_ball(frames_rgb, fps, start_frame, batch_size)
+        +forward_sam3d_body(frames_rgb, batch_size)
+        +_run_lane_ball_pipeline_sync_inner(frames_rgb, fps, start_frame)
+      }
+      class LaneBallInference {
+        <<module>>
+        +infer(frame)
+        +infer_batch(frames)
+        +extract_masks(results)
+      }
+      class LaneBallPostprocessing {
+        <<module>>
+        +run_lane_ball_postprocessing(segmentations, fps, ball_start_frame)
+        +select_active_lane()
+        +project_ball_positions(detections, homography)
+      }
+      class Kinematics {
+        <<module>>
+        +compute_kinematics_per_quarter(ball_positions, lane_length)
+      }
+      class Sam3DBodyInference {
+        <<module>>
+        +infer_batch(frames_rgb, batch_size)
+        +extract_skeleton(pose_result)
+      }
+      class LaneBallRunInput {
+        <<data class>>
+        +str video_key
+        +str sd_key
+        +str save_name
+      }
+      class LaneBallRunOutput {
+        <<data class>>
+        +float fps
+        +BallPoint[] ball_points
+        +KinematicsRow[] kinematics_table
+        +bool is_trapezoid
+        +int homography_frame
+        +LaneBallHealthInfo health
+      }
+      class BallPoint {
+        <<data class>>
+        +float x
+        +float y
+      }
+      class KinematicsRow {
+        <<data class>>
+        +int quarter
+        +float mean_speed_mps
+        +float mean_acceleration_mps2
+        +int sample_count
+      }
+      class LaneBallHealthInfo {
+        <<data class>>
+        +int frames_scanned_for_h
+        +int frames_with_lane
+        +int frames_with_ball
+        +float inference_ms
+        +float postprocess_ms
+      }
+      class AggRunInput {
+        <<data class>>
+        +str video_key
+        +str sd_key
+        +str save_name
+      }
+      class AggRunOutput {
+        <<data class>>
+        +BallPoint[] ball_points
+        +KinematicsRow[] kinematics_table
+        +SkeletonPoint[][] skeleton_points
+      }
+      class CiclopesAPIClient {
+        <<planned integration>>
+        +runLaneBalls(video_key, sd_key, save_name)
+        +receiveLaneBallRunOutput()
+      }
+      class ManualLaneOverride {
+        <<planned>>
+        +PointArray corners
+        +str coordinate_space
+        +int frame_width
+        +int frame_height
+        +Matrix3x3 homography
+      }
+    }
+
+    FrontendDemo ..> CapacitorBridge : calls plugin interface
+    CapacitorBridge ..> AndroidONNXPlugin : Capacitor native dispatch
+    AndroidONNXPlugin ..> LaneInferenceEngine : analyzeFrame()
+    LaneInferenceEngine ..> OrtSession : ONNX Runtime inference
+    OrtSession ..> ONNXModelAsset : loads bundled model
+    LaneInferenceEngine ..> LaneFrameResult : builds detections
+    AndroidONNXPlugin ..> LaneGeometry : applyLaneCorrection()
+    LaneGeometry ..> LaneCorrectionResult : returns matrix and lane dimensions
+
+    FrontendDemo ..> RevMetrixVideoUploadAPI : current video upload
+    RevMetrixVideoUploadAPI ..> FrontendDemo : returns video key
+    FrontendDemo ..> CiclopesAPIClient : full-shot call not wired yet
+    CiclopesAPIClient ..> BackendMain : proposed API request
+
+    BackendMain ..> LaneBallsRoute : router registers /laneballs routes
+    BackendMain ..> AggregatedRoute : router registers /agg routes
+    LaneBallsRoute ..> LaneBallRunInput : validates request
+    LaneBallsRoute ..> SpacesApiClient : fetches video by video_key
+    LaneBallsRoute ..> FrameSplit : decodes uploaded video
+    LaneBallsRoute ..> InferenceEngine : forward_lane_ball()
+    AggregatedRoute ..> FrameSplit : decodes uploaded video
+    AggregatedRoute ..> InferenceEngine : runs ball and body analysis
+    InferenceEngine ..> LaneBallInference : segments lane, ball, and pins
+    InferenceEngine ..> LaneBallPostprocessing : selects mapping and tracks ball
+    InferenceEngine ..> Kinematics : computes speed and acceleration
+    InferenceEngine ..> Sam3DBodyInference : estimates bowler pose for /agg/run
+    LaneBallsRoute ..> LaneBallRunOutput : serializes API response
+    LaneBallRunOutput ..> BallPoint : contains
+    LaneBallRunOutput ..> KinematicsRow : contains
+    LaneBallRunOutput ..> LaneBallHealthInfo : contains
+    AggregatedRoute ..> AggRunOutput : serializes combined response
+    LaneBallRunOutput ..> CiclopesAPIClient : returned JSON when called
+
+    ManualLaneOverride ..> LaneBallsRoute : planned correction input
+
+    classDef module fill:#e2f3e3,stroke:#829486,color:#17221a,stroke-width:1px
+    classDef data fill:#e7efff,stroke:#8798b1,color:#172033,stroke-width:1px
+    classDef boundary fill:#fff1d9,stroke:#ae8752,color:#352712,stroke-width:1px,stroke-dasharray:5 4
+    class FrontendDemo,CapacitorBridge,AndroidONNXPlugin,LaneInferenceEngine,OrtSession,LaneGeometry,RevMetrixVideoUploadAPI,BackendMain,LaneBallsRoute,AggregatedRoute,SpacesApiClient,FrameSplit,InferenceEngine,LaneBallInference,LaneBallPostprocessing,Kinematics,Sam3DBodyInference module
+    class ONNXModelAsset,LaneFrameResult,LaneCorrectionResult,LaneBallRunInput,LaneBallRunOutput,BallPoint,KinematicsRow,LaneBallHealthInfo,AggRunInput,AggRunOutput data
+    class CiclopesAPIClient,ManualLaneOverride boundary

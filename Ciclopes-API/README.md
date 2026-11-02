@@ -52,7 +52,7 @@ cp .env.example .env
 | Variable | Meaning | Normal/default guidance |
 |---|---|---|
 | `API_BASE` | RevMetrix API origin | `https://api.revmetrix.io` |
-| `API_USERNAME`, `API_PASSWORD` | Basic credentials used to request shot objects | Required for `/run` routes |
+| `API_USERNAME`, `API_PASSWORD` | Server-side credentials for RevMetrix video storage | Required for `/run` and `/videos/upload` routes |
 | `VERIFY_API` | Verify RevMetrix TLS | Keep `true` |
 | `VERIFY_PRESIGNED` | Verify presigned-object TLS | Keep `true` |
 | `PRESIGN_TTL_SECONDS` | Requested URL lifetime | `3600` |

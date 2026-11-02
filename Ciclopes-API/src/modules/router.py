@@ -4,6 +4,7 @@ from .fourDbody.routes import router as fourdbody_router
 from .LaneBalls.routes import router as laneballs_router
 from .Aggregated.routes import router as aggregated_router
 from .Query.routes import router as query_router
+from .VideoUpload.routes import router as video_upload_router
 from .test.routes import router as test_router
 
 router = APIRouter()
@@ -13,3 +14,4 @@ router.include_router(fourdbody_router)
 router.include_router(laneballs_router)
 router.include_router(aggregated_router)
 router.include_router(query_router)
+router.include_router(video_upload_router)

@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 from contextlib import contextmanager
+import mimetypes
 import shutil
 import tempfile
 from pathlib import Path
@@ -59,7 +60,8 @@ def upload_video(
 
     headers = {"Authorization": f"Bearer {token}"}
     with file_path.open("rb") as f:
-        files = {"file": (file_path.name, f, "video/mp4")}
+        content_type = mimetypes.guess_type(file_path.name)[0] or "application/octet-stream"
+        files = {"file": (file_path.name, f, content_type)}
         resp = requests.post(
             f"{base}/api/videos/upload",
             params={"folder": folder},

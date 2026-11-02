@@ -19,10 +19,11 @@ const overlayCanvas = document.getElementById("overlay");
 const imageName = document.getElementById("image-name");
 const videoInput = document.getElementById("video-file");
 const videoName = document.getElementById("video-name");
-const uploadTokenInput = document.getElementById("upload-token");
 const ciclopesApiBaseInput = document.getElementById("ciclopes-api-base");
 const uploadStatus = document.getElementById("upload-status");
 const uploadResult = document.getElementById("upload-result");
+const analysisResult = document.getElementById("ciclopes-analysis-result");
+const analysisSummary = document.getElementById("analysis-summary");
 const sendCiclopesAnalysisButton = document.getElementById("send-ciclopes-analysis");
 const recordStartButton = document.getElementById("record-start");
 const recordStopButton = document.getElementById("record-stop");
@@ -47,6 +48,62 @@ let cameraStream = null;
 let recordingChunks = [];
 let currentVideoUrl = null;
 let uploadedVideoKey = null;
+
+function renderAnalysisSummary(analysis, submittedFrameCount) {
+  analysisSummary.replaceChildren();
+  const addParagraph = (text, className = "") => {
+    const paragraph = document.createElement("p");
+    paragraph.textContent = text;
+    if (className) paragraph.className = className;
+    analysisSummary.append(paragraph);
+  };
+
+  const points = Array.isArray(analysis.ball_points) ? analysis.ball_points : [];
+  const health = analysis.health ?? {};
+  const detectedCount = Number(health.frames_with_ball ?? points.length);
+  addParagraph(
+    points.length
+      ? `Ciclopes tracked the ball in ${detectedCount} of ${submittedFrameCount} reviewed frames.`
+      : `Ciclopes could not confidently track the ball in the ${submittedFrameCount} reviewed frames. Try correcting the lane outline or reviewing frames where the ball is visible.`,
+  );
+
+  const quarters = (analysis.kinematics_table ?? [])
+    .filter((row) => Number(row.sample_count) > 0 && Number.isFinite(Number(row.mean_speed_mps)))
+    .sort((a, b) => Number(a.quarter) - Number(b.quarter));
+  if (quarters.length) {
+    const mph = (mps) => `${(Number(mps) * 2.23694).toFixed(1)} mph`;
+    const first = quarters[0];
+    const last = quarters[quarters.length - 1];
+    addParagraph(`Estimated average speed: ${mph(first.mean_speed_mps)} in the first measured section` +
+      (last.quarter !== first.quarter ? ` and ${mph(last.mean_speed_mps)} in the last measured section.` : "."));
+    if (quarters.length > 1) {
+      const changeMph = (Number(last.mean_speed_mps) - Number(first.mean_speed_mps)) * 2.23694;
+      if (Math.abs(changeMph) >= 0.5) {
+        addParagraph(`The estimated speed ${changeMph > 0 ? "increased" : "decreased"} by about ${Math.abs(changeMph).toFixed(1)} mph between those sections.`);
+      }
+    }
+  } else {
+    addParagraph("There were not enough ball positions to estimate speed. More clear frames of the ball in motion may help.");
+  }
+
+  if (points.length >= 2) {
+    const first = points[0];
+    const last = points[points.length - 1];
+    const lateralFeet = (Number(last.x) - Number(first.x)) * 3.28084;
+    const lateralMagnitude = Math.abs(lateralFeet);
+    if (Number.isFinite(lateralFeet) && lateralMagnitude >= 0.3) {
+      addParagraph(`Across the reviewed frames, the detected path moved about ${lateralMagnitude.toFixed(1)} ft toward the ${lateralFeet > 0 ? "right" : "left"} side of the lane.`);
+    } else if (Number.isFinite(lateralFeet)) {
+      addParagraph("Across the reviewed frames, the detected path stayed close to the same side-to-side position.");
+    }
+    const outOfLane = points.some((point) => Number(point.x) < 0 || Number(point.x) > 1.0541 || Number(point.y) < 0 || Number(point.y) > 18.288);
+    if (outOfLane) {
+      addParagraph("Some plotted positions fall outside the lane dimensions. Check the orange lane outline; an inaccurate outline can distort speed and path measurements.", "analysis-note");
+    }
+  }
+
+  addParagraph("These are estimates from sampled video frames. The path shift describes movement across the lane; it does not measure ball spin.", "analysis-note");
+}
 
 ciclopesApiBaseInput.value = import.meta.env.VITE_CICLOPES_API_BASE || "";
 
@@ -328,28 +385,25 @@ async function detectVideoFrames(file) {
 }
 
 async function uploadVideo(file) {
-  const token = uploadTokenInput.value.trim();
-  if (!token) {
-    uploadStatus.textContent = "Video is ready for local frame detection. Paste a RevMetrix upload token to upload it.";
+  const apiBase = ciclopesApiBaseInput.value.trim().replace(/\/$/, "");
+  if (!apiBase) {
+    uploadStatus.textContent = "Video is ready for local frame detection. Enter the Ciclopes API URL to upload it and send results.";
     return null;
   }
 
-  uploadStatus.textContent = `Uploading ${file.name}… Keep the app open until it finishes.`;
+  uploadStatus.textContent = `Sending ${file.name} to Ciclopes for storage… Keep the app open until it finishes.`;
   const form = new FormData();
   form.append("file", file, file.name);
-  const base = import.meta.env.VITE_REVMETRIX_API_BASE || "https://api.revmetrix.io";
-  const response = await fetch(`${base.replace(/\/$/, "")}/api/videos/upload?folder=videos`, {
+  const response = await fetch(`${apiBase}/videos/upload?folder=videos`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
     body: form,
   });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(body.detail || body.message || `Upload failed (HTTP ${response.status}).`);
-  if (!body.key) throw new Error("The upload completed, but the API did not return a video key.");
-  uploadResult.textContent = JSON.stringify({ file: file.name, videoKey: body.key }, null, 2);
-  uploadResult.hidden = false;
-  uploadStatus.textContent = "Video uploaded. Sampled frames are being analyzed on this Android phone.";
-  return body.key;
+  if (!body.video_key) throw new Error("The upload completed, but Ciclopes did not return a video key.");
+  uploadResult.textContent = JSON.stringify({ file: file.name, videoKey: body.video_key }, null, 2);
+  uploadStatus.textContent = "Video stored by Ciclopes. Sampled frames are being analyzed on this Android phone.";
+  return body.video_key;
 }
 
 async function submitFrameResults(videoKey) {
@@ -395,7 +449,8 @@ async function processVideo(file) {
   videoName.textContent = file.name;
   uploadedVideoKey = null;
   sendCiclopesAnalysisButton.disabled = true;
-  uploadResult.hidden = true;
+  analysisResult.hidden = true;
+  analysisSummary.replaceChildren();
   uploadResult.textContent = "";
   videoInput.disabled = true;
   recordStartButton.disabled = true;
@@ -415,9 +470,9 @@ async function processVideo(file) {
       sendCiclopesAnalysisButton.disabled = !ciclopesApiBaseInput.value.trim()
         || !videoFrames.some((frame) => !frame.error && frame.result);
       if (ciclopesApiBaseInput.value.trim()) {
-        uploadStatus.textContent = "Video uploaded and frames detected. Review or correct a lane, then send the results to Ciclopes.";
+        uploadStatus.textContent = "Video stored and frames detected. Review or correct a lane, then send the results to Ciclopes.";
       } else {
-        uploadStatus.textContent = "Video uploaded and frames detected. Enter a reachable Ciclopes API URL to enable Ciclopes analysis.";
+        uploadStatus.textContent = "Video stored and frames detected. Enter a reachable Ciclopes API URL to enable Ciclopes analysis.";
       }
     }
   } catch (error) {
@@ -436,12 +491,13 @@ sendCiclopesAnalysisButton.addEventListener("click", async () => {
   uploadStatus.textContent = "Sending sampled detections and any lane correction to Ciclopes…";
   try {
     const analysis = await submitFrameResults(uploadedVideoKey);
+    renderAnalysisSummary(analysis, videoFrames.filter((frame) => !frame.error && frame.result).length);
     uploadResult.textContent = JSON.stringify({
       videoKey: uploadedVideoKey,
       sampledFrames: videoFrames.length,
       ciclopesAnalysis: analysis,
     }, null, 2);
-    uploadResult.hidden = false;
+    analysisResult.hidden = false;
     uploadStatus.textContent = `Ciclopes analyzed ${analysis.ball_points.length} ball positions from the submitted frames.`;
   } catch (error) {
     uploadStatus.textContent = `Ciclopes could not analyze these frames: ${error.message}`;

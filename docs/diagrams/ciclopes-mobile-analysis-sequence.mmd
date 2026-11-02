@@ -1,0 +1,107 @@
+sequenceDiagram
+    autonumber
+    actor Bowler
+
+    box rgb(226, 243, 227) Android phone and frontend modules
+      participant UI as RevMetrix Frontend
+      participant Bridge as Capacitor Bridge
+      participant Plugin as Android ONNX Plugin
+      participant FrameEngine as LaneInferenceEngine
+      participant Model as ONNX Model Asset
+      participant Geometry as LaneGeometry
+    end
+
+    box rgb(231, 239, 255) Video upload and API contracts
+      participant Upload as RevMetrix Video Upload API
+      participant Caller as Ciclopes API Client
+      participant RunInput as LaneBallRunInput
+      participant RunOutput as LaneBallRunOutput
+    end
+
+    box rgb(226, 243, 227) Ciclopes API modules
+      participant API as FastAPI
+      participant LaneRoute as LaneBalls routes.py
+      participant Aggregate as Aggregated routes.py
+      participant Storage as Spaces API Client
+      participant Split as FrameSplit
+      participant Engine as InferenceEngine
+      participant YOLO as LaneBallInference
+      participant Post as LaneBall Postprocessing
+      participant Kin as Kinematics
+      participant Body as SAM 3D Body inference
+    end
+
+    rect rgb(245, 250, 245)
+      Note over Bowler,Model: Current on-phone frame detection
+      Bowler->>UI: choose image or video
+      UI->>UI: processVideo(file)
+      par Local on-device frame analysis
+        UI->>UI: detectVideoFrames(file), sample up to 12 frames
+        loop Each sampled frame
+          UI->>Bridge: analyzeFrame(uri, width, height, rotation)
+          Bridge->>Plugin: native analyzeFrame(call)
+          Plugin->>FrameEngine: analyze(context, uri, rotation)
+          FrameEngine->>Model: OrtSession.run(inputTensor)
+          Model-->>FrameEngine: segmentation outputs
+          FrameEngine-->>Plugin: decode(outputs) to lane corners and ball boxes
+          Plugin-->>UI: LaneFrameResult
+        end
+      and Optional video upload
+        opt User supplied an upload token
+          UI->>Upload: uploadVideo(file, token)
+          Upload-->>UI: video_key
+        end
+      end
+    end
+
+    rect rgb(245, 248, 255)
+      Note over Bowler,Geometry: Current user lane correction
+      Bowler->>UI: drag the four lane corners
+      UI->>Bridge: applyLaneCorrection(corners, frame dimensions)
+      Bridge->>Plugin: native applyLaneCorrection(call)
+      Plugin->>Geometry: validateQuad(corners)
+      Geometry->>Geometry: homography(corners, width, height)
+      Geometry-->>Plugin: 3x3 image-to-lane matrix
+      Plugin-->>UI: LaneCorrectionResult
+      Note over UI,Geometry: The demo keeps this correction in page memory. It is not passed to Ciclopes or applied to the full video today.
+    end
+
+    rect rgb(245, 250, 245)
+      Note over Caller,Kin: Existing server-side full-video analysis; frontend call is not wired yet
+      Caller->>RunInput: build {video_key, sd_key, save_name}
+      Caller->>API: POST /laneballs/run(payload)
+      API->>LaneRoute: run_lane_ball_pipeline(request, payload)
+      LaneRoute->>Storage: query_video_via_api_to_temp_file(video_key)
+      Storage-->>LaneRoute: video file
+      LaneRoute->>Split: split_video_into_frames(path, limits)
+      Split-->>LaneRoute: frames and FPS
+      LaneRoute->>Engine: forward_lane_ball(frames, fps, start_frame, batch_size)
+      Engine->>YOLO: infer_batch(frames)
+      YOLO-->>Engine: lane, ball, and pin segmentation masks
+      Engine->>Post: run_lane_ball_postprocessing(segmentations, fps, ball_start_frame)
+      Post-->>Engine: selected homography and projected ball positions
+      Engine->>Kin: compute_kinematics_per_quarter(ball_positions, lane_length)
+      Kin-->>Engine: per-quarter speed and acceleration
+      Engine-->>LaneRoute: positions, kinematics, health
+      LaneRoute->>RunOutput: build LaneBallRunOutput
+      RunOutput-->>API: typed JSON response
+      API-->>Caller: LaneBallRunOutput
+      Note over UI,Caller: The current demo uploads the clip and receives its key, but does not yet call /laneballs/run.
+    end
+
+    rect rgb(255, 247, 231)
+      Note over UI,LaneRoute: Planned correction handoff (not implemented)
+      UI-->>RunInput: add corrected corners or homography with video_key
+      RunInput-->>LaneRoute: validate manual lane override
+      LaneRoute-->>Post: use override when mapping ball positions
+      Post-->>RunOutput: return measurements based on corrected lane
+    end
+
+    opt Optional bowler pose through /agg/run
+      Caller->>API: POST /agg/run(video_key, sd_key, save_name)
+      API->>Aggregate: run_aggregate_pipeline(request, payload)
+      Aggregate->>Engine: forward_lane_ball(frames, fps, start_frame)
+      Aggregate->>Body: forward_sam3d_body(frames, batch_size)
+      Body-->>Aggregate: skeleton points per frame
+      Aggregate-->>Caller: AggRunOutput(ball path, kinematics, skeleton)
+    end

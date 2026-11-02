@@ -114,5 +114,31 @@ The app must use a Ciclopes URL reachable from the running device (for example,
 an emulator's host address or a deployed HTTPS API, not the phone's own
 `localhost`).
 
-The route is additive and does not modify frontend source files, Capacitor
-plugin methods, or the existing video-based `/laneballs/run` contract.
+The frame-results route is additive and leaves the existing video-based
+`/laneballs/run` contract unchanged.
+# Uploading a phone video
+
+The Android demo sends the original clip to Ciclopes before submitting its
+sampled ONNX detections. Ciclopes uses its existing `API_BASE`, `API_USERNAME`,
+and `API_PASSWORD` server configuration to upload the file to RevMetrix storage;
+the storage credential never goes to the phone.
+
+```http
+POST /videos/upload?folder=videos
+Content-Type: multipart/form-data
+```
+
+Multipart field: `file` (MP4, MOV, M4V, WebM, 3GP, or AVI; up to 500 MB).
+
+Response:
+
+```json
+{
+  "video_key": "videos/example.mp4",
+  "filename": "example.mp4"
+}
+```
+
+Pass `video_key` in the subsequent `POST /laneballs/frame-results` request.
+The upload endpoint and frame-results endpoint must use the same reachable
+Ciclopes API base URL entered in the Android demo.
