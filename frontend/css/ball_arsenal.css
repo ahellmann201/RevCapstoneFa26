@@ -14,14 +14,17 @@
 }
 
 body {
-    display: flex;
-    flex-direction: column;
+    position: relative;
     height: 100dvh;
     overflow: hidden;
 }
 
 navbar {
-    flex: 0 0 var(--navbar-height);
+    position: fixed;
+    z-index: 10;
+    top: 0;
+    right: 0;
+    left: 0;
     height: var(--navbar-height);
 }
 
@@ -30,18 +33,19 @@ navbar {
 }
 
 .header {
-    width: 100dvw;
+    position: fixed;
+    z-index: 2;
+    top: var(--navbar-height);
+    right: 0;
+    left: 0;
+    width: 100%;
     height: var(--ball-arsenal-header-height);
-    flex: 0 0 var(--ball-arsenal-header-height);
     display: flex;
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    position: relative;
-    z-index: 2;
-    padding: 0 10dvw;
-    margin-top: 0.5rem;
-
+    padding: 1rem 10dvw;
+    background-image: linear-gradient(var(--bg-color), rgba(0,0,0,0));
 }
 .header > div,
 .header > button {
@@ -148,13 +152,15 @@ navbar {
 }
 
 .ball_list_container {
-    flex: 1 1 auto;
-    height: 0;
-    min-height: 0;
+    position: fixed;
+    z-index: 1;
+    inset: 0;
+    height: 100dvh;
+    padding-top: calc(var(--navbar-height) + var(--ball-arsenal-header-height) + 1.5rem);
+    padding-bottom: 1rem;
     overflow-y: auto;
     overflow-x: hidden;
-    overscroll-behavior: auto;
-    margin-top: 1rem;
+    overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-y;
 }

@@ -292,6 +292,8 @@ if (!customElements.get("ball-list-item")) {
 export function addBall(ball) {
     const container = document.getElementById("ball-list-container");
 
+    console.log(ball);
+
     const item = document.createElement("ball-list-item");
     item.dataset.ballId = String(ball.ball_id);
     item.setAttribute("name", ball.ball_name);
