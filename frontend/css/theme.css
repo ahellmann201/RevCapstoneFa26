@@ -1,12 +1,17 @@
 :root {
     --bg-color: #001E26;
     --lighter-bg-color: #1a3b44;
+    --lighter-bg-color-2: #254E57;
     --button-color-1: #D06C01;
     --button-color-2: #E79F40;
     --field-color: #f0f0f0;
     --field-entry-color-1: #adadad;
     --field-entry-color-2: #bdbdbd;
     --field-default-entry-color: #6b6b6b;
+    --error-color: #a32727;
+    --popup-backdrop-color: rgb(0 0 0 / 55%);
+    --popup-shadow: 0 -8px 35px rgb(0 0 0 / 20%);
+    --popup-handle-color: #b8bec0;
 
     /* Text field */
     --text-input-border: 1px solid #c5ccce;
@@ -31,6 +36,7 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    font-family: var(--standard-font-family);
 }
 
 button {

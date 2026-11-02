@@ -15,7 +15,7 @@ class BallCreate(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     ball_name: str = Field(min_length=1, max_length=255)
-    weight: int | None = Field(default=None, ge=1, le=16, strict=True)
+    weight: int | None = Field(default=None, strict=True)
     color: str | None = Field(default=None, max_length=100)
     core_type: str | None = Field(default=None, max_length=100)
 
@@ -67,16 +67,46 @@ def list_balls(
     user: AuthenticatedUser,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
     offset: Annotated[int, Query(ge=0, le=2147483647)] = 0,
+    weight_min: Annotated[int | None, Query()] = None,
+    weight_max: Annotated[int | None, Query()] = None,
+    core_type: Annotated[str | None, Query(max_length=100)] = None,
+    name_contains: Annotated[str | None, Query(max_length=255)] = None,
 ) -> list[BallResponse]:
+    if weight_min is not None and weight_max is not None and weight_min > weight_max:
+        raise HTTPException(
+            status_code=422,
+            detail="Minimum weight cannot exceed maximum weight.",
+        )
+
+    conditions = ["user_id = ?"]
+    values = [user.user_id]
+    if weight_min is not None:
+        conditions.append("weight >= ?")
+        values.append(weight_min)
+    if weight_max is not None:
+        conditions.append("weight <= ?")
+        values.append(weight_max)
+    if core_type:
+        conditions.append("core_type = ?")
+        values.append(core_type)
+    if name_contains:
+        if DB_TYPE == "sqlite":
+            conditions.append("instr(lower(ball_name), lower(?)) > 0")
+        else:
+            conditions.append("CHARINDEX(LOWER(?), LOWER(ball_name)) > 0")
+        values.append(name_contains)
+
     pagination = "LIMIT ? OFFSET ?" if DB_TYPE == "sqlite" else "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
     page_values = (limit, offset) if DB_TYPE == "sqlite" else (offset, limit)
+    values.extend(page_values)
     with database() as connection:
         cursor = connection.cursor()
         try:
             cursor.execute(f"""
                 SELECT ball_id, user_id, ball_name, weight, color, core_type
-                FROM balls WHERE user_id = ? ORDER BY ball_id {pagination}
-            """, (user.user_id, *page_values))
+                FROM balls WHERE {' AND '.join(conditions)}
+                ORDER BY ball_id {pagination}
+            """, values)
             result = [ball_response(row) for row in cursor.fetchall()]
         finally:
             cursor.close()

@@ -56,15 +56,23 @@ export async function getMainhand() {
 }
 
 /** Returns the signed-in user's balls, or an empty list when unavailable. */
-export async function getBalls() {
+export async function getBalls(filters = {}) {
     if (getAuthToken() == null) return [];
-    try {
-        const balls = await Database.getBalls();
-        return balls === Database.DB_UNAVAILABLE ? [] : balls;
-    } catch (error) {
-        console.error("Could not load balls:", error);
-        return [];
+    const balls = await Database.getBalls(false, false, filters);
+    return balls === Database.DB_UNAVAILABLE ? [] : balls;
+}
+
+/** Creates a ball for the signed-in user. */
+export async function createBall(ball) {
+    if (getAuthToken() == null) {
+        throw new Error("Please log in to add a ball.");
     }
+
+    const createdBall = await Database.createBall(ball);
+    if (createdBall === Database.DB_UNAVAILABLE) {
+        throw new Error("The database is currently unavailable.");
+    }
+    return createdBall;
 }
 
 window.requestUsername = getUsername;

@@ -83,8 +83,23 @@ export async function getUser(_userID) {
 }
 
 // The API scopes this request to the authenticated user from the bearer token.
-export function getBalls(_userID) {
-    return request("/balls");
+export function getBalls(_userID, filters = {}) {
+    const query = new URLSearchParams();
+    for (const key of ["weight_min", "weight_max", "core_type", "name_contains"]) {
+        const value = filters[key];
+        if (value !== undefined && value !== null && value !== "") {
+            query.set(key, value);
+        }
+    }
+    const queryString = query.toString();
+    return request(`/balls${queryString ? `?${queryString}` : ""}`);
+}
+
+export function createBall(_userID, ball) {
+    return request("/balls", {
+        method: "POST",
+        body: JSON.stringify(ball),
+    });
 }
 
 export async function getUsername(userID) {

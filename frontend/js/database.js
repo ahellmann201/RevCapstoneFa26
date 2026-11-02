@@ -41,8 +41,21 @@ export function getUsername(forceDatabaseUnavailable = false, forceInvalidSessio
     return readProfileValue(API.getUsername, forceDatabaseUnavailable, forceInvalidSession);
 }
 
-export function getBalls(forceDatabaseUnavailable = false, forceInvalidSession = false) {
-    return readProfileValue(API.getBalls, forceDatabaseUnavailable, forceInvalidSession);
+export function getBalls(
+    forceDatabaseUnavailable = false,
+    forceInvalidSession = false,
+    filters = {},
+) {
+    return readProfileValue(
+        (userID) => API.getBalls(userID, filters),
+        forceDatabaseUnavailable,
+        forceInvalidSession,
+    );
+}
+
+export async function createBall(ball) {
+    if (isUnavailable()) return DB_UNAVAILABLE;
+    return API.createBall(getUserID(), ball);
 }
 
 export async function setDisplayName(displayName) {

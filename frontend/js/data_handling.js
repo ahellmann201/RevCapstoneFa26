@@ -19,3 +19,7 @@ export function addPfpToContainer(containerID, pfpURL) {
 
     container.innerHTML = img;
 }
+
+export function makeBallDetails(ball) {
+    
+}
