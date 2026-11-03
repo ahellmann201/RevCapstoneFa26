@@ -106,6 +106,7 @@ CREATE TABLE IF NOT EXISTS shots (
 def initialize_schema(connection):
     connection.executescript(SCHEMA)
     migrate_establishments(connection)
+    migrate_events(connection)
     connection.commit()
 
 
@@ -120,3 +121,16 @@ def migrate_establishments(connection):
     }.items():
         if name not in columns:
             connection.execute(f"ALTER TABLE user_establishments ADD COLUMN {name} {definition}")
+
+
+def migrate_events(connection):
+    columns = {row[1] for row in connection.execute("PRAGMA table_info(events)")}
+    for name, definition in {
+        "nickname": "TEXT",
+        "week_day": "TEXT",
+        "start_time": "TEXT",
+        "games_per_session": "INTEGER NOT NULL DEFAULT 3",
+        "enabled": "INTEGER NOT NULL DEFAULT 1",
+    }.items():
+        if name not in columns:
+            connection.execute(f"ALTER TABLE events ADD COLUMN {name} {definition}")

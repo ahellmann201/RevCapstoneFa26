@@ -75,7 +75,7 @@ document.getElementById("schedule-event-button").addEventListener("click", sched
 document.getElementById("start-game-button").addEventListener("click", startGame);
 
 export function scheduleEvent() {
-    window.location.href = "/schedule_event.html"
+    window.location.href = "/events.html"
 }
 export function startGame() {
     window.location.href = "/game.html"

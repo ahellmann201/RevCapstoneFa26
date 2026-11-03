@@ -105,10 +105,11 @@ app.include_router(statistics_router)
 def migrate_local_establishments():
     from Database.database.connection import DB_TYPE, get_connection
     if DB_TYPE == "sqlite":
-        from Database.database.sqlite_schema import migrate_establishments
+        from Database.database.sqlite_schema import migrate_establishments, migrate_events
         connection = get_connection()
         try:
             migrate_establishments(connection)
+            migrate_events(connection)
             connection.commit()
         finally:
             connection.close()

@@ -4,10 +4,68 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Revmetrix | Events</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="stylesheet" href="/css/events.css">
 </head>
 <body>
     <navbar></navbar>
+    <main class="establishments-page">
+        <header class="establishments-heading">
+            <h1>Events</h1>
+            <button class="add-establishment" id="add-event" type="button" aria-label="Add event" aria-haspopup="dialog">+</button>
+        </header>
+        <p class="establishments-empty" id="events-empty">No events yet. Use the + button to add your first event.</p>
+        <ul class="establishment-list" id="event-list" aria-label="Events"></ul>
+        <p class="page-status" id="event-status" role="status"></p>
+    </main>
+    <dialog class="establishment-dialog" id="event-dialog" aria-labelledby="event-dialog-title">
+        <form id="event-form">
+            <header class="dialog-heading">
+                <h2 id="event-dialog-title">Add Event</h2>
+                <button class="close-dialog" id="close-event" type="button" aria-label="Close">&times;</button>
+            </header>
+            <div class="establishment-fields">
+                <label class="establishment-field">Full Name (required)
+                    <input name="event_name" type="text" maxlength="255" required autofocus>
+                </label>
+                <label class="establishment-field">Nickname
+                    <input name="nickname" type="text" maxlength="100">
+                </label>
+                <label class="establishment-field">Type
+                    <select name="event_type">
+                        <option value="">Select type</option>
+                        <option>League</option><option>Tournament</option><option>Practice</option><option>Other</option>
+                    </select>
+                </label>
+                <label class="establishment-field">Location
+                    <select name="location_id" id="event-location"><option value="">Select location</option></select>
+                </label>
+                <label class="establishment-field">Week Day
+                    <select name="week_day">
+                        <option value="">Select day</option>
+                        <option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option>
+                        <option>Friday</option><option>Saturday</option><option>Sunday</option>
+                    </select>
+                </label>
+                <label class="establishment-field">Start Time
+                    <input name="start_time" type="time">
+                </label>
+                <label class="establishment-field">Games Per Session
+                    <span class="games-stepper">
+                        <input name="games_per_session" id="event-games" type="number" min="1" max="2147483647" step="1" value="3" inputmode="numeric">
+                        <button type="button" id="decrease-games" aria-label="Decrease games per session">-</button>
+                        <button type="button" id="increase-games" aria-label="Increase games per session">+</button>
+                    </span>
+                </label>
+            </div>
+            <div class="establishment-options"><label><input name="enabled" type="checkbox" checked> Enabled</label></div>
+            <footer class="dialog-actions">
+                <button class="cancel-establishment" id="cancel-event" type="button">Cancel</button>
+                <button class="apply-establishment" id="apply-event" type="submit">Add</button>
+            </footer>
+            <p class="page-status" id="event-form-status" role="status"></p>
+        </form>
+    </dialog>
     <script type="module" src="/js/events.js"></script>
 </body>
 </html>

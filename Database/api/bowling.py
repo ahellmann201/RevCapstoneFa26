@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, time, timezone
 from typing import Annotated, Literal
 
 from fastapi import APIRouter
@@ -52,6 +52,21 @@ class EventInput(InputModel):
     event_name: str = Field(min_length=1, max_length=255)
     event_type: str | None = Field(default=None, max_length=100)
     location_id: Id | None = None
+    if DB_TYPE == "sqlite":
+        nickname: str | None = Field(default=None, max_length=100)
+        week_day: Literal["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] | None = None
+        start_time: str | None = None
+        games_per_session: PositiveNumber = 3
+        enabled: bool = True
+
+        @field_validator("start_time")
+        @classmethod
+        def validate_start_time(cls, value):
+            if value is not None:
+                time.fromisoformat(value)
+                if len(value) != 5 or value[2] != ":":
+                    raise ValueError("Use HH:MM for start time")
+            return value
 
 
 class SessionInput(InputModel):
