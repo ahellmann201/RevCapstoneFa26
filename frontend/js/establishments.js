@@ -12,11 +12,13 @@ const dialog = document.getElementById("establishment-dialog");
 const form = document.getElementById("establishment-form");
 const title = document.getElementById("establishment-dialog-title");
 const applyButton = document.getElementById("apply-establishment");
+const deleteButton = document.getElementById("delete-establishment");
 const status = document.getElementById("establishment-status");
 let editingIndex = null;
 
 function openEditor(index = null) {
     editingIndex = index;
+    deleteButton.hidden = index === null;
     form.reset();
     form.elements.namedItem("name").setCustomValidity("");
     if (index !== null) {
@@ -82,8 +84,9 @@ function renderEstablishments() {
 
 document.getElementById("add-establishment").addEventListener("click", () => openEditor());
 for (const id of ["close-establishment", "cancel-establishment"]) {
-    document.getElementById(id).addEventListener("click", () => dialog.close());
+    document.getElementById(id).addEventListener("click", () => { if (!applyButton.disabled) dialog.close(); });
 }
+dialog.addEventListener("cancel", (event) => { if (applyButton.disabled) event.preventDefault(); });
 dialog.addEventListener("close", () => {
     list.querySelector('[aria-expanded="true"]')?.setAttribute("aria-expanded", "false");
     editingIndex = null;
@@ -109,6 +112,7 @@ form.addEventListener("submit", async (event) => {
     const changedIndex = wasEditing ? editingIndex : establishments.length;
     const previous = wasEditing ? establishments[editingIndex] : null;
     applyButton.disabled = true;
+    deleteButton.disabled = true;
     try {
         const saved = await request(previous ? `/establishments/${previous.id}` : "/establishments", {
             method: previous ? "PUT" : "POST",
@@ -132,11 +136,32 @@ form.addEventListener("submit", async (event) => {
         return;
     } finally {
         applyButton.disabled = false;
+        deleteButton.disabled = false;
     }
     dialog.close();
     renderEstablishments();
     list.children[changedIndex].firstElementChild.focus();
     status.textContent = `${entry.name} ${wasEditing ? "updated" : "saved"}.`;
+});
+
+deleteButton.addEventListener("click", async () => {
+    if (applyButton.disabled || editingIndex === null) return;
+    const index = editingIndex;
+    const record = establishments[index];
+    if (!window.confirm(`Delete ${record.name}? This cannot be undone.`)) return;
+    applyButton.disabled = deleteButton.disabled = true;
+    try {
+        await request(`/establishments/${record.id}`, { method: "DELETE" });
+        establishments.splice(index, 1);
+        dialog.close();
+        renderEstablishments();
+        document.getElementById("add-establishment").focus();
+        status.textContent = `${record.name} deleted.`;
+    } catch (error) {
+        window.alert(error.message);
+    } finally {
+        applyButton.disabled = deleteButton.disabled = false;
+    }
 });
 
 function fromDatabase(record) {

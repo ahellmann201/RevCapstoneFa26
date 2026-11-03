@@ -10,6 +10,11 @@ const empty = document.getElementById("events-empty");
 const dialog = document.getElementById("event-dialog");
 const form = document.getElementById("event-form");
 const apply = document.getElementById("apply-event");
+const disableButton = document.getElementById("disable-event");
+const disableDialog = document.getElementById("disable-event-dialog");
+const confirmDisable = document.getElementById("confirm-disable-event");
+const cancelDisable = document.getElementById("cancel-disable-event");
+const disableStatus = document.getElementById("disable-event-status");
 const status = document.getElementById("event-status");
 const formStatus = document.getElementById("event-form-status");
 const add = document.getElementById("add-event");
@@ -31,6 +36,7 @@ games.addEventListener("input", updateStepper);
 
 function openEditor(record = null) {
     editingId = record?.event_id ?? null;
+    disableButton.hidden = !record;
     form.reset();
     form.elements.namedItem("event_name").setCustomValidity("");
     formStatus.textContent = "";
@@ -60,9 +66,10 @@ function displayTime(value) {
     return `${Number(hour) % 12 || 12}:${minute} ${Number(hour) >= 12 ? "PM" : "AM"}`;
 }
 function render() {
-    empty.hidden = events.length > 0;
+    const activeEvents = events.filter((record) => record.enabled !== false && record.enabled !== 0);
+    empty.hidden = activeEvents.length > 0;
     list.replaceChildren();
-    for (const record of events) {
+    for (const record of activeEvents) {
         const item = document.createElement("li");
         const card = document.createElement("button");
         card.type = "button";
@@ -117,10 +124,11 @@ form.addEventListener("submit", async (event) => {
         .map((key) => [key, String(data.get(key) ?? "").trim() || null]));
     payload.location_id = data.get("location_id") ? Number(data.get("location_id")) : null;
     payload.games_per_session = data.get("games_per_session") ? Number(data.get("games_per_session")) : 3;
-    payload.enabled = data.has("enabled");
+    payload.enabled = true;
     const id = editingId;
     saving = true;
     apply.disabled = true;
+    disableButton.disabled = true;
     formStatus.textContent = "";
     try {
         const record = await request(id ? `/events/${id}` : "/events", {
@@ -138,6 +146,46 @@ form.addEventListener("submit", async (event) => {
     } finally {
         saving = false;
         apply.disabled = false;
+        disableButton.disabled = false;
+    }
+});
+disableButton.addEventListener("click", () => {
+    if (saving || editingId === null) return;
+    const record = events.find((entry) => entry.event_id === editingId);
+    document.getElementById("disable-event-description").textContent = `Disable “${record.event_name}”? It will be hidden from your events. Its sessions, games, and scores will be kept.`;
+    disableStatus.textContent = "";
+    disableDialog.showModal();
+});
+cancelDisable.addEventListener("click", () => { if (!saving) disableDialog.close(); });
+disableDialog.addEventListener("cancel", (event) => { if (saving) event.preventDefault(); });
+confirmDisable.addEventListener("click", async () => {
+    if (saving || editingId === null) return;
+    const record = events.find((entry) => entry.event_id === editingId);
+    const payload = Object.fromEntries([
+        "event_name", "event_type", "location_id", "nickname", "week_day", "start_time", "games_per_session",
+    ].filter((key) => record[key] !== undefined).map((key) => [key, record[key]]));
+    payload.enabled = false;
+    saving = true;
+    apply.disabled = disableButton.disabled = true;
+    confirmDisable.disabled = cancelDisable.disabled = true;
+    confirmDisable.textContent = "Disabling…";
+    disableStatus.textContent = "";
+    formStatus.textContent = "";
+    try {
+        await request(`/events/${record.event_id}`, { method: "PUT", body: JSON.stringify(payload) });
+        record.enabled = false;
+        disableDialog.close();
+        dialog.close();
+        render();
+        add.focus();
+        status.textContent = `${record.event_name} disabled. Games and scores have been kept.`;
+    } catch (error) {
+        disableStatus.textContent = error.message;
+    } finally {
+        saving = false;
+        apply.disabled = disableButton.disabled = false;
+        confirmDisable.disabled = cancelDisable.disabled = false;
+        confirmDisable.textContent = "Disable Event";
     }
 });
 async function loadAll(path) {
