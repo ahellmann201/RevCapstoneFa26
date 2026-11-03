@@ -8,7 +8,17 @@ local development and integration tests.
 ## Start the frontend with the shared backend
 
 Install Node.js with npm (development currently uses Node.js 24), then run from
-the repository root in Windows PowerShell:
+the repository root in macOS Terminal or Windows PowerShell:
+
+**macOS (Terminal)**
+
+```bash
+cd /path/to/RevCapstoneFa26
+npm install
+npm run dev
+```
+
+**Windows (PowerShell)**
 
 ```powershell
 cd C:\SCHOOL\capstone\RevCapstoneFa26
@@ -27,6 +37,16 @@ If npm is not recognized, install Node.js and fully reopen VS Code.
 ## Run everything locally with SQLite
 
 Install Python 3.10 or newer as well as Node.js. From the repository root:
+
+**macOS (Terminal)**
+
+```bash
+npm run setup
+npm run db:test:init
+npm run dev:full:test
+```
+
+**Windows (PowerShell)**
 
 ```powershell
 npm.cmd run setup
@@ -50,11 +70,27 @@ public development signing key. Never use those settings on a public deployment.
 No SQL credentials, SQL Server, system ODBC driver, or SSH tunnel is needed for
 SQLite mode.
 
+**macOS (Terminal)**
+
+```bash
+npm run db:test:status
+```
+
+**Windows (PowerShell)**
+
 ```powershell
 npm.cmd run db:test:status
 ```
 
 To erase local test records and recreate the test database, stop the app first:
+
+**macOS (Terminal)**
+
+```bash
+npm run db:test:reset
+```
+
+**Windows (PowerShell)**
 
 ```powershell
 npm.cmd run db:test:reset
@@ -114,7 +150,7 @@ Browser → Vite /api proxy → local FastAPI → SQLite or SQL Server
 
 `frontend/js/api_client.js` defaults to `https://api.revmetrix.io` and supports a
 non-secret `VITE_API_BASE_URL` override. The combined launcher selects `/api` for
-local development automatically. `npm.cmd run dev` alone always uses the hosted
+local development automatically. `npm run dev` (`npm.cmd run dev` on Windows) alone always uses the hosted
 default unless you explicitly provide an override. Vite environment values are
 included in client code: never put database credentials or JWT signing secrets in
 `VITE_*` values. Restart Vite after changing an override.
@@ -164,6 +200,14 @@ credentials are returned.
 
 After setup, run **all frontend, backend, statistics, and SQLite integration tests**:
 
+**macOS (Terminal)**
+
+```bash
+npm run test
+```
+
+**Windows (PowerShell)**
+
 ```powershell
 npm.cmd run test
 ```
@@ -171,6 +215,17 @@ npm.cmd run test
 The runner executes both suites once, streams console messages, shows Python
 warning details, and exits unsuccessfully if either suite fails. It still runs
 the backend tests after frontend failures. Warnings alone do not fail the command.
+
+**macOS (Terminal)**
+
+```bash
+npm run test:frontend
+npm run test:backend
+npm run test:watch
+npm run build
+```
+
+**Windows (PowerShell)**
 
 ```powershell
 npm.cmd run test:frontend
@@ -188,6 +243,15 @@ production constraints, and concurrency still require dedicated SQL Server
 integration verification. Tests do not write to the hosted database.
 
 For manual dependency setup:
+
+**macOS (Terminal)**
+
+```bash
+python3 -m venv .venv
+./.venv/bin/python -m pip install -r requirements-dev.txt
+```
+
+**Windows (PowerShell)**
 
 ```powershell
 py -m venv .venv
@@ -217,25 +281,41 @@ API_ENABLE_DB_HEALTH=true
 
 Generate a local signing secret (at least 64 characters) and keep it stable:
 
+**macOS (Terminal)**
+
+```bash
+./.venv/bin/python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+**Windows (PowerShell)**
+
 ```powershell
 .\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_hex(32))"
 ```
 
 For access to the remote private database, keep an authorized tunnel running:
 
-```powershell
+```bash
 ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -L 127.0.0.1:14330:DB_HOST:DB_PORT SSH_USER@SSH_HOST
 ```
 
 Replace placeholders with administrator-provided values. The SQL destination is
 reached from the SSH server. Leave the tunnel running and do not expose port 14330.
 
+**macOS (Terminal)**
+
+```bash
+npm run dev:full:real
+```
+
+**Windows (PowerShell)**
+
 ```powershell
 npm.cmd run dev:full:real
 ```
 
 This starts both local processes and points the frontend at the local SQL-backed API.
-`npm.cmd run dev:full` defaults to the same mode. `dev:api`/`dev:python` start only
+`dev:full` defaults to the same mode. `dev:api`/`dev:python` start only
 the local SQL-backed API; `dev:frontend` starts only Vite. Combined real mode allows
 LAN access unless `-- --local` is supplied. Use `ipconfig`/Vite's Wi-Fi URL to share
 port 5173; campus Wi-Fi/firewalls may block peer devices. The local proxy forwards
@@ -248,6 +328,15 @@ The establishment form now uses five additional columns: `nickname`, `type`,
 existing SQL Server database needs the additive migration before the merged API
 is deployed. Back up the intended database and confirm the configured target first.
 
+**macOS (Terminal)**
+
+```bash
+./.venv/bin/python -m Database.scripts.migrate_establishments
+./.venv/bin/python -m Database.scripts.migrate_establishments --apply
+```
+
+**Windows (PowerShell)**
+
 ```powershell
 .\.venv\Scripts\python.exe -m Database.scripts.migrate_establishments
 .\.venv\Scripts\python.exe -m Database.scripts.migrate_establishments --apply
@@ -256,7 +345,7 @@ is deployed. Back up the intended database and confirm the configured target fir
 The first command only describes the plan. `--apply` adds missing columns in a
 transaction, preserves records, and can be repeated. It requires ALTER permission.
 No schema modification occurs automatically at API startup. SQLite initialization
-handles the equivalent migration with `npm.cmd run db:test:init`.
+handles the equivalent migration with `npm run db:test:init` (`npm.cmd run db:test:init` on Windows).
 
 **Merging/pushing main does not update the running DigitalOcean container or
 apply its database migration.** Until deployment, hosted behavior remains at the
