@@ -9,6 +9,7 @@ from collections.abc import Mapping, Sequence
 class RecordedShot:
     shot_number: int
     pin_leave: tuple[int, ...]
+    foul: bool = False
 
 
 @dataclass(frozen=True)
@@ -53,7 +54,7 @@ def score_game(frames: Mapping[int, Sequence[RecordedShot]]) -> int | None:
         for index, shot in enumerate(shots):
             if complete or type(shot.shot_number) is not int or shot.shot_number != index + 1:
                 raise ValueError("Invalid shot order or extra shot")
-            leave = shot.pin_leave
+            leave = tuple(standing) if shot.foul else shot.pin_leave
             if any(type(pin) is not int or not 1 <= pin <= 10 for pin in leave):
                 raise ValueError("Invalid pin number")
             remaining = set(leave)

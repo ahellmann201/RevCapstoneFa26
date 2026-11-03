@@ -95,6 +95,7 @@ class ShotInput(InputModel):
     frame_id: Id
     shot_number: int = Field(ge=1, le=3, strict=True)
     throw_type: Literal["strike", "spare", "backup"] | None = None
+    foul: bool = Field(default=False, strict=True)
     pin_leave: list[Pin] = Field(default_factory=list, max_length=10)
     side: str | None = Field(default=None, max_length=50)
     position: str | None = Field(default=None, max_length=50)

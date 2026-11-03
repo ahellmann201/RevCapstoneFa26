@@ -95,6 +95,7 @@ CREATE TABLE IF NOT EXISTS shots (
     frame_id INTEGER NOT NULL,
     shot_number INTEGER NOT NULL,
     throw_type TEXT,
+    foul INTEGER NOT NULL DEFAULT 0 CHECK (foul IN (0, 1)),
     pin_leave INTEGER NOT NULL DEFAULT 0 CHECK (pin_leave BETWEEN 0 AND 1023),
     side TEXT,
     position TEXT,
@@ -109,6 +110,8 @@ CREATE TABLE IF NOT EXISTS shots (
 def initialize_schema(connection):
     connection.executescript(SCHEMA + SQLITE_RESET_SCHEMA)
     migrate_establishments(connection)
+    if not any(row[1] == "foul" for row in connection.execute("PRAGMA table_info(shots)")):
+        connection.execute("ALTER TABLE shots ADD COLUMN foul INTEGER NOT NULL DEFAULT 0 CHECK (foul IN (0, 1))")
     connection.commit()
 
 

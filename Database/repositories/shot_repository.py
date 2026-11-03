@@ -20,10 +20,10 @@ class ShotRepository:
                 side,
                 position,
                 comment,
-                ball_id
+                ball_id, foul
             )
             OUTPUT INSERTED.shot_id
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 shot.frame_id,
@@ -33,7 +33,7 @@ class ShotRepository:
                 shot.side,
                 shot.position,
                 shot.comment,
-                shot.ball_id
+                shot.ball_id, shot.foul
             )
         )
 
@@ -56,7 +56,7 @@ class ShotRepository:
                 side,
                 position,
                 comment,
-                ball_id
+                ball_id, foul
             FROM shots
             WHERE shot_id = ?
             """,
@@ -84,7 +84,7 @@ class ShotRepository:
                 side,
                 position,
                 comment,
-                ball_id
+                ball_id, foul
             FROM shots
             WHERE frame_id = ?
             ORDER BY shot_number
@@ -104,7 +104,7 @@ class ShotRepository:
                 side = ?,
                 position = ?,
                 comment = ?,
-                ball_id = ?
+                ball_id = ?, foul = ?
             WHERE shot_id = ?
             """,
             (
@@ -114,7 +114,7 @@ class ShotRepository:
                 shot.side,
                 shot.position,
                 shot.comment,
-                shot.ball_id,
+                shot.ball_id, shot.foul,
                 shot.shot_id
             )
         )
@@ -165,5 +165,5 @@ class ShotRepository:
             side=row[5],
             position=row[6],
             comment=row[7],
-            ball_id=row[8]
+            ball_id=row[8], foul=bool(row[9])
         )

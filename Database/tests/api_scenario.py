@@ -101,6 +101,13 @@ def run_scenario(usernames):
         assert listing("/balls?name_contains=PEARL&weight_max=13") == []
         assert client.get("/balls?weight_min=15&weight_max=14", headers=owner).status_code == 422
 
+        foul_game = post("/games", {"session_id": session["session_id"], "game_number": 3})
+        foul_frame = post("/frames", {"game_id": foul_game["game_id"], "frame_number": 1})
+        foul_shot = post("/shots", {"frame_id": foul_frame["frame_id"], "shot_number": 1,
+                                  "pin_leave": list(range(1, 11)), "foul": True})
+        assert foul_shot["foul"] is True
+        assert listing(f"/shots/{foul_shot['shot_id']}")["foul"] is True
+
         # Use a fake sender in both database modes; never send test emails.
         from Database.api import password_reset
         import os

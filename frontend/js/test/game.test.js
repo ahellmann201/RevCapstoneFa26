@@ -216,7 +216,7 @@ describe("cached game and Finish flow", () => {
         await vi.waitFor(() => expect(server.rows["/shots"]).toHaveLength(2));
         await vi.waitFor(() => expect(document.getElementById("next_frame").disabled).toBe(false));
         expect(server.rows["/shots"][0].throw_type).toBe("strike");
-        expect(server.rows["/shots"][1]).toMatchObject({ throw_type: null, comment: null });
+        expect(server.rows["/shots"][1]).toMatchObject({ throw_type: null, comment: null, foul: true });
         const id = Cache.getActiveGameId();
         const localShot = Cache.getFrameShots(Cache.getGameFrames(id)[1])[0];
         expect(Cache.getShotResult(localShot)).toEqual({ pins: 0, foul: true });
@@ -225,6 +225,13 @@ describe("cached game and Finish flow", () => {
         await loadGame();
         await vi.waitFor(() => expect(document.getElementById("next_frame").disabled).toBe(false));
         expect(Cache.getShotResult(localShot).foul).toBe(true);
+        sessionStorage.clear();
+        sessionStorage.setItem("authentication_token", "user-token");
+        window.location.search = `?game_id=${server.rows["/games"][0].game_id}`;
+        await loadGame();
+        await vi.waitFor(() => expect(document.querySelector('[data-frame="2"] .frame_rolls span').textContent).toBe("F"));
+        const restored = Cache.getGameFrames(Cache.getActiveGameId())[1];
+        expect(Cache.getShotResult(Cache.getFrameShots(restored)[0])).toEqual({ pins: 0, foul: true });
         expect(document.querySelectorAll(".frame_card")).toHaveLength(10);
         click("gutter_button");
         click("next_frame");

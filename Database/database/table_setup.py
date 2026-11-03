@@ -187,6 +187,7 @@ BEGIN
         frame_id    INT NOT NULL,
         shot_number INT NOT NULL,
         throw_type  NVARCHAR(50),
+        foul        BIT NOT NULL DEFAULT 0,
         pin_leave   SMALLINT NOT NULL DEFAULT 0,
         side        NVARCHAR(50),
         position    NVARCHAR(50),

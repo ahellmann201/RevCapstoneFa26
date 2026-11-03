@@ -156,6 +156,8 @@ def add_resource_routes(router: APIRouter, resource: Resource):
                 if mask & (1 << (pin - 1))
             ]
 
+        if "foul" in values:
+            values["foul"] = bool(values["foul"])
         return response_model(**values)
 
     def selected_columns(alias):

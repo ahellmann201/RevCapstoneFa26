@@ -118,9 +118,7 @@ missing establishment columns without deleting the database.
   enabled status, lane count, and address.
 
 Browser caching is **sessionStorage**, not an offline synchronization service.
-Closing the browser session can lose unuploaded progress. Foul markers are retained
-locally; the database currently records their zero credited pinfall without a
-separate foul flag. Do not assume unuploaded shots are in SQL Server or SQLite.
+Closing the browser session can lose unuploaded progress. Uploaded foul shots retain their **F** marker after reload and credit zero pins. Do not assume unuploaded shots are in SQL Server or SQLite.
 
 Saved game URLs look like `http://localhost:5173/game.html?game_id=6`. Use an ID
 owned by your application account and bookmark it while saved-game browsing is
@@ -395,6 +393,15 @@ handles the equivalent migration with `npm run db:test:init` (`npm.cmd run db:te
 apply its database migration.** Until deployment, hosted behavior remains at the
 previous release; new establishment fields will not save through the old API.
 
+## SQL Server migration for saved foul flags
+
+Before deploying this API version, back up SQL Server and run
+[`Database/scripts/migrate_shot_fouls.sql`](Database/scripts/migrate_shot_fouls.sql)
+against the intended database using an authorized SQL administrator. The script
+adds `shots.foul` without deleting records and can be run again safely. Existing
+shots default to no foul; historical fouls cannot be distinguished from gutters.
+For SQLite, rerun `db:test:init` to add the column without resetting your data.
+
 ## Server deployment
 
 The server checkout is `/opt/revmetrix/RevCapstoneFa26`. Its Dockerfile and Compose
@@ -454,7 +461,7 @@ stay local. Never commit real credentials, tokens, private keys, or database fil
 ## Remaining work and troubleshooting
 
 Remaining work includes frontend statistics integration, saved-game browsing,
-remote SQL Server integration tests, durable foul flags, video analysis/mobile
+remote SQL Server integration tests, video analysis/mobile
 validation, rate limiting, password recovery, and token revocation. Imported
 Ciclopes notes/platform scaffolding do not mean end-to-end inference works.
 

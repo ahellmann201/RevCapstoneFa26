@@ -62,7 +62,7 @@ export async function saveConfirmedShots(database, frames, remember) {
                 frame_id: database.frameIds[frame.id], shot_number: shot.number,
                 throw_type: shot.symbol === "X" ? "strike"
                     : shot.symbol === "/" ? "spare" : null,
-                pin_leave: shot.leave, side: null, position: null,
+                pin_leave: shot.leave, foul: shot.result.foul, side: null, position: null,
                 comment: null, ball_id: null,
             });
             database.shotIds[shot.id] = saved.shot_id;
