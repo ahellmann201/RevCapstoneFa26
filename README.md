@@ -305,6 +305,8 @@ by Capacitor. Backend test instructions are in [Database/tests/README.md](Databa
 
 To test against a dedicated remote SQL Server database, follow the [opt-in SQL Server integration instructions](Database/tests/README.md#remote-sql-server-integration-test).
 
+The [integration test guide](Database/tests/README.md) also documents repeatable SQL Server migration checks, a browser foul save/reopen test, and a live recovery email smoke test.
+
 ## Optional local SQL Server development
 
 Install [Microsoft ODBC Driver 18](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server)

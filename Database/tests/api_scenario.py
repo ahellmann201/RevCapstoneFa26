@@ -1,4 +1,6 @@
 """Shared API contract exercised against real SQLite and SQL Server databases."""
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
 from unittest.mock import patch
 
 
@@ -127,7 +129,15 @@ def run_scenario(usernames):
             payload = {"token": token, "password": "NewOfflinePassword123!"}
             with patch.object(password_reset, "time", return_value=time() + 901):
                 assert client.post(path + "/complete", json=payload).status_code == 400
-            assert client.post(path + "/complete", json=payload).status_code == 204
+            start = Barrier(2)
+            def redeem():
+                with TestClient(app) as concurrent_client:
+                    start.wait(timeout=10)
+                    return concurrent_client.post(path + "/complete", json=payload).status_code
+
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                attempts = [executor.submit(redeem) for _ in range(2)]
+                assert sorted(attempt.result(timeout=30) for attempt in attempts) == [204, 400]
             assert client.post(path + "/complete", json=payload).status_code == 400
             assert client.get("/auth/me", headers=owner).status_code == 401
             assert client.get("/auth/me", headers=other).status_code == 200
