@@ -1,0 +1,42 @@
+import { readFileSync } from "node:fs";
+import { beforeEach, expect, it, vi } from "vitest";
+vi.mock("../navbar.js", () => ({ loadNavbar: vi.fn() }));
+vi.mock("../api_client.js", () => ({ request: vi.fn() }));
+vi.mock("../authentication.js", () => ({ getAuthToken: vi.fn() }));
+import { request } from "../api_client.js";
+import { getAuthToken } from "../authentication.js";
+beforeEach(() => {
+    vi.resetModules(); vi.resetAllMocks();
+    document.body.innerHTML = readFileSync("frontend/eventArchives.html", "utf8");
+    document.getElementById("unarchive-dialog").showModal = vi.fn();
+    document.getElementById("unarchive-dialog").close = vi.fn();
+});
+it("requires login and has no add button", async () => {
+    getAuthToken.mockReturnValue(null);
+    await import("../eventArchives.js");
+    expect(request).not.toHaveBeenCalled();
+    expect(document.getElementById("archive-status").textContent).toContain("Please log in");
+    expect(document.querySelector(".add-establishment")).toBeNull();
+});
+it("lists only disabled events and restores after confirmation with failure recovery", async () => {
+    getAuthToken.mockReturnValue("token");
+    const record = { event_id: 3, event_name: "League", nickname: "Monday", event_type: "League", location_id: null, week_day: "Monday", start_time: "18:00", games_per_session: 3, enabled: false };
+    request.mockImplementation(async (path) => path.startsWith("/locations") ? [] : [record, { ...record, event_id: 4, enabled: true }]);
+    await import("../eventArchives.js");
+    await vi.waitFor(() => expect(document.querySelectorAll(".establishment-card")).toHaveLength(1));
+    document.querySelector(".establishment-card").click();
+    const count = request.mock.calls.length;
+    document.getElementById("cancel-unarchive").click();
+    expect(request.mock.calls).toHaveLength(count);
+    document.querySelector(".establishment-card").click();
+    request.mockRejectedValueOnce(new Error("Unavailable"));
+    document.getElementById("confirm-unarchive").click();
+    await vi.waitFor(() => expect(document.getElementById("unarchive-status").textContent).toBe("Unavailable"));
+    expect(document.querySelector(".establishment-card")).not.toBeNull();
+    request.mockResolvedValueOnce({ ...record, enabled: true });
+    document.getElementById("confirm-unarchive").click();
+    await vi.waitFor(() => expect(document.querySelector(".establishment-card")).toBeNull());
+    const [path, options] = request.mock.calls.at(-1);
+    expect(path).toBe("/events/3"); expect(options.method).toBe("PUT");
+    expect(JSON.parse(options.body)).toEqual({ ...Object.fromEntries(Object.entries(record).filter(([key]) => !["event_id", "enabled"].includes(key))), enabled: true });
+});

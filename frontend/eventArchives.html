@@ -13,7 +13,20 @@
         <header class="establishments-heading">
             <h1>Event Archives</h1>
         </header>
+        <p class="establishments-empty" id="archives-empty">No archived events.</p>
+        <ul class="establishment-list" id="archive-list" aria-label="Archived events"></ul>
+        <p class="page-status" id="archive-status" role="status"></p>
     </main>
+    <dialog class="establishment-dialog archive-confirmation" id="unarchive-dialog"
+        aria-labelledby="unarchive-title" aria-describedby="unarchive-description">
+        <h2 id="unarchive-title">Unarchive event?</h2>
+        <p id="unarchive-description"></p>
+        <div class="dialog-actions">
+            <button class="cancel-establishment" id="cancel-unarchive" type="button" autofocus>Cancel</button>
+            <button class="apply-establishment" id="confirm-unarchive" type="button">Unarchive</button>
+        </div>
+        <p class="page-status" id="unarchive-status" role="status"></p>
+    </dialog>
     <script type="module" src="/js/eventArchives.js"></script>
 </body>
 </html>
