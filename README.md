@@ -267,6 +267,8 @@ Server mock tests; SQLite runtime itself does not import pyodbc.
 Build type-checks source and emits all 12 HTML pages to root `dist/`, also used
 by Capacitor. Backend test instructions are in [Database/tests/README.md](Database/tests/README.md).
 
+To test against a dedicated remote SQL Server database, follow the [opt-in SQL Server integration instructions](Database/tests/README.md#remote-sql-server-integration-test).
+
 ## Optional local SQL Server development
 
 Install [Microsoft ODBC Driver 18](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server)

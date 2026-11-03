@@ -31,3 +31,41 @@ persistent app test database. The scenario exercises real SQL for accounts,
 establishment details, a complete saved game, statistics, updates, cross-account
 rejections, and cascading deletion. SQL Server unit tests still use mocks; the
 migration tests do not apply changes to a real SQL Server instance.
+
+## Remote SQL Server integration test
+
+Ask a SQL Server administrator to provision a separate database named
+`revmetrix_integration_test` on the remote server and apply the current schema
+from `Database/database/table_setup.py`, including the establishment columns.
+Use a dedicated login with read/write permissions only in that database. The
+runner does not create a database, apply migrations, or use the normal `.env`.
+
+Install `requirements-dev.txt` and Microsoft ODBC Driver 18. Connect your
+approved SSH tunnel if the remote database is private. Create a config file
+**outside the repository** with these settings:
+
+```dotenv
+DB_SERVER=127.0.0.1,14330
+DB_NAME=revmetrix_integration_test
+DB_USER=your_dedicated_test_login
+DB_PASSWORD=your_test_password
+```
+
+Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\python.exe -m Database.tests.sqlserver_integration --config "$env:USERPROFILE\revmetrix-sql-test.env"
+```
+
+macOS Terminal:
+
+```bash
+./.venv/bin/python -m Database.tests.sqlserver_integration --config "$HOME/revmetrix-sql-test.env"
+```
+
+The runner checks the configured and connected database names before writing.
+It exercises the FastAPI app in process against real SQL Server: authentication,
+establishment edits, ball filters, game storage, scoring, ownership and cascades.
+It creates uniquely named accounts and attempts to remove their records even if
+an assertion fails. An interrupted run can leave test records behind. It does
+not call the hosted HTTPS API or run as part of `npm run test`.
