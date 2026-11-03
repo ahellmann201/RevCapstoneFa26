@@ -127,6 +127,25 @@ export function getActiveGameId() {
     return sessionStorage.getItem("activeGameId");
 }
 
+/** Capture only an unfinished guest game's keys across successful sign-in. */
+export function snapshotGuestGame(guestOnly = true) {
+    const id = getActiveGameId();
+    if (!id || (guestOnly && (getGameState(id)?.database?.game || getGameState(id)?.userID))) return [];
+    const keys = ["activeGameId", `game${id}:state`, `game${id}:frames`];
+    for (const frameId of getGameFrames(id)) {
+        keys.push(`frame${frameId}:shots`);
+        for (const shotId of getFrameShots(frameId)) {
+            keys.push(`shot${shotId}:leave`, `shot:${shotId}:result`);
+        }
+    }
+    return keys.map((key) => [key, sessionStorage.getItem(key)])
+        .filter(([, value]) => value !== null);
+}
+
+export function restoreGuestGame(entries) {
+    for (const [key, value] of entries) sessionStorage.setItem(key, value);
+}
+
 /** Discards only this game's cached frames and shots. */
 export function removeGame(gameId) {
     for (const frameId of getGameFrames(gameId)) {

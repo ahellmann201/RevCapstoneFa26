@@ -10,7 +10,7 @@ from jwt.exceptions import InvalidTokenError
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, SecretStr
 from pwdlib import PasswordHash
 
-from Database.database.connection import DatabaseError, IntegrityError, get_connection
+from Database.database.connection import DB_TYPE, DatabaseError, IntegrityError, get_connection
 
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -116,7 +116,7 @@ def user_response(row) -> UserResponse:
 
 def inserted_columns() -> str:
     columns = "user_id, display_name, username, email, main_hand"
-    if os.getenv("DB_TYPE", "sqlserver").strip().lower() == "sqlite":
+    if DB_TYPE == "sqlite":
         return f"RETURNING {columns}"
     return "OUTPUT " + ", ".join(
         f"INSERTED.{column}" for column in columns.split(", ")
@@ -153,7 +153,7 @@ def register(data: RegisterRequest) -> UserResponse:
                     VALUES (?, ?, ?, ?, ?)
                     RETURNING user_id, display_name, username, email, main_hand
                     """
-                    if os.getenv("DB_TYPE", "sqlserver").strip().lower() == "sqlite"
+                    if DB_TYPE == "sqlite"
                     else f"""
                     INSERT INTO users (
                         display_name,

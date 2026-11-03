@@ -21,7 +21,7 @@ export function closeSidebar() {
     sidebar.classList.remove("sidebar_active");
     sidebar.classList.add("sidebar_inactive");
 
-    navigator.vibrate(10);
+    navigator.vibrate?.(10);
 }
 
 
@@ -101,9 +101,6 @@ export function loadNavbar() {
                 <button class="sessions_button sidebar_button" id="sessions-button">Sessions</button>
             </div>
             <div class="sidebar_section">
-                <button class="sidebar_button event_button" id="event-button">Events</button>
-            </div>
-            <div class="sidebar_section">
                 <button class="sidebar_button ciclops_button" id="ciclops-button">Ciclops</button>
             </div>
             <div class="sidebar_section">
@@ -116,7 +113,7 @@ export function loadNavbar() {
                 <button class="sidebar_button smart_watch_button" id="smart-watch-button">Smart Watch</button>
             </div>
 
-            
+
 
             <div class="sidebar_auth" id="sidebar-auth">
                 <button class="sidebar_login_button" id="sidebar-login-button">Log In</button>
@@ -180,9 +177,6 @@ export function loadNavbar() {
         .getElementById("sessions-button")
         .addEventListener("click", goToSessions);
 
-    document
-        .getElementById("event-button")
-        .addEventListener("click", goToEvents);
 
     document
         .getElementById("ciclops-button")
@@ -220,7 +214,7 @@ export function loadNavbar() {
             element.classList.add("hidden");
         }
     }
-    
+
 
     const accountSettingsButton = document.getElementById("account-settings-button");
     accountSettingsButton?.addEventListener("click", goToAccountSettings);

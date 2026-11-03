@@ -59,6 +59,11 @@ BEGIN
         address            NVARCHAR(500),
         user_id            INT NOT NULL,
         location_id        INT,
+        nickname           NVARCHAR(100),
+        type               NVARCHAR(100),
+        phone              NVARCHAR(50),
+        home_house         BIT NOT NULL DEFAULT 0,
+        enabled            BIT NOT NULL DEFAULT 1,
 
         FOREIGN KEY (user_id)
             REFERENCES users(user_id)

@@ -143,3 +143,6 @@ Desktop.ini
 
 logs/
 *.log
+# Generated native plugin caches and reports
+**/.gradle/
+Ciclopes-API/mobile/capacitor-plugin/android/build/

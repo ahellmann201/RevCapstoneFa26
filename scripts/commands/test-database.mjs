@@ -24,8 +24,13 @@ if (!existsSync(pythonExecutable)) {
 
 const result = spawnSync(
     pythonExecutable,
-    ["-m", "Database.database.test_db_admin", action],
-    { cwd: projectRoot, stdio: "inherit" },
+    ["-m", "Database.scripts.test_db_admin", action],
+    {
+        cwd: projectRoot,
+        stdio: "inherit",
+        // Select SQLite before Python imports the database package.
+        env: { ...process.env, DB_TYPE: "sqlite" },
+    },
 );
 
 if (result.error) {

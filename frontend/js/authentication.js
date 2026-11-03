@@ -49,8 +49,10 @@ async function completeLogin(username, password) {
         throw new Error("The API did not return an access token.");
     }
 
-    // Clear any account data left by a previous session.
+    const guestGame = Cache.snapshotGuestGame();
+    // Clear account data while retaining the guest game being signed in to save.
     Cache.clearCache();
+    Cache.restoreGuestGame(guestGame);
 
     sessionStorage.setItem(
         "authentication_token",
@@ -69,6 +71,7 @@ async function completeLogin(username, password) {
         sessionStorage.setItem("canReachDatabase", "true");
     } catch (error) {
         Cache.clearCache();
+        Cache.restoreGuestGame(guestGame);
         throw error;
     }
 
@@ -112,7 +115,7 @@ export async function submitAuth(type = "login") {
 
             if (password.length < 8 || password.length > 128) {
                 throw new Error(
-                    "Use a password between 15 and 128 characters.",
+                    "Use a password between 8 and 128 characters.",
                 );
             }
 

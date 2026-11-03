@@ -80,20 +80,15 @@ async function runPythonTests() {
     if (!existsSync(pythonExecutable)) {
         console.error(
             "The Python virtual environment was not found. " +
-            "Run `npm run setup` first.",
+            "Create the root .venv and install requirements-dev.txt first.",
         );
         return 1;
     }
 
     const result = await runProcess(
         pythonExecutable,
-        [
-            "-m", "unittest", "discover",
-            "-s", "Database/database",
-            "-p", "test_*.py",
-            ...extraArgs,
-        ],
-        "Python database tests",
+        ["-m", "pytest", "Database/tests", "-q", "-W", "default", "-r", "w", "--capture=tee-sys", ...extraArgs],
+        "Backend and statistics tests",
     );
 
     return result;
@@ -103,9 +98,9 @@ async function main() {
     if (!["js", "python", "all"].includes(testType)) {
         console.error(`
 Usage:
-  npm run test:js
-  npm run test:python
-  npm run test:all
+  npm run test:frontend
+  npm run test:backend
+  npm run test
 `);
         process.exitCode = 1;
         return;

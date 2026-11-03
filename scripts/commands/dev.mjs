@@ -13,7 +13,7 @@ if (!["test", "real"].includes(databaseMode)) {
     process.exit(1);
 }
 const testMode = databaseMode === "test";
-const lanMode = !args.includes("--local");
+const lanMode = args.includes("--lan") || (!testMode && !args.includes("--local"));
 const extraArgs = args.filter((arg) =>
     arg !== "--test" && !arg.startsWith("--db=")
     && arg !== "--lan" && arg !== "--local"
@@ -46,7 +46,9 @@ function startProcess(name, script, childArgs) {
     console.log(`Starting ${name}...`);
     const child = spawn(process.execPath, [script, ...childArgs], {
         cwd: projectRoot,
-        env: process.env,
+        env: name === "Frontend"
+                ? { ...process.env, VITE_API_BASE_URL: "/api" }
+                : process.env,
         stdio: "inherit",
     });
     children.set(name, child);

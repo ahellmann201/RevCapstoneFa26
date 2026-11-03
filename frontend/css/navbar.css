@@ -8,7 +8,7 @@
     --hamburger-button-size: 48px;
     --hamburger-line-height: 8px;
     --hamburger-left-margin: 5dvw;
-    
+
     --pfp-right-margin: 5dvw;
 
     --pfp-dropdown-right-margin-mod: 5.0;
@@ -63,7 +63,7 @@
     background-color: var(--navabr-bg-color);
     backdrop-filter: blur(var(--navbar-blur));
     -webkit-backdrop-filter: blur(var(--navbar-blur));
-    
+
     z-index: 1;
 
     display: flex;
@@ -88,10 +88,10 @@
     z-index: 2;
     overflow: hidden;
     margin-right: var(--pfp-right-margin);
-    
-    -webkit-box-shadow: 0px 5px 15px 0px rgba(0,0,0,0.5); 
+
+    -webkit-box-shadow: 0px 5px 15px 0px rgba(0,0,0,0.5);
     box-shadow: 0px 5px 15px 0px rgba(0,0,0,0.5);
-    
+
     background-color: white;
     filter: sepia(var(--pfp-sepia)) saturate(var(--pfp-saturate)) hue-rotate(var(--pfp-hue)) brightness(var(--pfp-bg-brightness));
 }
@@ -443,7 +443,7 @@ body:has(.auth_popup[open]) {
     }
 }
 
-.log_out_popup {    
+.log_out_popup {
     position: fixed;
     top: 50%;
     left: 50%;

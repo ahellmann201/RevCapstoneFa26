@@ -105,4 +105,18 @@ CREATE TABLE IF NOT EXISTS shots (
 
 def initialize_schema(connection):
     connection.executescript(SCHEMA)
+    migrate_establishments(connection)
     connection.commit()
+
+
+def migrate_establishments(connection):
+    columns = {row[1] for row in connection.execute("PRAGMA table_info(user_establishments)")}
+    for name, definition in {
+        "nickname": "TEXT",
+        "type": "TEXT",
+        "phone": "TEXT",
+        "home_house": "INTEGER NOT NULL DEFAULT 0",
+        "enabled": "INTEGER NOT NULL DEFAULT 1",
+    }.items():
+        if name not in columns:
+            connection.execute(f"ALTER TABLE user_establishments ADD COLUMN {name} {definition}")
