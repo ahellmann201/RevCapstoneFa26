@@ -86,6 +86,38 @@ export async function getUser(_userID) {
     return frontendProfile(await request("/auth/me"));
 }
 
+// The API scopes this request to the authenticated user from the bearer token.
+export async function getBalls(_userID, filters = {}) {
+    const query = new URLSearchParams();
+    for (const key of ["weight_min", "weight_max", "core_type", "name_contains"]) {
+        const value = filters[key];
+        if (value !== undefined && value !== null && value !== "") {
+            query.set(key, value);
+        }
+    }
+    const balls = [];
+    query.set("limit", "100");
+    for (let offset = 0; ; offset += 100) {
+        query.set("offset", offset);
+        const page = await request(`/balls?${query}`);
+        balls.push(...page);
+        if (page.length < 100) return balls;
+    }
+}
+
+export function createBall(_userID, ball) {
+    return request("/balls", {
+        method: "POST",
+        body: JSON.stringify(ball),
+    });
+}
+
+export function deleteBall(_userID, ballID) {
+    return request(`/balls/${encodeURIComponent(ballID)}`, {
+        method: "DELETE",
+    });
+}
+
 export async function getUsername(userID) {
     return (await getUser(userID)).Username;
 }

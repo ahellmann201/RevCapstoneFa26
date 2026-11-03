@@ -41,6 +41,28 @@ export function getUsername(forceDatabaseUnavailable = false, forceInvalidSessio
     return readProfileValue(API.getUsername, forceDatabaseUnavailable, forceInvalidSession);
 }
 
+export function getBalls(
+    forceDatabaseUnavailable = false,
+    forceInvalidSession = false,
+    filters = {},
+) {
+    return readProfileValue(
+        (userID) => API.getBalls(userID, filters),
+        forceDatabaseUnavailable,
+        forceInvalidSession,
+    );
+}
+
+export async function createBall(ball) {
+    if (isUnavailable()) return DB_UNAVAILABLE;
+    return API.createBall(getUserID(), ball);
+}
+
+export async function deleteBall(ballID) {
+    if (isUnavailable()) return DB_UNAVAILABLE;
+    return API.deleteBall(getUserID(), ballID);
+}
+
 export async function setDisplayName(displayName) {
     if (isUnavailable()) return DB_UNAVAILABLE;
     // Await the write so true means the server accepted it; otherwise the

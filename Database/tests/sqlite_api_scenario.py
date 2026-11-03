@@ -101,6 +101,11 @@ def main():
         assert client.delete(f"/balls/{ball['ball_id']}", headers=owner).status_code == 204
         assert client.get("/statistics", headers=owner).json()["completed_games"] == 0
         assert client.put("/auth/me/display-name", json={"value": "Updated Owner"}, headers=owner).status_code == 200
+        owned = post("/balls", {"ball_name": "Filter Pearl", "weight": 14, "core_type": "Symmetric"})
+        post("/balls", {"ball_name": "Filter Pearl", "weight": 14, "core_type": "Symmetric"}, headers=other)
+        assert [row["ball_id"] for row in listing("/balls?name_contains=PEARL&weight_min=14&weight_max=14&core_type=Symmetric")] == [owned["ball_id"]]
+        assert listing("/balls?name_contains=PEARL&weight_max=13") == []
+        assert client.get("/balls?weight_min=15&weight_max=14", headers=owner).status_code == 422
     print("SQLite API save/reload, statistics, ownership, updates and cascades verified")
 
 

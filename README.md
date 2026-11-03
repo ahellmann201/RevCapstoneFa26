@@ -57,8 +57,8 @@ npm.cmd run dev:full:test
 Setup installs JavaScript dependencies and creates/reuses root `.venv` with
 backend and test dependencies. It does not reset a database. Initialization
 creates or upgrades `test_database/revmetrix_test.db` using the SQLite schema
-and starter locations. It does not create a starter login; register your own
-test account in the UI. SQLite accounts and data are separate from SQL Server.
+and starter locations. The SQLite seed includes sample accounts and balls for testing. You can also
+register your own test account in the UI. SQLite accounts and data are separate from SQL Server.
 
 The combined launcher sets `VITE_API_BASE_URL=/api`. Vite forwards `/api/*` to
 the local FastAPI service on port 8000, so the website uses the local database
@@ -126,7 +126,11 @@ Saved game URLs look like `http://localhost:5173/game.html?game_id=6`. Use an ID
 owned by your application account and bookmark it while saved-game browsing is
 unfinished. Application credentials are distinct from database credentials.
 
-The sidebar also contains Ball Arsenal, Events, Sessions, Stats, Ciclops, Smart
+The Ball Arsenal lets signed-in users add and delete balls, search by name,
+and filter by weight or core type. Deploy the updated API to enable server-side
+filters on the hosted backend.
+
+The sidebar also contains Events, Sessions, Stats, Ciclops, Smart
 Dot, and Smart Watch destinations. Several are navigation placeholders, not
 complete interfaces. Their presence does not imply the corresponding UI or device
 integration is implemented. Stats calculations exist in the API; the Stats page
