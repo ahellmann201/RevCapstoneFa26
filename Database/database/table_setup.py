@@ -106,6 +106,11 @@ BEGIN
         event_name  NVARCHAR(255) NOT NULL,
         event_type  NVARCHAR(100),
         location_id INT,
+        nickname NVARCHAR(100),
+        week_day NVARCHAR(9),
+        start_time CHAR(5),
+        games_per_session INT NOT NULL DEFAULT 3,
+        enabled BIT NOT NULL DEFAULT 1,
 
         FOREIGN KEY (user_id)
             REFERENCES users(user_id)

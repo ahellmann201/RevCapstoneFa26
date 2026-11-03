@@ -22,3 +22,6 @@
 }
 .games-stepper button:disabled { opacity: .4; cursor: default; }
 .dialog-actions button:disabled { opacity: .6; cursor: wait; }
+.disable-confirmation { width: min(440px, calc(100% - 32px)); }
+.disable-confirmation h2 { font-size: 1.6rem; line-height: 1.2; }
+.disable-confirmation > p { margin-top: 12px; color: var(--establishment-muted); line-height: 1.6; overflow-wrap: anywhere; }

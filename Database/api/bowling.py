@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from Database.api.resource_routes import Resource, add_resource_routes
+from Database.database.connection import DB_TYPE
 
 
 router = APIRouter()
@@ -50,21 +51,18 @@ class EventInput(InputModel):
     event_name: str = Field(min_length=1, max_length=255)
     event_type: str | None = Field(default=None, max_length=100)
     location_id: Id | None = None
-    if DB_TYPE == "sqlite":
-        nickname: str | None = Field(default=None, max_length=100)
-        week_day: Literal["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] | None = None
-        start_time: str | None = None
-        games_per_session: PositiveNumber = 3
-        enabled: bool = True
+    nickname: str | None = Field(default=None, max_length=100)
+    week_day: Literal["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] | None = None
+    start_time: str | None = Field(default=None, min_length=5, max_length=5, pattern=r"^\d{2}:\d{2}$")
+    games_per_session: PositiveNumber = 3
+    enabled: bool = True
 
-        @field_validator("start_time")
-        @classmethod
-        def validate_start_time(cls, value):
-            if value is not None:
-                time.fromisoformat(value)
-                if len(value) != 5 or value[2] != ":":
-                    raise ValueError("Use HH:MM for start time")
-            return value
+    @field_validator("start_time")
+    @classmethod
+    def validate_start_time(cls, value):
+        if value is not None:
+            time.fromisoformat(value)
+        return value
 
 
 class SessionInput(InputModel):

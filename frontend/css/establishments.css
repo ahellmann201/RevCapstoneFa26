@@ -141,6 +141,19 @@ body {
 .dialog-actions button { flex: 1; min-height: 56px; padding: 12px 16px; border-radius: 15px; font: bold 1.1rem var(--standard-font-family); cursor: pointer; }
 .cancel-establishment { border: 1px solid var(--establishment-border); background: transparent; color: var(--establishment-muted); }
 .apply-establishment { border: 0; background: var(--establishment-accent); color: #132c33; }
+.delete-record {
+    width: 100%;
+    min-height: 48px;
+    margin-top: 20px;
+    border: 1px solid #d77f7f;
+    border-radius: 12px;
+    background: transparent;
+    color: #ffb4b4;
+    font: bold 1rem var(--standard-font-family);
+    cursor: pointer;
+}
+.delete-record:hover { background: #70333355; }
+.delete-record:disabled { opacity: .5; cursor: wait; }
 .establishments-page :focus-visible, .establishment-dialog :focus-visible { outline: 2px solid var(--establishment-accent); outline-offset: 4px; }
 
 @media (max-width: 480px) {

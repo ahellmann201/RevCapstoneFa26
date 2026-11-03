@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -58,13 +58,23 @@
                     </span>
                 </label>
             </div>
-            <div class="establishment-options"><label><input name="enabled" type="checkbox" checked> Enabled</label></div>
             <footer class="dialog-actions">
                 <button class="cancel-establishment" id="cancel-event" type="button">Cancel</button>
                 <button class="apply-establishment" id="apply-event" type="submit">Add</button>
             </footer>
+            <button class="delete-record" id="disable-event" type="button" hidden>Disable Event</button>
             <p class="page-status" id="event-form-status" role="status"></p>
         </form>
+    </dialog>
+    <dialog class="establishment-dialog disable-confirmation" id="disable-event-dialog"
+        aria-labelledby="disable-event-title" aria-describedby="disable-event-description">
+        <h2 id="disable-event-title">Disable event?</h2>
+        <p id="disable-event-description"></p>
+        <div class="dialog-actions">
+            <button class="cancel-establishment" id="cancel-disable-event" type="button" autofocus>Cancel</button>
+            <button class="apply-establishment" id="confirm-disable-event" type="button">Disable Event</button>
+        </div>
+        <p class="page-status" id="disable-event-status" role="status"></p>
     </dialog>
     <script type="module" src="/js/events.js"></script>
 </body>

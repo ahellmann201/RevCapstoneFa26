@@ -61,3 +61,27 @@ it("creates a record only after the server accepts the save", async () => {
     await vi.waitFor(() => expect(document.querySelectorAll(".establishment-card")).toHaveLength(1));
     expect(request).toHaveBeenLastCalledWith("/establishments", expect.objectContaining({ method: "POST" }));
 });
+
+it("deletes an establishment only after confirmation and a successful response", async () => {
+    getAuthToken.mockReturnValue("token");
+    request.mockResolvedValueOnce([saved]);
+    await import("../establishments.js");
+    const button = document.getElementById("delete-establishment");
+    document.getElementById("add-establishment").click();
+    expect(button.hidden).toBe(true);
+    document.querySelector(".establishment-card").click();
+    expect(button.hidden).toBe(false);
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    request.mockClear();
+    button.click();
+    expect(request).not.toHaveBeenCalled();
+    confirm.mockReturnValue(true);
+    request.mockRejectedValueOnce(new Error("Linked records prevent deletion"));
+    button.click();
+    await vi.waitFor(() => expect(window.alert).toHaveBeenCalledWith("Linked records prevent deletion"));
+    expect(document.querySelector(".establishment-card")).not.toBeNull();
+    request.mockResolvedValueOnce(null);
+    button.click();
+    await vi.waitFor(() => expect(document.querySelector(".establishment-card")).toBeNull());
+    expect(request).toHaveBeenLastCalledWith("/establishments/7", { method: "DELETE" });
+});
