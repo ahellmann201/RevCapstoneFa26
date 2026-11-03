@@ -26,6 +26,7 @@ export default defineConfig({
                 schedule: rootPath("./frontend/schedule_event.html"),
                 sessions: rootPath("./frontend/sessions.html"),
                 events: rootPath("./frontend/events.html"),
+                eventArchives: rootPath("./frontend/eventArchives.html"),
                 establishments: rootPath("./frontend/establishments.html"),
                 ciclops: rootPath("./frontend/ciclops.html"),
                 smartDot: rootPath("./frontend/smart_dot.html"),
