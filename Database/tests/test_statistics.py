@@ -116,7 +116,7 @@ def rows_for_game(game_id, frames, date=None):
     for number, shots in frames.items():
         for shot in shots:
             mask = sum(1 << (pin - 1) for pin in shot.pin_leave)
-            rows.append((game_id, date, game_id * 10 + number, number, shot.shot_number, mask))
+            rows.append((game_id, date, game_id * 10 + number, number, shot.shot_number, mask, shot.foul))
     return rows
 
 
@@ -126,7 +126,7 @@ def test_statistics_require_authentication(client):
 
 def test_statistics_endpoint_scoped_and_computed(authenticated, modules, db):
     connection, cursor = db
-    cursor.fetchall.return_value = rows_for_game(1, regular_game(4, 5)) + [(2, None, None, None, None, None)]
+    cursor.fetchall.return_value = rows_for_game(1, regular_game(4, 5)) + [(2, None, None, None, None, None, None)]
     response = authenticated.get("/statistics")
     assert response.status_code == 200, response.text
     result = response.json()
@@ -146,8 +146,8 @@ def test_statistics_endpoint_scoped_and_computed(authenticated, modules, db):
 def test_corrupt_database_sequences_not_counted(authenticated, db, case):
     _, cursor = db
     rows = rows_for_game(1, regular_game(4, 5))
-    if case == "duplicate_frame": rows.append((1, None, 999, 1, 1, 0))
-    if case == "invalid_mask": rows[0] = (1, None, 11, 1, 1, 1024)
+    if case == "duplicate_frame": rows.append((1, None, 999, 1, 1, 0, False))
+    if case == "invalid_mask": rows[0] = (1, None, 11, 1, 1, 1024, False)
     if case == "duplicate_shot": rows.insert(1, rows[0])
     cursor.fetchall.return_value = rows
     result = authenticated.get("/statistics").json()
@@ -166,3 +166,9 @@ def test_statistics_database_failure_is_safe(authenticated, db):
 @pytest.mark.parametrize("limit", [0, 101])
 def test_statistics_limit_validation(authenticated, limit):
     assert authenticated.get(f"/statistics?recent_limit={limit}").status_code == 422
+
+
+def test_foul_credits_zero_even_when_stored_pin_leave_is_empty():
+    frames = regular_game(0, 0)
+    frames[1] = [RecordedShot(1, (), foul=True), RecordedShot(2, ())]
+    assert score_game(frames) == 10

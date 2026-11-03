@@ -2,7 +2,7 @@ import { loadNavbar } from "./navbar.js";
 import { getAuthToken } from "./authentication.js";
 import { openAuthPopup } from "./popups.js";
 import { createSavedGame, saveConfirmedShots, readSavedGame } from "./game_persistence.js";
-import { 
+import {
     setPinLeave,
     getPinLeave,
     addFrameShot,
@@ -97,9 +97,7 @@ function updateDatabaseControls() {
     databaseStatus.textContent = databaseMessage || database.error || (database.game
         ? `Game #${database.game.game_id}. ${pending.length} confirmed shot(s) awaiting upload.`
         : "Play locally with Next Shot. Start a saved game or use Save Shot to connect.");
-    if (shots.some((shot) => shot.result.foul)) {
-        databaseStatus.textContent += " Foul markers are stored only in this browser's cache.";
-    }
+
 }
 
 async function saveToDatabase(upload) {
@@ -353,7 +351,7 @@ function updateFrame() {
         ? "Finish"
         : 'Next Shot';
     nextButton.disabled = busy || loading || loadFailed;
-    
+
     updateShortcutButtons();
     cacheGameProgress();
     updateDatabaseControls();
@@ -479,7 +477,7 @@ function getStartingPins(frameNumber, shotNumber) {
     if (frameNumber === 10 && previousLeave.length === 0) {
         return [...ALL_PINS];
     }
-    
+
     return [...previousLeave];
 }
 function cacheLeave() {
@@ -655,14 +653,14 @@ async function restoreDatabaseProgress() {
             let standing = [...ALL_PINS];
             let complete = false;
             const shots = remote.shots.map((shot, index) => {
-                const leave = shot.pin_leave;
+                const leave = shot.foul === true ? [...standing] : shot.pin_leave;
                 if (complete || shot.shot_number !== index + 1 || !Array.isArray(leave)
                     || new Set(leave).size !== leave.length || leave.some((pin) => !standing.includes(pin))) {
                     throw new Error("Invalid saved shot sequence.");
                 }
-                const result = { pins: standing.length - leave.length, foul: false };
+                const result = { pins: standing.length - leave.length, foul: shot.foul === true };
                 complete = remote.frame_number < 10 ? leave.length === 0 || index === 1
-                    : index === 2 || (index === 1 && remote.shots[0].pin_leave.length !== 0 && leave.length !== 0);
+                    : index === 2 || (index === 1 && (remote.shots[0].foul === true || remote.shots[0].pin_leave.length !== 0) && leave.length !== 0);
                 standing = remote.frame_number === 10 && leave.length === 0 ? [...ALL_PINS] : [...leave];
                 const localFrame = frames[remote.frame_number - 1];
                 const localShotId = getFrameShots(localFrame.id)[index];
@@ -671,7 +669,7 @@ async function restoreDatabaseProgress() {
                     || JSON.stringify(getPinLeave(localShotId).slice().sort((a,b) => a-b)) !== JSON.stringify(leave.slice().sort((a,b) => a-b)))) {
                     throw new Error("Local and database shots differ. Local progress was kept; review before saving.");
                 }
-                return { ...shot, result: localResult ?? result };
+                return { ...shot, pin_leave: leave, result };
             });
             return { ...remote, shots };
         });
@@ -715,7 +713,7 @@ async function restoreDatabaseProgress() {
         }
         database.blocked = false;
         delete database.error;
-        databaseMessage = "Database progress loaded. Foul flags are available only when retained in this browser's cache.";
+        databaseMessage = "Database progress loaded.";
         document.querySelector(".game_badge").textContent = `Game ${saved.game.game_number}`;
     } catch (error) {
         database.blocked = true;

@@ -168,7 +168,7 @@ def test_all_pin_masks_round_trip(authenticated, modules, db):
         pins = [pin for pin in range(1, 11) if mask & (1 << (pin - 1))]
         payload = modules[3].ShotInput(frame_id=1, shot_number=1, pin_leave=pins)
         assert modules[4].database_values(payload)["pin_leave"] == mask
-    cursor.fetchone.return_value = (11, 1, 1, None, 1023, None, None, None, None)
+    cursor.fetchone.return_value = (11, 1, 1, None, False, 1023, None, None, None, None)
     assert authenticated.get("/shots/11").json()["pin_leave"] == list(range(1, 11))
 
 

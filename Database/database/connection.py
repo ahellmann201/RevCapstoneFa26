@@ -56,6 +56,3 @@ def get_connection():
     )
 
     return pyodbc.connect(connection_string)
-
-
-# ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJgqJ4eUHQOjwD3qf114jCPNAu/RygsM92XV481k14yU ahellmann@ycp.edu

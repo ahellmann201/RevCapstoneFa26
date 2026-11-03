@@ -91,16 +91,21 @@ from Database.api.auth import (
     router as auth_router,
     user_response,
 )
+from Database.database.connection import DB_TYPE
 from Database.api.balls import router as balls_router
 from Database.api.bowling import router as bowling_router
 from Database.api.statistics import router as statistics_router
 
+from Database.api.password_reset import router as password_reset_router
+
+app.include_router(password_reset_router)
 app.include_router(auth_router)
 app.include_router(balls_router)
 app.include_router(bowling_router)
 app.include_router(statistics_router)
 
 
+<<<<<<< HEAD
 @app.on_event("startup")
 def migrate_local_establishments():
     from Database.database.connection import DB_TYPE, get_connection
@@ -115,6 +120,8 @@ def migrate_local_establishments():
             connection.close()
 
 
+=======
+>>>>>>> origin/Andrew
 class DisplayNameRequest(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -144,7 +151,7 @@ def update_display_name(
                 WHERE user_id = ?
                 RETURNING user_id, display_name, username, email, main_hand
                 """
-                if os.getenv("DB_TYPE", "sqlserver").strip().lower() == "sqlite"
+                if DB_TYPE == "sqlite"
                 else f"""
                 UPDATE users
                 SET display_name = ?

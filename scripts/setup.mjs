@@ -97,7 +97,7 @@ try {
     }
 
     run(venvPython, ["-m", "pip", "install", "--upgrade", "pip"]);
-    run(venvPython, ["-m", "pip", "install", "-r", "requirements.txt"]);
+    run(venvPython, ["-m", "pip", "install", "-r", "requirements-dev.txt"]);
 
     run(venvPython, ["-m", "pip", "install", "-r", "requirements-sqlserver.txt"]);
     console.log(
@@ -105,7 +105,7 @@ try {
     );
 
     console.log("\nSetup complete.");
-    console.log("Start with the test database: npm run dev:full:test");
+    console.log("Start frontend with hosted API: npm run dev\nStart with the test database: npm run dev:full:test");
     console.log("Start with SQL Server: npm run dev:full:real");
 } catch (error) {
     console.error(`\nSetup failed: ${error.message}`);

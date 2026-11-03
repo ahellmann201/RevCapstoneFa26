@@ -87,17 +87,8 @@ async function runPythonTests() {
 
     const result = await runProcess(
         pythonExecutable,
-        [
-            "-m", "pytest",
-            "Database/tests",
-            "Database/database",
-            "-q",
-            "-W", "default",
-            "-r", "w",
-            "--capture=tee-sys",
-            ...extraArgs,
-        ],
-        "Backend, statistics, and SQLite database tests",
+        ["-m", "pytest", "Database/tests", "-q", "-W", "default", "-r", "w", "--capture=tee-sys", ...extraArgs],
+        "Backend and statistics tests",
     );
 
     return result;
@@ -107,9 +98,9 @@ async function main() {
     if (!["js", "python", "all"].includes(testType)) {
         console.error(`
 Usage:
-  npm run test:js
-  npm run test:python
-  npm run test:all
+  npm run test:frontend
+  npm run test:backend
+  npm run test
 `);
         process.exitCode = 1;
         return;

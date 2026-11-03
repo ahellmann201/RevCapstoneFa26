@@ -8,6 +8,45 @@
 </head>
 <body>
     <navbar></navbar>
+    <div class="header">
+        <button class="filter_button" id="filter-ball-button" type="button" aria-label="Filter balls" aria-haspopup="dialog" aria-controls="filter-balls-popup">
+            <svg xmlns="http://www.w3.org/2000/svg"
+            width="24" height="24"
+            viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round"
+            class="lucide lucide-funnel preview-icon"><path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"/></svg>
+        </button>
+        <div class="search_container">
+            <input
+                class="ball_search_input"
+                id="ball-search"
+                type="search"
+                placeholder="Search balls"
+                aria-label="Search balls"
+                aria-autocomplete="list"
+                aria-controls="ball-search-suggestions"
+                autocomplete="off"
+            >
+            <div
+                class="ball_search_suggestions"
+                id="ball-search-suggestions"
+                role="listbox"
+                aria-label="Ball search suggestions"
+                hidden
+            ></div>
+        </div>
+        <button class="add_ball_button" id="add-ball-button" type="button" aria-label="Add a ball" aria-haspopup="dialog" aria-controls="add-ball-popup">
+            <svg xmlns="http://www.w3.org/2000/svg"
+            width="24" height="24"
+            viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round"
+            class="lucide lucide-plus preview-icon"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+        </button>
+    </div>
+    <div class="ball_list_container" id="ball-list-container">
+    </div>
     <script type="module" src="/js/ball_arsenal.js"></script>
 </body>
 </html>

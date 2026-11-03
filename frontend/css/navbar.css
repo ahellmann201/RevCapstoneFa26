@@ -8,7 +8,7 @@
     --hamburger-button-size: 48px;
     --hamburger-line-height: 8px;
     --hamburger-left-margin: 5dvw;
-    
+
     --pfp-right-margin: 5dvw;
 
     --pfp-dropdown-right-margin-mod: 5.0;
@@ -63,7 +63,7 @@
     background-color: var(--navabr-bg-color);
     backdrop-filter: blur(var(--navbar-blur));
     -webkit-backdrop-filter: blur(var(--navbar-blur));
-    
+
     z-index: 1;
 
     display: flex;
@@ -88,10 +88,10 @@
     z-index: 2;
     overflow: hidden;
     margin-right: var(--pfp-right-margin);
-    
-    -webkit-box-shadow: 0px 5px 15px 0px rgba(0,0,0,0.5); 
+
+    -webkit-box-shadow: 0px 5px 15px 0px rgba(0,0,0,0.5);
     box-shadow: 0px 5px 15px 0px rgba(0,0,0,0.5);
-    
+
     background-color: white;
     filter: sepia(var(--pfp-sepia)) saturate(var(--pfp-saturate)) hue-rotate(var(--pfp-hue)) brightness(var(--pfp-bg-brightness));
 }
@@ -303,11 +303,11 @@ navbar {
     padding: 0;
     border: none;
     border-radius: 28px 28px 0 0;
-    background: #f0f0f0;
+    background: var(--field-color);
     color: var(--bg-color);
     font-family: "Jaldi", sans-serif;
     overflow: hidden;
-    box-shadow: 0 -8px 35px rgb(0 0 0 / 20%);
+    box-shadow: var(--popup-shadow);
     transition: transform 0.2s ease;
 }
 
@@ -322,7 +322,7 @@ navbar {
 }
 
 .auth_popup::backdrop {
-    background: rgb(0 0 0 / 55%);
+    background: var(--popup-backdrop-color);
 }
 
 .auth_popup.is_dragging {
@@ -349,7 +349,7 @@ navbar {
     width: 42px;
     height: 5px;
     border-radius: 999px;
-    background: #b8bec0;
+    background: var(--popup-handle-color);
     pointer-events: none;
 }
 
@@ -370,7 +370,7 @@ navbar {
 .popup_description {
     margin: -0.5rem 0 1.5rem;
     text-align: center;
-    color: #535d60;
+    color: var(--field-default-entry-color);
 }
 
 .popup_content label {
@@ -443,7 +443,7 @@ body:has(.auth_popup[open]) {
     }
 }
 
-.log_out_popup {    
+.log_out_popup {
     position: fixed;
     top: 50%;
     left: 50%;

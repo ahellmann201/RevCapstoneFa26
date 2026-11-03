@@ -104,17 +104,20 @@ class LocationRepository:
                 lane_count,
                 address,
                 user_id,
-                location_id
+                location_id,
+                nickname, type, phone, home_house, enabled
             )
             OUTPUT INSERTED.establishment_id
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 establishment.establishment_name,
                 establishment.lane_count,
                 establishment.address,
                 establishment.user_id,
-                establishment.location_id
+                establishment.location_id,
+                establishment.nickname, establishment.type, establishment.phone,
+                establishment.home_house, establishment.enabled
             )
         )
 
@@ -138,7 +141,8 @@ class LocationRepository:
                 lane_count,
                 address,
                 user_id,
-                location_id
+                location_id,
+                nickname, type, phone, home_house, enabled
             FROM user_establishments
             WHERE establishment_id = ?
             """,
@@ -156,7 +160,9 @@ class LocationRepository:
             lane_count=row[2],
             address=row[3],
             user_id=row[4],
-            location_id=row[5]
+            location_id=row[5],
+            nickname=row[6], type=row[7], phone=row[8],
+            home_house=bool(row[9]), enabled=bool(row[10])
         )
 
     def update_establishment(
@@ -170,7 +176,8 @@ class LocationRepository:
             SET establishment_name = ?,
                 lane_count = ?,
                 address = ?,
-                location_id = ?
+                location_id = ?,
+                nickname = ?, type = ?, phone = ?, home_house = ?, enabled = ?
             WHERE establishment_id = ?
             """,
             (
@@ -178,6 +185,8 @@ class LocationRepository:
                 establishment.lane_count,
                 establishment.address,
                 establishment.location_id,
+                establishment.nickname, establishment.type, establishment.phone,
+                establishment.home_house, establishment.enabled,
                 establishment.establishment_id
             )
         )

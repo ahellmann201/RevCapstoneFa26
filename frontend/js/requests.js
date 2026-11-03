@@ -55,4 +55,38 @@ export async function getMainhand() {
     }
 }
 
+/** Returns the signed-in user's balls, or an empty list when unavailable. */
+export async function getBalls(filters = {}) {
+    if (getAuthToken() == null) return [];
+    const balls = await Database.getBalls(false, false, filters);
+    return balls === Database.DB_UNAVAILABLE ? [] : balls;
+}
+
+/** Creates a ball for the signed-in user. */
+export async function createBall(ball) {
+    if (getAuthToken() == null) {
+        throw new Error("Please log in to add a ball.");
+    }
+
+    const createdBall = await Database.createBall(ball);
+    if (createdBall === Database.DB_UNAVAILABLE) {
+        throw new Error("The database is currently unavailable.");
+    }
+    return createdBall;
+}
+
+/** Deletes one of the signed-in user's balls. */
+export async function deleteBall(ballID) {
+    if (getAuthToken() == null) {
+        throw new Error("Please log in to delete a ball.");
+    }
+
+    const result = await Database.deleteBall(ballID);
+    if (result === Database.DB_UNAVAILABLE) {
+        throw new Error("The database is currently unavailable.");
+    }
+    return result;
+}
+
 window.requestUsername = getUsername;
+window.requestBalls = getBalls;

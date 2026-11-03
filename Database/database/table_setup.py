@@ -1,5 +1,7 @@
 import pyodbc
 
+from Database.database.password_reset_schema import SQLSERVER_RESET_SCHEMA
+
 
 SCHEMA = """
 -- ---------- Users & clients ----------
@@ -59,6 +61,11 @@ BEGIN
         address            NVARCHAR(500),
         user_id            INT NOT NULL,
         location_id        INT,
+        nickname           NVARCHAR(100),
+        type               NVARCHAR(100),
+        phone              NVARCHAR(50),
+        home_house         BIT NOT NULL DEFAULT 0,
+        enabled            BIT NOT NULL DEFAULT 1,
 
         FOREIGN KEY (user_id)
             REFERENCES users(user_id)
@@ -180,6 +187,7 @@ BEGIN
         frame_id    INT NOT NULL,
         shot_number INT NOT NULL,
         throw_type  NVARCHAR(50),
+        foul        BIT NOT NULL DEFAULT 0,
         pin_leave   SMALLINT NOT NULL DEFAULT 0,
         side        NVARCHAR(50),
         position    NVARCHAR(50),
@@ -198,6 +206,9 @@ BEGIN
     );
 END;
 """
+
+
+SCHEMA += SQLSERVER_RESET_SCHEMA
 
 
 def create_database(connection_string: str) -> pyodbc.Connection:

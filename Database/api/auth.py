@@ -1,3 +1,4 @@
+import hmac
 import os
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
@@ -10,7 +11,7 @@ from jwt.exceptions import InvalidTokenError
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, SecretStr
 from pwdlib import PasswordHash
 
-from Database.database.connection import DatabaseError, IntegrityError, get_connection
+from Database.database.connection import DB_TYPE, DatabaseError, IntegrityError, get_connection
 
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -77,6 +78,10 @@ def signing_secret() -> str:
     return secret
 
 
+def password_stamp(secret: str, encoded_hash: bytes) -> str:
+    return hmac.digest(secret.encode(), b"password-version:" + encoded_hash, "sha256").hex()
+
+
 def unauthorized() -> HTTPException:
     return HTTPException(
         status_code=401,
@@ -116,7 +121,7 @@ def user_response(row) -> UserResponse:
 
 def inserted_columns() -> str:
     columns = "user_id, display_name, username, email, main_hand"
-    if os.getenv("DB_TYPE", "sqlserver").strip().lower() == "sqlite":
+    if DB_TYPE == "sqlite":
         return f"RETURNING {columns}"
     return "OUTPUT " + ", ".join(
         f"INSERTED.{column}" for column in columns.split(", ")
@@ -153,7 +158,7 @@ def register(data: RegisterRequest) -> UserResponse:
                     VALUES (?, ?, ?, ?, ?)
                     RETURNING user_id, display_name, username, email, main_hand
                     """
-                    if os.getenv("DB_TYPE", "sqlserver").strip().lower() == "sqlite"
+                    if DB_TYPE == "sqlite"
                     else f"""
                     INSERT INTO users (
                         display_name,
@@ -240,6 +245,7 @@ def login(data: LoginRequest, response: Response) -> TokenResponse:
     token = jwt.encode(
         {
             "sub": str(row[0]),
+            "pwd": password_stamp(secret, bytes(row[1])),
             "iat": now,
             "exp": now + timedelta(minutes=TOKEN_MINUTES),
             "iss": TOKEN_ISSUER,
@@ -274,7 +280,7 @@ def current_user(
             issuer=TOKEN_ISSUER,
             audience=TOKEN_AUDIENCE,
             options={
-                "require": ["sub", "iat", "exp", "iss", "aud"],
+                "require": ["sub", "iat", "exp", "iss", "aud", "pwd"],
             },
         )
 
@@ -305,7 +311,8 @@ def current_user(
                     display_name,
                     username,
                     email,
-                    main_hand
+                    main_hand,
+                    password_hash
                 FROM users
                 WHERE user_id = ?
                 """,
@@ -316,7 +323,10 @@ def current_user(
         finally:
             cursor.close()
 
-    if row is None:
+    stamp = claims["pwd"]
+    if row is None or not isinstance(stamp, str) or not stamp.isascii() or not hmac.compare_digest(
+        stamp, password_stamp(secret, bytes(row[5]))
+    ):
         raise unauthorized()
 
     return user_response(row)

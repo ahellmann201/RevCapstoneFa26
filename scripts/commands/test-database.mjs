@@ -24,7 +24,7 @@ if (!existsSync(pythonExecutable)) {
 
 const result = spawnSync(
     pythonExecutable,
-    ["-m", "Database.database.test_db_admin", action],
+    ["-m", "Database.scripts.test_db_admin", action],
     {
         cwd: projectRoot,
         stdio: "inherit",

@@ -1,7 +1,12 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import * as Cache from "../cache.js";
 
+beforeEach(() => {
+    vi.stubEnv("VITE_API_BASE_URL", "");
+});
+
 afterEach(() => {
+    vi.unstubAllEnvs();
     vi.unstubAllGlobals();
     vi.resetModules();
 });
@@ -43,4 +48,16 @@ it("keeps local game progress when an expired token clears account data", async 
     expect(Cache.getUsername()).toBeNull();
     expect(Cache.getActiveGameId()).toBe("local-game");
     expect(Cache.getShotResult("shot").pins).toBe(10);
+});
+
+
+it("uses the local proxy when explicitly selected by the launcher", async () => {
+    vi.stubEnv("VITE_API_BASE_URL", "/api");
+    const fetchMock = vi.fn().mockResolvedValue({
+        ok: true, status: 200, json: async () => ({ status: "ok" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { testPython } = await import("../api_client.js");
+    await testPython();
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/health");
 });

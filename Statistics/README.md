@@ -5,7 +5,7 @@ They can run offline using recorded games and shots, without importing the API o
 connecting to SQL Server.
 
 The authenticated API endpoint is `GET /statistics?recent_limit=10`. Use the
-existing Bearer token in Swagger at http://localhost:8000/docs. The default recent
+existing Bearer token in Swagger at https://api.revmetrix.io/docs (or local port 8000 in local mode). The default recent
 limit is 10; allowed values are 1 through 100. That limit affects only the recent
 list, not the all-time totals.
 
@@ -43,6 +43,7 @@ from the caller. It currently loads all owned game shots to calculate totals;
 larger datasets may eventually need precomputed scores or database aggregation.
 No schema migration or new package is needed. Frontend statistics UI integration,
 strike/spare percentages, and live SQL Server integration tests are separate work.
+Temporary SQLite API integration coverage runs with the combined test command.
 
 Run tests from the project root:
 
