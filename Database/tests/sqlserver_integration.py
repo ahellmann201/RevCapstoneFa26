@@ -32,6 +32,7 @@ def main():
             if cursor.fetchone()[0] != TEST_DATABASE:
                 raise RuntimeError("Connected database is not the dedicated integration database.")
             cursor.execute("SELECT TOP (0) nickname, [type], phone, home_house, enabled FROM dbo.user_establishments")
+            cursor.execute("SELECT TOP (0) token_hash FROM dbo.password_resets")
     try:
         run_scenario(usernames)
     finally:

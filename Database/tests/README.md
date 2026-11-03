@@ -36,7 +36,7 @@ migration tests do not apply changes to a real SQL Server instance.
 
 Ask a SQL Server administrator to provision a separate database named
 `revmetrix_integration_test` on the remote server and apply the current schema
-from `Database/database/table_setup.py`, including the establishment columns.
+from `Database/database/table_setup.py`, including the establishment columns and password reset table.
 Use a dedicated login with read/write permissions only in that database. The
 runner does not create a database, apply migrations, or use the normal `.env`.
 

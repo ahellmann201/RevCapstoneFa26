@@ -200,6 +200,44 @@ with `API_ENABLE_DB_HEALTH=true` at startup. A generic 503 means connectivity is
 unavailable; 404 means the optional route is disabled. No raw database errors or
 credentials are returned.
 
+## Password recovery
+
+The login dialog links to **Forgot password?**. Reset emails contain a 15-minute,
+single-use link. The database stores only the token hash. A successful reset
+replaces the password hash and invalidates previously issued access tokens.
+Existing sessions from before this release also need to log in again once.
+
+To enable recovery on the hosted deployment:
+
+1. Back up SQL Server and run `python -m Database.scripts.migrate_password_reset`
+   to preview the migration. Rerun with `--apply` using an authorized database
+   administrator connection to create the table. For SQLite, run `db:test:init`
+   instead; it preserves existing data.
+2. Publish the built frontend over HTTPS, including `reset_password.html` and
+   its assets. Allow the exact frontend origin in the API CORS configuration.
+3. Configure the backend environment and restart the API:
+
+   ```dotenv
+   PASSWORD_RESET_URL=https://your-frontend.example/reset_password.html
+   SMTP_HOST=smtp.your-provider.example
+   SMTP_PORT=465
+   SMTP_FROM=verified-sender@your-domain.example
+   SMTP_USER=your-smtp-login
+   SMTP_PASSWORD=your-smtp-password
+   ```
+
+Use a provider that supports implicit TLS and is reachable from the deployment.
+Keep SMTP credentials in server configuration. Do not use `VITE_*` for secrets.
+Apply request-rate limits at the reverse proxy before enabling public recovery;
+the backend also limits reset emails to one per account every two minutes.
+Recovery requests are unavailable until the reset URL and SMTP settings are set.
+The configured URL must be HTTPS with no query or fragment; the app adds the
+reset token in the fragment so it is not sent in the page request.
+
+`npm run test` exercises recovery using a fake sender and a temporary database.
+The opt-in SQL Server suite uses the same scenario and requires the reset table.
+Verify delivery with a test mailbox after deployment.
+
 ## Test and build
 
 After setup, run **all frontend, backend, statistics, and SQLite integration tests**:
@@ -264,7 +302,7 @@ py -m venv .venv
 
 Reuse `.venv` if it exists. The development requirements include pyodbc for SQL
 Server mock tests; SQLite runtime itself does not import pyodbc.
-Build type-checks source and emits all 12 HTML pages to root `dist/`, also used
+Build type-checks source and emits all 13 HTML pages to root `dist/`, also used
 by Capacitor. Backend test instructions are in [Database/tests/README.md](Database/tests/README.md).
 
 To test against a dedicated remote SQL Server database, follow the [opt-in SQL Server integration instructions](Database/tests/README.md#remote-sql-server-integration-test).

@@ -19,6 +19,7 @@ EXPECTED_TABLES = {
     "games",
     "frames",
     "shots",
+    "password_resets",
 }
 
 

@@ -1,5 +1,8 @@
 """SQLite equivalent of the SQL Server schema used by the current API."""
 
+from Database.database.password_reset_schema import SQLITE_RESET_SCHEMA
+
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
     user_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -104,7 +107,7 @@ CREATE TABLE IF NOT EXISTS shots (
 
 
 def initialize_schema(connection):
-    connection.executescript(SCHEMA)
+    connection.executescript(SCHEMA + SQLITE_RESET_SCHEMA)
     migrate_establishments(connection)
     connection.commit()
 

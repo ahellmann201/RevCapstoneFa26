@@ -100,6 +100,8 @@ export function createAuthPopup(type) {
                     maxlength="128"
                 >
 
+                ${isSignup ? "" : '<a href="/reset_password.html">Forgot password?</a>'}
+
                 <button type="button" class="popup_primary">
                     ${buttonText}
                 </button>

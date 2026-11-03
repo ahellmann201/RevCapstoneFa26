@@ -100,3 +100,31 @@ def run_scenario(usernames):
         assert [row["ball_id"] for row in listing("/balls?name_contains=PEARL&weight_min=14&weight_max=14&core_type=Symmetric")] == [owned["ball_id"]]
         assert listing("/balls?name_contains=PEARL&weight_max=13") == []
         assert client.get("/balls?weight_min=15&weight_max=14", headers=owner).status_code == 422
+
+        # Use a fake sender in both database modes; never send test emails.
+        from Database.api import password_reset
+        import os
+        from time import time
+        with patch.dict(os.environ, {"PASSWORD_RESET_URL": "https://example.com/reset_password.html",
+                                    "SMTP_HOST": "fake-mail", "SMTP_FROM": "noreply@example.com"}), \
+             patch.object(password_reset, "send_reset_email") as mail:
+            path = "/auth/password-reset"
+            requested = client.post(path + "/request", json={"email": usernames[0] + "@example.com"})
+            unknown = client.post(path + "/request", json={"email": "unknown-reset@example.com"})
+            assert requested.status_code == unknown.status_code == 202
+            assert requested.json() == unknown.json()
+            mail.assert_called_once()
+            token = mail.call_args.args[1].split("#token=")[1]
+            client.post(path + "/request", json={"email": usernames[0] + "@example.com"})
+            mail.assert_called_once()
+            payload = {"token": token, "password": "NewOfflinePassword123!"}
+            with patch.object(password_reset, "time", return_value=time() + 901):
+                assert client.post(path + "/complete", json=payload).status_code == 400
+            assert client.post(path + "/complete", json=payload).status_code == 204
+            assert client.post(path + "/complete", json=payload).status_code == 400
+            assert client.get("/auth/me", headers=owner).status_code == 401
+            assert client.get("/auth/me", headers=other).status_code == 200
+            login = {"username": usernames[0], "password": "OfflineTest123!"}
+            assert client.post("/auth/login", json=login).status_code == 401
+            login["password"] = payload["password"]
+            assert client.post("/auth/login", json=login).status_code == 200

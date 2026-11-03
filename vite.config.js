@@ -19,6 +19,7 @@ export default defineConfig({
         emptyOutDir: true,
         rollupOptions: {
             input: {
+                passwordReset: rootPath("./frontend/reset_password.html"),
                 home: rootPath("./frontend/index.html"),
                 game: rootPath("./frontend/game.html"),
                 account: rootPath("./frontend/account_settings.html"),

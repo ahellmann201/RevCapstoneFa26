@@ -108,7 +108,7 @@ def test_login_failure_is_generic(client, modules, db, kind):
 def test_invalid_tokens_rejected_before_database(client, modules, kind):
     auth = modules[1]
     now = datetime.now(timezone.utc)
-    claims = dict(sub="7", iat=now, exp=now + timedelta(minutes=5), iss=auth.TOKEN_ISSUER, aud=auth.TOKEN_AUDIENCE)
+    claims = dict(sub="7", pwd="test-stamp", iat=now, exp=now + timedelta(minutes=5), iss=auth.TOKEN_ISSUER, aud=auth.TOKEN_AUDIENCE)
     secret = auth.signing_secret()
     if kind == "expired": claims["exp"] = now - timedelta(seconds=10)
     if kind == "signature": secret = "wrong-test-secret-" * 5
@@ -125,7 +125,8 @@ def test_valid_token_returns_profile(client, modules, db):
     _, cursor = db
     cursor.fetchone.return_value = (7, "Bowler", "bowler", "bowler@example.com", None)
     now = datetime.now(timezone.utc)
-    token = jwt.encode(dict(sub="7", iat=now, exp=now + timedelta(minutes=5), iss=auth.TOKEN_ISSUER, aud=auth.TOKEN_AUDIENCE), auth.signing_secret(), algorithm="HS256")
+    cursor.fetchone.return_value += (b"test-hash",)
+    token = jwt.encode(dict(sub="7", pwd=auth.password_stamp(auth.signing_secret(), b"test-hash"), iat=now, exp=now + timedelta(minutes=5), iss=auth.TOKEN_ISSUER, aud=auth.TOKEN_AUDIENCE), auth.signing_secret(), algorithm="HS256")
     response = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 200
     assert response.json()["user_id"] == 7

@@ -96,6 +96,9 @@ from Database.api.balls import router as balls_router
 from Database.api.bowling import router as bowling_router
 from Database.api.statistics import router as statistics_router
 
+from Database.api.password_reset import router as password_reset_router
+
+app.include_router(password_reset_router)
 app.include_router(auth_router)
 app.include_router(balls_router)
 app.include_router(bowling_router)

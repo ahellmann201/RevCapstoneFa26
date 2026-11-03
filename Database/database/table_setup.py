@@ -1,5 +1,7 @@
 import pyodbc
 
+from Database.database.password_reset_schema import SQLSERVER_RESET_SCHEMA
+
 
 SCHEMA = """
 -- ---------- Users & clients ----------
@@ -203,6 +205,9 @@ BEGIN
     );
 END;
 """
+
+
+SCHEMA += SQLSERVER_RESET_SCHEMA
 
 
 def create_database(connection_string: str) -> pyodbc.Connection:
