@@ -105,7 +105,6 @@ app.include_router(bowling_router)
 app.include_router(statistics_router)
 
 
-<<<<<<< HEAD
 @app.on_event("startup")
 def migrate_local_establishments():
     from Database.database.connection import DB_TYPE, get_connection
@@ -120,8 +119,6 @@ def migrate_local_establishments():
             connection.close()
 
 
-=======
->>>>>>> origin/Andrew
 class DisplayNameRequest(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
