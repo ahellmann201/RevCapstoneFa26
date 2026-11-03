@@ -1,6 +1,6 @@
 import pyodbc
 
-from entities import Ball
+from ..entities import Ball
 
 
 class BallRepository:

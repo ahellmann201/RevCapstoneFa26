@@ -1,6 +1,6 @@
 import pyodbc
 
-from entities import Game
+from ..entities import Game
 
 
 class GameRepository:

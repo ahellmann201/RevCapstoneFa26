@@ -1,0 +1,70 @@
+:root {
+    --bg-color: #001E26;
+    --button-color-1: #D06C01;
+    --button-color-2: #E79F40;
+    --field-color: #f0f0f0;
+    --field-entry-color-1: #adadad;
+    --field-entry-color-2: #bdbdbd;
+    --field-default-entry-color: #6b6b6b;
+
+    /* Text field */
+    --text-input-border: 1px solid #c5ccce;
+    --text-input-border-radius: 12px;
+    --text-input-background: white;
+    --text-input-color: var(--bg-color);
+    --text-input-font-family: 'Jaldi', sans-serif;
+
+    --pfp-hue: 0;
+    --pfp-sepia: 1;
+    --pfp-saturate: 5;
+    --pfp-brightness: 0.6;
+    --pfp-bg-brightness: 0.85;
+
+    --off-white: #f0f0f0;
+    --off-black: #0c0c0c;
+
+    --standard-font-family: 'Jaldi', sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+button {
+    color: var(--off-black);
+}
+
+body {
+    background-color: var(--bg-color);
+    overflow-x: none;
+}
+
+.button_1 {
+    background-color: var(--button-color-1);
+    color: var(--off-white);
+    border: none;
+    font-family: 'Jaldi', sans-serif;
+}
+.button_2 {
+    background-color: var(--button-color-2);
+    color: var(--off-black);
+    border: none;
+    font-family: 'Jaldi', sans-serif;
+}
+
+input {
+    font-family: 'Jaldi', sans-serif;
+}
+
+.text_input {
+    border: 1px solid #c5ccce;
+    border-radius: 12px;
+    background: white;
+    color: var(--bg-color);
+}
+
+.hidden {
+    display: none;
+}

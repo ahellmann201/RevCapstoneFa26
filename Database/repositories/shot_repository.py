@@ -1,6 +1,6 @@
 import pyodbc
 
-from entities import Shot, ThrowType
+from ..entities import Shot, ThrowType
 
 
 class ShotRepository:

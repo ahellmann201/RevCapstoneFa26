@@ -1,6 +1,6 @@
 import pyodbc
 
-from entities import Event
+from ..entities import Event
 
 
 class EventRepository:

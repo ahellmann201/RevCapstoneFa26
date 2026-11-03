@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS USERS (
+    User_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+    Display_Name TEXT,
+    Username TEXT NOT NULL UNIQUE,
+    Password TEXT,
+    Email TEXT,
+    Main_Hand TEXT
+);

@@ -1,5 +1,4 @@
-
-from database.connection import get_connection
+import pyodbc
 
 
 SCHEMA = """
@@ -60,6 +59,11 @@ BEGIN
         address            NVARCHAR(500),
         user_id            INT NOT NULL,
         location_id        INT,
+        nickname           NVARCHAR(100),
+        type               NVARCHAR(100),
+        phone              NVARCHAR(50),
+        home_house         BIT NOT NULL DEFAULT 0,
+        enabled            BIT NOT NULL DEFAULT 1,
 
         FOREIGN KEY (user_id)
             REFERENCES users(user_id)
@@ -201,53 +205,42 @@ END;
 """
 
 
-def create_tables() -> None:
-    conn = get_connection()
+def create_database(connection_string: str) -> pyodbc.Connection:
+    conn = pyodbc.connect(connection_string)
 
-    try:
-        cursor = conn.cursor()
+    cursor = conn.cursor()
+    cursor.execute(SCHEMA)
 
-        # Confirm the correct database before making changes
-        database_name = cursor.execute(
-            "SELECT DB_NAME()"
-        ).fetchone()[0]
+    conn.commit()
 
-        if database_name != "revmetrix-26":
-            raise RuntimeError(
-                f"Wrong database: {database_name}. "
-                "Expected revmetrix-26."
-            )
-
-        print(f"Connected to: {database_name}")
-
-        # Execute the schema
-        cursor.execute(SCHEMA)
-        conn.commit()
-
-        # Get all existing tables
-        cursor.execute("""
-            SELECT TABLE_NAME
-            FROM INFORMATION_SCHEMA.TABLES
-            WHERE TABLE_TYPE = 'BASE TABLE'
-            ORDER BY TABLE_NAME
-        """)
-
-        tables = [row[0] for row in cursor.fetchall()]
-
-        print(f"Tables found: {len(tables)}")
-
-        for table in tables:
-            print(f"  - {table}")
-
-        print("Database setup completed successfully.")
-
-    except Exception:
-        conn.rollback()
-        raise
-
-    finally:
-        conn.close()
+    return conn
 
 
 if __name__ == "__main__":
-    create_tables()
+    connection_string = (
+        "DRIVER={ODBC Driver 18 for SQL Server};"
+        "SERVER=YOUR_SERVER;"
+        "DATABASE=revmetrix;"
+        "UID=YOUR_USERNAME;"
+        "PWD=YOUR_PASSWORD;"
+        "Encrypt=yes;"
+        "TrustServerCertificate=yes;"
+    )
+
+    conn = create_database(connection_string)
+
+    tables = conn.cursor().execute(
+        """
+        SELECT TABLE_NAME
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_TYPE = 'BASE TABLE'
+        ORDER BY TABLE_NAME
+        """
+    ).fetchall()
+
+    print(
+        "Created tables:",
+        ", ".join(row[0] for row in tables)
+    )
+
+    conn.close()

@@ -1,0 +1,3 @@
+# Optional dependencies for connecting to the SQL Server development database.
+-r requirements.txt
+pyodbc>=5.0,<6.0

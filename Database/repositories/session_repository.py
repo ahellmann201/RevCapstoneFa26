@@ -1,6 +1,6 @@
 import pyodbc
 
-from entities import Session
+from ..entities import Session
 
 
 class SessionRepository:
