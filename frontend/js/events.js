@@ -212,7 +212,7 @@ if (getAuthToken()) {
         events.push(...savedEvents);
         render();
     } catch (error) {
-        status.textContent = error.message;
+        status.textContent = getAuthToken() ? error.message : "";
     } finally {
         add.disabled = false;
     }

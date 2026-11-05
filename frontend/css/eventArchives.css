@@ -1,5 +1,8 @@
 @import "/css/establishments.css";
 
+.archives-back { text-decoration: none; }
+.archives-back:focus-visible { outline: 2px solid var(--establishment-accent); outline-offset: 4px; }
+
 .archive-confirmation { width: min(440px, calc(100% - 32px)); }
 .archive-confirmation h2 { font-size: 1.6rem; line-height: 1.2; }
 .archive-confirmation > p { margin-top: 12px; color: var(--establishment-muted); line-height: 1.6; overflow-wrap: anywhere; }
