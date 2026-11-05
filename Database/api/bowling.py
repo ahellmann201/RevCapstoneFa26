@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from Database.api.resource_routes import Resource, add_resource_routes
+from Database.api.resource_routes import UserDependency, ResourceId, database_cursor, require_record
 from Database.database.connection import DB_TYPE
 
 
@@ -143,6 +144,31 @@ establishments = Resource(
     direct_owner=True,
     references=(("location_id", locations),),
 )
+
+
+@router.post("/establishments/{item_id}/location")
+def establishment_location(item_id: ResourceId, user: UserDependency):
+    with database_cursor(write=True) as cursor:
+        require_record(cursor, establishments, item_id, user)
+        cursor.execute(
+            "SELECT location_id, establishment_name, lane_count, address "
+            "FROM user_establishments WHERE establishment_id = ? AND user_id = ?",
+            (item_id, user.user_id),
+        )
+        location_id, name, lanes, address = cursor.fetchone()
+        if location_id is None:
+            sql = (
+                "INSERT INTO master_locations (location_name, lane_count, address) VALUES (?, ?, ?) RETURNING location_id"
+                if DB_TYPE == "sqlite" else
+                "INSERT INTO master_locations (location_name, lane_count, address) OUTPUT INSERTED.location_id VALUES (?, ?, ?)"
+            )
+            cursor.execute(sql, (name, lanes, address))
+            location_id = cursor.fetchone()[0]
+            cursor.execute(
+                "UPDATE user_establishments SET location_id = ? WHERE establishment_id = ? AND user_id = ?",
+                (location_id, item_id, user.user_id),
+            )
+    return {"location_id": location_id}
 
 events = Resource(
     table="events",
