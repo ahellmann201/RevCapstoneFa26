@@ -1,6 +1,7 @@
 import { loadNavbar } from "./navbar.js";
 import { request } from "./api_client.js";
 import { getAuthToken } from "./authentication.js";
+import { showMiniPopup } from "./popups.js";
 
 loadNavbar();
 
@@ -136,7 +137,7 @@ form.addEventListener("submit", async (event) => {
     dialog.close();
     renderEstablishments();
     list.children[changedIndex].firstElementChild.focus();
-    status.textContent = `${entry.name} ${wasEditing ? "updated" : "saved"}.`;
+    showMiniPopup(`${entry.name} ${wasEditing ? "updated" : "saved"}.`);
 });
 
 function fromDatabase(record) {

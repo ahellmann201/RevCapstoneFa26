@@ -4,9 +4,11 @@ import { beforeEach, expect, it, vi } from "vitest";
 vi.mock("../navbar.js", () => ({ loadNavbar: vi.fn() }));
 vi.mock("../api_client.js", () => ({ request: vi.fn() }));
 vi.mock("../authentication.js", () => ({ getAuthToken: vi.fn() }));
+vi.mock("../popups.js", () => ({ showMiniPopup: vi.fn() }));
 
 import { request } from "../api_client.js";
 import { getAuthToken } from "../authentication.js";
+import { showMiniPopup } from "../popups.js";
 
 const saved = {
     establishment_id: 7, establishment_name: "Test House", lane_count: 24,
@@ -39,7 +41,7 @@ it("loads saved records and updates the existing database record", async () => {
     document.querySelector(".establishment-card").click();
     expect(document.getElementById("establishment-nickname").value).toBe("Home");
     document.getElementById("establishment-form").dispatchEvent(new Event("submit", { cancelable: true }));
-    await vi.waitFor(() => expect(document.getElementById("establishment-status").textContent).toBe("Test House updated."));
+    await vi.waitFor(() => expect(showMiniPopup).toHaveBeenCalledWith("Test House updated."));
     expect(request).toHaveBeenLastCalledWith("/establishments/7", expect.objectContaining({ method: "PUT" }));
     const payload = JSON.parse(request.mock.calls[1][1].body);
     expect(payload).toMatchObject({ establishment_name: "Test House", home_house: true, nickname: "Home", lane_count: 24 });
