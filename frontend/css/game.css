@@ -128,13 +128,6 @@ body {
     -webkit-tap-highlight-color: var(--tap-highlight-color);
 }
 
-.navbar {
-    display: block;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
-
 .game_page {
     width: var(--content-width);
     margin: 0 auto;
