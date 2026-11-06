@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Revmetrix | Home</title>
     <link rel="stylesheet" href="css/index.css">
+    <link rel="stylesheet" href="/css/gameSetup.css">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://gstatic.com" crossorigin>
@@ -22,6 +23,29 @@
         <button class="button_2" id="start-game-button">Start Game</button>
       </div>
     </div>
+    <dialog class="game-setup" id="game-setup-dialog" aria-labelledby="game-setup-title" aria-describedby="game-setup-description">
+      <form id="game-setup-form">
+        <h2 id="game-setup-title">Start Game</h2>
+        <p id="game-setup-description">Choose an event and establishment, or leave them blank.</p>
+        <label for="game-setup-event">Event (optional)</label>
+        <select id="game-setup-event" name="event">
+          <option value="">No event</option>
+          <option value="sample-league">Sample League</option>
+          <option value="sample-practice">Sample Practice</option>
+        </select>
+        <label for="game-setup-establishment">Establishment (optional)</label>
+        <select id="game-setup-establishment" name="establishment">
+          <option value="">No establishment</option>
+          <option value="sample-house">Sample Bowling Center</option>
+          <option value="sample-lanes">Sample Lanes</option>
+        </select>
+        <p class="game-setup-note">Preview only. These selections will not be saved.</p>
+        <div class="game-setup-actions">
+          <button type="button" id="cancel-game-setup" autofocus>Cancel</button>
+          <button type="submit">Start Game</button>
+        </div>
+      </form>
+    </dialog>
     <script type="module" src="/js/index.js"></script>
   </body>
 </html>

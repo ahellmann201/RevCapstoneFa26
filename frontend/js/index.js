@@ -78,5 +78,16 @@ export function scheduleEvent() {
     window.location.href = "/events.html"
 }
 export function startGame() {
-    window.location.href = "/game.html"
+    const dialog = document.getElementById("game-setup-dialog");
+    document.getElementById("game-setup-form").reset();
+    dialog.showModal();
 }
+
+document.getElementById("cancel-game-setup").addEventListener("click", () => {
+    document.getElementById("game-setup-dialog").close();
+});
+document.getElementById("game-setup-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    document.getElementById("game-setup-dialog").close();
+    window.location.href = "/game.html";
+});
