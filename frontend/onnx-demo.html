@@ -14,7 +14,7 @@
     <main class="game_page onnx-page">
       <header class="game_heading">
         <div>
-          <p class="game_eyebrow">CICLOPES · ANDROID DEMO</p>
+          <p class="game_eyebrow">CICLOPES · ON DEVICE DEMO</p>
           <h1>Lane analysis</h1>
         </div>
         <span class="game_badge">Video review</span>
@@ -25,7 +25,7 @@
         <h2 id="video-title">Upload a bowling video</h2>
         <p class="panel-copy">
           Import a clip or record a shot. Ciclopes stores the video and returns
-          its video key; the Android phone then detects sample frames locally.
+          its video key; the app then detects sample frames locally on the device.
         </p>
         <label class="field-label" for="ciclopes-api-base">Ciclopes API URL</label>
         <input id="ciclopes-api-base" class="token-input" type="url" inputmode="url"
@@ -51,6 +51,8 @@
         <section id="ciclopes-analysis-result" class="ciclopes-analysis-result" aria-live="polite" hidden>
           <h3>What happened to the ball</h3>
           <div id="analysis-summary" class="analysis-summary"></div>
+          <button id="export-showcase" class="secondary-button" type="button" disabled>Export showcase video</button>
+          <p id="showcase-status" class="status" role="status" aria-live="polite"></p>
           <details class="technical-details">
             <summary>Technical details</summary>
             <pre id="upload-result" class="upload-result"></pre>
@@ -59,13 +61,17 @@
       </section>
 
       <section class="panel lane_panel inference-panel" aria-labelledby="inference-title">
-        <p class="game_eyebrow">ON DEVICE · ANDROID</p>
+        <p class="game_eyebrow">ON DEVICE · ONNX</p>
         <h2 id="inference-title">Check a frame and correct the lane</h2>
         <p class="panel-copy">
-          This part runs the ONNX model on one still image. Drag the detected
-          lane corners if you need to correct them.
+          This part runs the ONNX model locally on this device. Once the lane
+          is set, ball detection is limited to its outline. Drag the four
+          corners to correct the lane across the clip. If no lane is detected,
+          select a frame and use “Set lane corners” to draw it manually; this
+          also works when automatic ONNX inference is unavailable. The demo
+          samples up to 60 frames and adjusts how often ONNX runs based on measured device speed.
         </p>
-        <p id="status" class="status" role="status" aria-live="polite">Checking Android ONNX availability…</p>
+        <p id="status" class="status" role="status" aria-live="polite">Preparing on-device ONNX inference…</p>
         <div class="controls">
           <label class="file-picker" for="image-file">
             <span>Choose still image</span>
@@ -88,8 +94,9 @@
         </div>
         <div id="video-frame-review" class="video-frame-review" hidden>
           <h3>Detected video frames</h3>
-          <p class="panel-copy">Choose a frame to inspect its lane. Drag the four points to correct that frame.</p>
+          <p class="panel-copy">Choose a frame to inspect the shared lane outline. Drag its four points to correct the lane across the clip.</p>
           <div id="frame-list" class="frame-list" role="list" aria-label="Analyzed video frames"></div>
+          <p id="frame-processing-status" class="status" role="status" aria-live="polite"></p>
           <p id="frame-review-status" class="status" role="status" aria-live="polite"></p>
         </div>
         <section class="bowler-result" aria-labelledby="result-title">

@@ -103,7 +103,7 @@ final class LaneInferenceEngine implements AutoCloseable {
         }
     }
 
-    FrameResult analyze(Context context, Uri uri, int rotation) throws Exception {
+    FrameResult analyze(Context context, Uri uri, int rotation, boolean detectLane) throws Exception {
         Bitmap decoded;
         try (InputStream input = context.getContentResolver().openInputStream(uri)) {
             if (input == null) throw new IllegalArgumentException("Could not open frame URI");
@@ -126,7 +126,7 @@ final class LaneInferenceEngine implements AutoCloseable {
         long elapsed = (System.nanoTime() - start) / 1_000_000L;
         List<LaneCandidate> lanes = new ArrayList<>();
         List<BallCandidate> balls = new ArrayList<>();
-        decode(predictions[0], prototypes[0], prepared, upright.getWidth(), upright.getHeight(), lanes, balls);
+        decode(predictions[0], prototypes[0], prepared, upright.getWidth(), upright.getHeight(), detectLane, lanes, balls);
         FrameResult frame = new FrameResult(upright.getWidth(), upright.getHeight(), elapsed, lanes, balls);
         upright.recycle();
         return frame;
@@ -167,7 +167,7 @@ final class LaneInferenceEngine implements AutoCloseable {
     }
 
     private static void decode(float[][] rows, float[][][] proto, Letterbox transform, int frameW, int frameH,
-                               List<LaneCandidate> lanes, List<BallCandidate> balls) {
+                               boolean detectLane, List<LaneCandidate> lanes, List<BallCandidate> balls) {
         int count = Math.min(rows.length, MAX_DETECTIONS);
         for (int i = 0; i < count; i++) {
             float[] row = rows[i];
@@ -183,7 +183,7 @@ final class LaneInferenceEngine implements AutoCloseable {
                     normX(x1, transform, frameW), normY(y1, transform, frameH),
                     normX(x2, transform, frameW), normY(y2, transform, frameH)
                 }));
-            } else if (classId == 1) {
+            } else if (classId == 1 && detectLane) {
                 double[][] quad = laneQuad(row, proto, x1, y1, x2, y2, transform, frameW, frameH);
                 if (quad != null) lanes.add(new LaneCandidate(confidence, quad));
             }

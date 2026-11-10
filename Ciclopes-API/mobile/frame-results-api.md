@@ -21,6 +21,7 @@ native plugin analyzes one image at a time.
     {
       "frame_index": 72,
       "timestamp_s": 2.4,
+      "inference_ran": true,
       "frame_width": 1920,
       "frame_height": 1080,
       "lanes": [
@@ -50,15 +51,56 @@ upright width and height. Coordinates are normalized to `[0, 1]`; lane corners
 are ordered top-left, top-right, bottom-right, bottom-left, and ball boxes are
 `[left, top, right, bottom]`. Timestamps must be seconds from the start of the
 video. `corrected_lane_corners` uses the same normalized coordinate space and
-corner order; when present it takes precedence over the detected lane.
+corner order; when present it applies to every frame and takes precedence over
+the per-frame detected lane. When it is null, Ciclopes uses each frame's own
+highest-confidence lane candidate. Older clients that provide a lane only on
+one anchor frame continue to use that lane for frames without a candidate.
+
+The phone demo samples at up to 12 fps, capped at 60 frames per clip. It starts
+ONNX on every other sample, then after three successful runs uses the median
+time from the last two to select a cadence for the rest of the clip. The cadence
+aims to keep model time near a 10-second budget while retaining at least about
+two ONNX observations per second when the clip has enough samples; it never
+skips more than five samples between runs. The first run is excluded from the
+benchmark as a warm-up. All sampled frames remain available for review, and
+skipped samples can receive short interpolated ball estimates. It searches for
+lane geometry every fourth sample until it finds one, then reuses that lane for
+the rest of the fixed-camera clip. After a user draws a reference lane, the
+frontend rechecks lane geometry on analyzed frames and accepts an inferred lane
+only when at least 15% of the reference polygon's area overlaps it. If no lane
+candidate reaches that threshold, the user's polygon is used for that frame.
+Without a moving-camera reference, ball inference crops each analyzed frame to
+the selected lane, masks pixels outside it, and maps detections back to
+full-frame coordinates. With a user reference, lane and ball inference run on
+the full frame so the detected lane can move with the camera; ball detections
+are then filtered against the selected per-frame polygon. On skipped samples it extrapolates a
+short constant-velocity ball box from the last two ONNX observations. Those
+boxes carry `source: "predicted"`; measured boxes carry `source: "detected"`.
+Predictions are for the brief gap between detections and are not independent
+measurements. `inference_ran` identifies which samples actually ran ONNX so the
+API confirms floor contact using consecutive detector observations only.
 
 Ciclopes chooses the highest-confidence lane candidate when there is no manual
-correction, selects the highest-confidence ball box in each submitted frame,
-projects the box center into lane meters, and computes the existing quarterly
-speed and acceleration result. Frames without a ball detection contribute no
-position. This API only analyzes the submitted samples; it does not fetch the
-video or rerun ONNX/YOLO. Client inference time is diagnostic metadata supplied
-by the client, not a server measurement.
+correction, filters ball boxes to the selected lane, then chooses the
+highest-confidence in-lane box. Speed tracking starts only after a detected (not
+predicted) bottom-centre appears inside the corrected/detected lane in two
+consecutive ONNX runs no more than two seconds apart. After contact is
+confirmed, short predicted boxes can fill gaps between measured positions.
+Earlier ball boxes are excluded. Accepted bottom-centre points are projected
+into lane meters and used to compute quarterly speed and acceleration. The response health object
+includes the estimated contact frame/time and counts before and after contact.
+If contact cannot be confirmed or fewer than two post-contact positions are
+available, the speed rows have zero samples instead of reporting pre-release
+movement as bowling speed. These speeds remain estimates: the mobile demo
+samples at up to 12 frames per second, capped at 60 samples per clip. Long
+clips still use evenly spaced samples across the clip and may miss brief motion
+between samples. The model input remains 640 × 640, so cropping focuses detection
+on the lane and enlarges it in the model input but does not reduce the model's
+fixed neural-network input size. This API only analyzes the submitted samples; it
+does not fetch the video or rerun ONNX/YOLO. It applies each submitted frame's
+lane polygon and homography independently, so accepted lane changes from a
+moving camera affect both ball filtering and meter projection. Client inference time is
+diagnostic metadata supplied by the client, not a server measurement.
 
 ## JavaScript call
 
@@ -82,9 +124,10 @@ export async function submitFrameResults({
     body: JSON.stringify({
       video_key: videoKey,
       fps,
-      frames: sampledFrames.map(({ frameIndex, timestampSeconds, result }) => ({
+      frames: sampledFrames.map(({ frameIndex, timestampSeconds, inferenceRan, result }) => ({
         frame_index: frameIndex,
         timestamp_s: timestampSeconds,
+        inference_ran: Boolean(inferenceRan),
         frame_width: result.frameWidth,
         frame_height: result.frameHeight,
         lanes: result.candidates,

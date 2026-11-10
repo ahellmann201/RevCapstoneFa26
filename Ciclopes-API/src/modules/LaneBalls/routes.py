@@ -70,7 +70,7 @@ def _normalized_points(points) -> np.ndarray:
 
 
 def _analyze_client_frame_results(payload: LaneFrameResultsInput) -> LaneBallRunOutput:
-    """Map client ball boxes to lane meters using the best or corrected lane quad."""
+    """Map on-lane ball boxes to meters after confirming floor contact."""
     frames = sorted(payload.frames, key=lambda frame: frame.frame_index)
     dimensions = {(frame.frame_width, frame.frame_height) for frame in frames}
     if len(dimensions) != 1:
@@ -87,59 +87,131 @@ def _analyze_client_frame_results(payload: LaneFrameResultsInput) -> LaneBallRun
             if not (0.0 <= x1 < x2 <= 1.0 and 0.0 <= y1 < y2 <= 1.0):
                 raise HTTPException(status_code=422, detail="Ball boxes must be normalized [left, top, right, bottom] coordinates")
 
-    if payload.corrected_lane_corners is not None:
-        lane_points = _normalized_points(payload.corrected_lane_corners)
-        lane_frame_index = None
-    else:
-        candidates = [
-            (lane.confidence, frame.frame_index, lane.corners)
-            for frame in frames
-            for lane in frame.lanes
-        ]
-        if not candidates:
-            raise HTTPException(status_code=422, detail="No lane detection was submitted; provide corrected_lane_corners")
-        _, lane_frame_index, corners = max(candidates, key=lambda candidate: candidate[0])
-        lane_points = _normalized_points(corners)
-
-    src = lane_points * np.asarray([width, height], dtype=np.float32)
     dst = np.asarray(
         [[0.0, 18.288], [1.0541, 18.288], [1.0541, 0.0], [0.0, 0.0]],
         dtype=np.float32,
     )
-    if not cv2.isContourConvex(src.reshape((-1, 1, 2))):
-        raise HTTPException(status_code=422, detail="Lane corners must form a convex quadrilateral")
-    homography = cv2.getPerspectiveTransform(src, dst)
-    if not np.isfinite(homography).all() or abs(float(np.linalg.det(homography))) < 1e-12:
-        raise HTTPException(status_code=422, detail="Lane corners do not define a stable mapping")
+    def make_lane_geometry(corners):
+        src = _normalized_points(corners) * np.asarray([width, height], dtype=np.float32)
+        if not cv2.isContourConvex(src.reshape((-1, 1, 2))):
+            raise HTTPException(status_code=422, detail="Lane corners must form a convex quadrilateral")
+        homography = cv2.getPerspectiveTransform(src, dst)
+        if not np.isfinite(homography).all() or abs(float(np.linalg.det(homography))) < 1e-12:
+            raise HTTPException(status_code=422, detail="Lane corners do not define a stable mapping")
+        return src.reshape((-1, 1, 2)), homography
+
+    lane_candidates = [
+        (lane.confidence, frame.frame_index, lane.corners)
+        for frame in frames
+        for lane in frame.lanes
+    ]
+    lane_frame_index = None
+    if payload.corrected_lane_corners is not None:
+        shared_geometry = make_lane_geometry(payload.corrected_lane_corners)
+        lane_geometry_by_frame = {frame.frame_index: shared_geometry for frame in frames}
+    else:
+        if not lane_candidates:
+            raise HTTPException(status_code=422, detail="No lane detection was submitted; provide lane candidates or corrected_lane_corners")
+        _, lane_frame_index, fallback_corners = max(lane_candidates, key=lambda candidate: candidate[0])
+        fallback_geometry = make_lane_geometry(fallback_corners)
+        lane_geometry_by_frame = {}
+        for frame in frames:
+            if frame.lanes:
+                selected = max(frame.lanes, key=lambda lane: lane.confidence)
+                lane_geometry_by_frame[frame.frame_index] = make_lane_geometry(selected.corners)
+            else:
+                # Older clients may submit a lane on only one anchor frame.
+                # Preserve their previous behavior by reusing the best lane.
+                lane_geometry_by_frame[frame.frame_index] = fallback_geometry
+
+    diagnostic_geometry = lane_geometry_by_frame.get(lane_frame_index) if lane_frame_index is not None else next(iter(lane_geometry_by_frame.values()))
+    diagnostic_homography = diagnostic_geometry[1]
+    ball_observations = []
+    frames_with_lane = sum(bool(frame.lanes) for frame in frames)
+    for frame in frames:
+        lane_contour, _frame_homography = lane_geometry_by_frame[frame.frame_index]
+        if not frame.balls:
+            ball_observations.append((frame, None, False, None))
+            continue
+        in_lane = []
+        for detection in frame.balls:
+            x1, y1, x2, y2 = detection.box
+            # The bottom-centre of the box approximates the ball's floor contact
+            # point. Ignore detections from outside the selected lane.
+            bottom_center = (((x1 + x2) * 0.5) * width, y2 * height)
+            if cv2.pointPolygonTest(lane_contour, bottom_center, False) >= 0:
+                in_lane.append((detection.confidence, bottom_center, detection.source))
+        if in_lane:
+            _, bottom_center, source = max(in_lane, key=lambda candidate: candidate[0])
+            ball_observations.append((frame, bottom_center, True, source))
+        else:
+            detection = max(frame.balls, key=lambda ball: ball.confidence)
+            x1, y1, x2, y2 = detection.box
+            bottom_center = (((x1 + x2) * 0.5) * width, y2 * height)
+            ball_observations.append((frame, bottom_center, False, detection.source))
+
+    # Confirm lane contact with two consecutive ONNX observations. Predicted
+    # samples sit between these measurements by design, so they do not reset or
+    # satisfy the contact check. Use source timestamps for the time limit.
+    inference_indices = [index for index, frame in enumerate(frames) if frame.inference_ran]
+    contact_index = next(
+        (
+            previous_index
+            for previous_index, current_index in zip(inference_indices, inference_indices[1:])
+            if ball_observations[previous_index][2]
+            and ball_observations[current_index][2]
+            and ball_observations[previous_index][3] == "detected"
+            and ball_observations[current_index][3] == "detected"
+            and ball_observations[current_index][0].timestamp_s - ball_observations[previous_index][0].timestamp_s <= 2.0
+        ),
+        None,
+    )
 
     positions: list[BallPos] = []
-    frames_with_lane = sum(bool(frame.lanes) for frame in frames)
-    frames_with_ball = 0
-    for frame in frames:
-        if not frame.balls:
-            continue
-        detection = max(frame.balls, key=lambda ball: ball.confidence)
-        x1, y1, x2, y2 = detection.box
-        center = np.asarray([[[((x1 + x2) * 0.5) * width, ((y1 + y2) * 0.5) * height]]], dtype=np.float32)
-        projected = cv2.perspectiveTransform(center, homography)[0, 0]
-        if not np.isfinite(projected).all():
-            continue
-        positions.append(BallPos(
-            frame_index=frame.frame_index,
-            timestamp_s=frame.timestamp_s,
-            x_m=float(projected[0]),
-            y_m=float(projected[1]),
-        ))
-        frames_with_ball += 1
+    position_sources: dict[int, str] = {}
+    frames_with_ball_before_contact = 0
+    contact_frame = None
+    contact_timestamp_s = None
+    if contact_index is not None:
+        contact_frame = ball_observations[contact_index][0].frame_index
+        contact_timestamp_s = ball_observations[contact_index][0].timestamp_s
+        for frame, bottom_center, on_lane, _source in ball_observations:
+            if frame.frame_index < contact_frame:
+                if bottom_center is not None:
+                    frames_with_ball_before_contact += 1
+                continue
+            if bottom_center is None or not on_lane:
+                continue
+            contact_point = np.asarray([[[bottom_center[0], bottom_center[1]]]], dtype=np.float32)
+            frame_homography = lane_geometry_by_frame[frame.frame_index][1]
+            projected = cv2.perspectiveTransform(contact_point, frame_homography)[0, 0]
+            if not np.isfinite(projected).all():
+                continue
+            positions.append(BallPos(
+                frame_index=frame.frame_index,
+                timestamp_s=frame.timestamp_s,
+                x_m=float(projected[0]),
+                y_m=float(projected[1]),
+            ))
+            position_sources[frame.frame_index] = _source or "detected"
+    else:
+        frames_with_ball_before_contact = sum(bottom_center is not None for _, bottom_center, _, _ in ball_observations)
 
     kinematics = compute_kinematics_per_quarter(positions)
-    determinant = float(np.linalg.det(homography))
-    condition = float(np.linalg.cond(homography))
-    reported_inference_ms = [frame.inference_ms for frame in frames if frame.inference_ms is not None]
+    determinant = float(np.linalg.det(diagnostic_homography))
+    condition = float(np.linalg.cond(diagnostic_homography))
+    reported_inference_ms = [
+        frame.inference_ms for frame in frames
+        if frame.inference_ran and frame.inference_ms is not None
+    ]
     health = LaneBallHealthInfo(
         frames_scanned_for_h=len(frames),
         frames_with_lane=frames_with_lane,
-        frames_with_ball=frames_with_ball,
+        frames_with_ball=len(positions),
+        frames_with_predicted_ball=sum(source == "predicted" for source in position_sources.values()),
+        frames_with_ball_before_contact=frames_with_ball_before_contact,
+        ball_contact_frame=contact_frame,
+        ball_contact_timestamp_s=contact_timestamp_s,
         lane_polygon_count_at_h=sum(len(frame.lanes) for frame in frames),
         homography_determinant=determinant,
         homography_condition_number=condition if np.isfinite(condition) else 0.0,
@@ -149,7 +221,14 @@ def _analyze_client_frame_results(payload: LaneFrameResultsInput) -> LaneBallRun
     )
     return LaneBallRunOutput(
         fps=payload.fps,
-        ball_points=[BallPoint(x=position.x_m, y=position.y_m) for position in positions],
+        ball_points=[
+            BallPoint(
+                x=position.x_m,
+                y=position.y_m,
+                source=position_sources.get(position.frame_index, "detected"),
+            )
+            for position in positions
+        ],
         kinematics_table=[
             KinematicsRow(
                 quarter=row.quarter,

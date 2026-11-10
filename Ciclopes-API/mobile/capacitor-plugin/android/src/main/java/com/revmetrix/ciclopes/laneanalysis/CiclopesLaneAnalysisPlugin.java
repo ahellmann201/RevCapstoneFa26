@@ -44,6 +44,7 @@ public final class CiclopesLaneAnalysisPlugin extends Plugin {
         Integer width = call.getInt("width");
         Integer height = call.getInt("height");
         Integer rotation = call.getInt("rotation", 0);
+        Boolean detectLane = call.getBoolean("detectLane", true);
         if (frameUri == null || frameUri.isEmpty() || width == null || height == null || width <= 0 || height <= 0) {
             call.reject("frameUri, positive width, and positive height are required");
             return;
@@ -54,7 +55,7 @@ public final class CiclopesLaneAnalysisPlugin extends Plugin {
         }
         worker.execute(() -> {
             try {
-                LaneInferenceEngine.FrameResult frame = inferenceEngine().analyze(getContext(), Uri.parse(frameUri), rotation);
+                LaneInferenceEngine.FrameResult frame = inferenceEngine().analyze(getContext(), Uri.parse(frameUri), rotation, detectLane == null || detectLane);
                 JSObject result = new JSObject();
                 result.put("frameWidth", frame.width);
                 result.put("frameHeight", frame.height);

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -24,11 +26,14 @@ class ClientBallCandidate(BaseModel):
     confidence: float = Field(..., ge=0.0, le=1.0)
     # Normalized [left, top, right, bottom] coordinates.
     box: list[float] = Field(..., min_length=4, max_length=4)
+    # Predicted points fill short gaps between ONNX observations.
+    source: Literal["detected", "predicted"] = "detected"
 
 
 class ClientFrameResult(BaseModel):
     frame_index: int = Field(..., ge=0)
     timestamp_s: float = Field(..., ge=0.0)
+    inference_ran: bool = True
     frame_width: int = Field(..., gt=0, le=16384)
     frame_height: int = Field(..., gt=0, le=16384)
     lanes: list[ClientLaneCandidate] = Field(default_factory=list, max_length=32)
@@ -50,6 +55,7 @@ class LaneFrameResultsInput(BaseModel):
 class BallPoint(BaseModel):
     x: float
     y: float
+    source: Literal["detected", "predicted"] = "detected"
 
 
 class KinematicsRow(BaseModel):
@@ -65,6 +71,10 @@ class LaneBallHealthInfo(BaseModel):
     frames_scanned_for_h: int = 0
     frames_with_lane: int = 0
     frames_with_ball: int = 0
+    frames_with_predicted_ball: int = 0
+    frames_with_ball_before_contact: int = 0
+    ball_contact_frame: int | None = None
+    ball_contact_timestamp_s: float | None = None
     lane_polygon_count_at_h: int = 0
     homography_determinant: float = 0.0
     homography_condition_number: float = 0.0

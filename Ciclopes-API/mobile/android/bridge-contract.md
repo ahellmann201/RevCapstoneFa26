@@ -12,7 +12,7 @@ Expose a plugin named `CiclopesLaneAnalysis` with:
 
 - `isAvailable()`: whether the Android ONNX runtime and compatible model are
   ready;
-- `analyzeFrame({frameUri, width, height, rotation})`: run one selected video
+- `analyzeFrame({frameUri, width, height, rotation, detectLane})`: run one selected video
   frame through local detection, returning normalized lane candidates, ball
   boxes, and health signals; and
 - `applyLaneCorrection({corners, coordinateSpace, frameWidth, frameHeight})`:
@@ -33,6 +33,7 @@ export interface CiclopesLaneAnalysisPlugin {
     width: number;
     height: number;
     rotation: 0 | 90 | 180 | 270;
+    detectLane?: boolean;
   }): Promise<LaneFrameResult>;
   applyLaneCorrection(options: {
     corners: Array<{ x: number; y: number }>;
@@ -58,6 +59,7 @@ export interface LaneFrameResult {
   balls: Array<{
     confidence: number;
     box: [number, number, number, number];
+    source?: 'detected' | 'predicted';
   }>;
   health: Record<string, number>;
 }

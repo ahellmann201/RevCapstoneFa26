@@ -404,21 +404,28 @@ is securely available, frontend users will need only its API address and their
 application accounts.
 
 Planned work includes saved-game navigation, score totals, further frontend
-integration, statistics, and video analysis. The intended video pipeline uses
-Pose3D/ONNX, but on-device runtime integration is not implemented. Mobile
-packaging needs additional work, including configuring the API address for
-native mobile builds.
+integration, statistics, and integration of video analysis into the primary
+app. The separate lane analysis demo below already runs its ONNX model locally.
+Mobile packaging needs additional work, including configuring the API address
+for native mobile builds.
 
 Before public deployment, configure HTTPS, authentication rate limiting,
 password recovery, and an appropriate token-revocation strategy. Never expose
 database credentials to the frontend or commit local environment files.
-# Android ONNX lane analysis demo
+# Cross-platform ONNX lane analysis demo
 
-The `onnx-demo.html` page is an optional Android Capacitor demo for local
-lane/ball frame detection. It is served from `frontend/onnx-demo.html` and is
-available from the home page. Install the root npm dependencies, build the
-frontend, sync Capacitor, and run the Android app using the existing Android
-setup above. The ONNX plugin and model asset live in `Ciclopes-API/mobile`.
+The `onnx-demo.html` page performs local lane/ball frame detection. Android
+uses the native Capacitor ONNX plugin; iOS and desktop browsers use ONNX Runtime
+Web with WebAssembly. This provides a shared inference path for iPhone Safari
+and Windows browsers without a second native plugin. WebAssembly CPU inference
+may be slower than native inference, especially for videos with many sampled
+frames. The model is bundled into the web build, and its source asset lives in
+`Ciclopes-API/mobile`.
+
+The demo is served from `frontend/onnx-demo.html` and is available from the
+home page. Install the root npm dependencies and run `npm run dev` for browser
+development. For the Android native path, build the frontend, sync Capacitor,
+and run the Android app using the existing Android setup above.
 
 The demo can upload a clip and inspect sampled frames on device. The Ciclopes
 server-side frame-results endpoint is an optional separate integration; its

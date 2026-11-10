@@ -13,6 +13,8 @@ export interface BallCandidate {
   confidence: number;
   /** normalized [left, top, right, bottom] in upright-frame coordinates */
   box: [number, number, number, number];
+  /** ONNX observation or short constant-velocity estimate between observations. */
+  source?: 'detected' | 'predicted';
 }
 
 export interface LaneFrameResult {
@@ -42,6 +44,8 @@ export interface CiclopesLaneAnalysisPlugin {
     width: number;
     height: number;
     rotation: 0 | 90 | 180 | 270;
+    /** Decode lane masks only until the video lane is locked. */
+    detectLane?: boolean;
   }): Promise<LaneFrameResult>;
   applyLaneCorrection(options: {
     corners: [Point, Point, Point, Point];
