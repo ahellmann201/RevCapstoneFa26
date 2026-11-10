@@ -122,6 +122,9 @@ def database_values(payload):
 
 
 def add_resource_routes(router: APIRouter, resource: Resource):
+    visible_scope = resource.scope
+    if resource.table == "events":
+        visible_scope = f"({resource.scope}) AND (r.event_type IS NULL OR r.event_type <> 'SystemUnassigned')"
     body_model = resource.model
     input_columns = list(body_model.model_fields)
 
@@ -191,7 +194,7 @@ def add_resource_routes(router: APIRouter, resource: Resource):
                 f"""
                 SELECT {selected_columns("r")}
                 FROM [{resource.table}] AS r
-                WHERE {resource.scope}
+                WHERE {visible_scope}
                 ORDER BY r.[{resource.key}]
                 {pagination}
                 """,
@@ -212,7 +215,7 @@ def add_resource_routes(router: APIRouter, resource: Resource):
                 SELECT {selected_columns("r")}
                 FROM [{resource.table}] AS r
                 WHERE r.[{resource.key}] = ?
-                  AND ({resource.scope})
+                  AND ({visible_scope})
                 """,
                 (item_id, *scope_parameters(resource, user)),
             )
@@ -273,6 +276,10 @@ def add_resource_routes(router: APIRouter, resource: Resource):
 
         with database_cursor(write=True) as cursor:
             require_record(cursor, resource, item_id, user)
+            if resource.table == "events":
+                cursor.execute("SELECT event_type FROM events WHERE event_id = ?", (item_id,))
+                if cursor.fetchone()[0] == "SystemUnassigned":
+                    raise HTTPException(status_code=403, detail="System events cannot be modified")
             validate_references(cursor, resource, values, user)
 
             assignments = ", ".join(
@@ -320,6 +327,11 @@ def add_resource_routes(router: APIRouter, resource: Resource):
 
     def delete_item(item_id: ResourceId, user: UserDependency):
         with database_cursor(write=True) as cursor:
+            if resource.table == "events":
+                require_record(cursor, resource, item_id, user)
+                cursor.execute("SELECT event_type FROM events WHERE event_id = ?", (item_id,))
+                if cursor.fetchone()[0] == "SystemUnassigned":
+                    raise HTTPException(status_code=403, detail="System events cannot be deleted")
             delete_sql = (
                 f"""
                 DELETE FROM [{resource.table}] AS r

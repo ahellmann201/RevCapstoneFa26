@@ -1,7 +1,7 @@
 import { loadNavbar } from "./navbar.js";
 import { getAuthToken } from "./authentication.js";
 import { openAuthPopup } from "./popups.js";
-import { createSavedGame, saveConfirmedShots, readSavedGame } from "./game_persistence.js";
+import { createSavedGame, saveConfirmedShots, readSavedGame, updateShotComment } from "./game_persistence.js";
 import {
     setPinLeave,
     getPinLeave,
@@ -31,6 +31,7 @@ const gameId = requestedDatabaseId
     ? activeMatchesDatabase ? activeId : rememberedId && getGameState(rememberedId) ? rememberedId : `database-${requestedDatabaseId}`
     : getActiveGameId() ?? crypto.randomUUID();
 const gameState = getGameState(gameId) ?? { createdAt: new Date().toISOString() };
+const shotComments = gameState.shotComments ??= {};
 setActiveGameId(gameId);
 let currentFrame = gameState.currentFrame ?? 1;
 let currentShot = gameState.currentShot ?? 1;
@@ -69,6 +70,17 @@ databasePanel.append(databaseStatus, startButton);
 document.querySelector(".game_heading").after(databasePanel);
 
 const database = gameState.database ??= { frameIds: {}, shotIds: {} };
+const pendingSetup = sessionStorage.getItem("pendingGameSetup");
+if (pendingSetup) {
+    try {
+        const setup = JSON.parse(pendingSetup);
+        if (!database.game && !database.eventId && !requestedDatabaseId) {
+            database.selectedEventId = setup.eventId;
+            database.selectedEstablishmentId = setup.establishmentId;
+        }
+    } catch { /* Ignore invalid setup data. */ }
+    sessionStorage.removeItem("pendingGameSetup");
+}
 let busy = false;
 let loading = Boolean(requestedDatabaseId || database.game);
 let databaseMessage = "";
@@ -78,7 +90,7 @@ let loadFailed = false;
 function confirmedFrames() {
     return frames.map((frame) => ({ ...frame, shots: getFrameShots(frame.id)
         .map((id, index) => ({ id, number: index + 1,
-            result: getShotResult(id), leave: getPinLeave(id),
+            result: getShotResult(id), leave: getPinLeave(id), comment: shotComments[id] ?? "",
         }))
         .filter((shot) => shot.result !== null)
         .map((shot) => ({ ...shot,
@@ -355,6 +367,7 @@ function updateFrame() {
     updateShortcutButtons();
     cacheGameProgress();
     updateDatabaseControls();
+    document.getElementById("comment_button").disabled = busy || loading || loadFailed;
 }
 
 function startNextShot() {
@@ -686,6 +699,7 @@ async function restoreDatabaseProgress() {
                 setPinLeave(shotId, shot.pin_leave);
                 setShotResult(shotId, shot.result);
                 database.shotIds[shotId] = shot.shot_id;
+                shotComments[shotId] = shot.comment ?? "";
             }
         }
         // Resume at the first unconfirmed shot, retaining local shots not uploaded yet.
@@ -724,6 +738,70 @@ async function restoreDatabaseProgress() {
         updateFrame();
     }
 }
+
+const commentDialog = document.getElementById("shot-comment-dialog");
+const commentShot = document.getElementById("comment-shot");
+const commentText = document.getElementById("shot-comment");
+const commentStatus = document.getElementById("comment-status");
+const commentSave = document.getElementById("save-comment");
+const commentCancel = document.getElementById("cancel-comment");
+let commentSaving = false;
+const commentDrafts = new Map();
+function showShotComment() {
+    commentText.value = commentDrafts.get(commentShot.value) ?? shotComments[commentShot.value] ?? "";
+    document.getElementById("comment-count").textContent = `${commentText.value.length} / 1000`;
+}
+document.getElementById("comment_button").addEventListener("click", () => {
+    if (busy || loading || loadFailed) return;
+    const frameNumber = viewingFrame ?? currentFrame;
+    const shots = getFrameShots(frames[frameNumber - 1].id);
+    commentShot.replaceChildren();
+    commentDrafts.clear();
+    shots.forEach((id, index) => {
+        const option = document.createElement("option");
+        option.value = id;
+        option.textContent = `Frame ${frameNumber} · Shot ${index + 1}`;
+        commentShot.append(option);
+    });
+    if (!shots.length) return;
+    commentShot.value = shots[Math.min(currentShot - 1, shots.length - 1)];
+    commentStatus.textContent = "";
+    showShotComment();
+    commentDialog.showModal();
+    commentText.focus();
+});
+commentShot.addEventListener("change", showShotComment);
+commentText.addEventListener("input", () => {
+    commentDrafts.set(commentShot.value, commentText.value);
+    document.getElementById("comment-count").textContent = `${commentText.value.length} / 1000`;
+});
+commentCancel.addEventListener("click", () => { if (!commentSaving) commentDialog.close(); });
+commentDialog.addEventListener("cancel", (event) => { if (commentSaving) event.preventDefault(); });
+document.getElementById("shot-comment-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (commentSaving || !commentShot.value) return;
+    commentDrafts.set(commentShot.value, commentText.value);
+    if ([...commentDrafts.values()].some((text) => text.length > 1000)) {
+        commentStatus.textContent = "Comments must be 1,000 characters or fewer.";
+        return;
+    }
+    commentSaving = true;
+    commentSave.disabled = commentCancel.disabled = commentShot.disabled = commentText.disabled = true;
+    commentStatus.textContent = "";
+    try {
+        for (const [id, text] of commentDrafts) {
+            if (database.shotIds[id]) await updateShotComment(database.shotIds[id], text);
+            shotComments[id] = text;
+            cacheGameProgress();
+        }
+        commentDialog.close();
+    } catch (error) {
+        commentStatus.textContent = error.message;
+    } finally {
+        commentSaving = false;
+        commentSave.disabled = commentCancel.disabled = commentShot.disabled = commentText.disabled = false;
+    }
+});
 
 updateFrame();
 restoreDatabaseProgress();

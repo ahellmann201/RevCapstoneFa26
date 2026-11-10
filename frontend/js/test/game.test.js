@@ -12,6 +12,18 @@ vi.mock("../api_client.js", () => ({ request: vi.fn(async (path, options = {}) =
     if (server.fail) throw new Error("Connection lost");
     const resource = path.split("?")[0];
     if (resource === "/auth/me") return { user_id: 1 };
+    if (resource === "/game-setup/unassigned-event") {
+        const existing = server.rows["/events"]?.find((row) => row.event_type === "SystemUnassigned");
+        if (existing) return { event_id: existing.event_id };
+        const row = { event_id: server.nextId++, event_type: "SystemUnassigned" };
+        (server.rows["/events"] ??= []).push(row);
+        return { event_id: row.event_id };
+    }
+    if (/^\/shots\/\d+$/.test(resource)) {
+        const row = server.rows["/shots"].find((shot) => shot.shot_id === Number(resource.split("/")[2]));
+        if (options.method === "PUT") Object.assign(row, JSON.parse(options.body));
+        return row;
+    }
     if (options.method === "POST") {
         const singular = resource.slice(1, -1);
         const row = { ...JSON.parse(options.body), [`${singular}_id`]: server.nextId++ };
@@ -68,6 +80,59 @@ describe("cached game and Finish flow", () => {
     afterEach(() => {
         vi.restoreAllMocks();
         vi.unstubAllGlobals();
+    });
+
+    it("keeps comments per shot through reload and uploads and edits the shot comment", async () => {
+        sessionStorage.setItem("authentication_token", "token");
+        await loadGame();
+        click("comment_button");
+        const text = document.getElementById("shot-comment");
+        expect(text.maxLength).toBe(1000);
+        text.value = "First shot note";
+        text.dispatchEvent(new Event("input"));
+        click("save-comment");
+        click("gutter_button"); click("next_frame");
+        click("comment_button");
+        expect(document.getElementById("shot-comment").value).toBe("");
+        click("cancel-comment");
+        await loadGame();
+        click("comment_button");
+        const select = document.getElementById("comment-shot");
+        select.selectedIndex = 0;
+        select.dispatchEvent(new Event("change"));
+        expect(document.getElementById("shot-comment").value).toBe("First shot note");
+        click("cancel-comment");
+        click("save_shot");
+        await vi.waitFor(() => expect(server.rows["/shots"]?.[0].comment).toBe("First shot note"));
+        await vi.waitFor(() => expect(document.getElementById("save_shot").textContent).toBe("Save shot"));
+        click("comment_button");
+        document.getElementById("comment-shot").selectedIndex = 0;
+        document.getElementById("comment-shot").dispatchEvent(new Event("change"));
+        document.getElementById("shot-comment").value = "Updated note";
+        click("save-comment");
+        await vi.waitFor(() => expect(server.rows["/shots"][0].comment).toBe("Updated note"));
+        expect(server.rows["/shots"][0].shot_number).toBe(1);
+    });
+
+    it("saves without a selection to the hidden account event", async () => {
+        sessionStorage.setItem("authentication_token", "token");
+        await loadGame();
+        click("gutter_button"); click("next_frame"); click("save_shot");
+        await vi.waitFor(() => expect(server.rows["/shots"]).toHaveLength(1));
+        expect(server.rows["/events"]).toHaveLength(1);
+        expect(server.rows["/events"][0].event_type).toBe("SystemUnassigned");
+        expect(server.rows["/sessions"][0].event_id).toBe(server.rows["/events"][0].event_id);
+        expect(server.rows["/sessions"][0].establishment_id).toBeNull();
+    });
+
+    it("uses selected event and establishment without creating a dummy event", async () => {
+        sessionStorage.setItem("authentication_token", "token");
+        sessionStorage.setItem("pendingGameSetup", JSON.stringify({ eventId: 51, establishmentId: 12 }));
+        await loadGame();
+        click("gutter_button"); click("next_frame"); click("save_shot");
+        await vi.waitFor(() => expect(server.rows["/shots"]).toHaveLength(1));
+        expect(server.rows["/events"]).toBeUndefined();
+        expect(server.rows["/sessions"][0]).toMatchObject({ event_id: 51, establishment_id: 12 });
     });
 
     it("links all frames and confirmed shots to a game and offers Finish after 20 gutters", async () => {

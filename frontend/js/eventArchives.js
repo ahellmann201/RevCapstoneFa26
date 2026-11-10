@@ -17,7 +17,7 @@ let selected = null;
 let saving = false;
 
 function render() {
-    const archived = records.filter((record) => record.enabled === false || record.enabled === 0);
+    const archived = records.filter((record) => record.event_type !== "SystemUnassigned" && (record.enabled === false || record.enabled === 0));
     empty.hidden = archived.length > 0;
     list.replaceChildren();
     for (const record of archived) {

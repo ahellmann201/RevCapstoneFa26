@@ -58,6 +58,13 @@ class EventInput(InputModel):
     games_per_session: PositiveNumber = 3
     enabled: bool = True
 
+    @field_validator("event_type")
+    @classmethod
+    def reserve_system_type(cls, value):
+        if value and value.strip().lower() == "systemunassigned":
+            raise ValueError("This event type is reserved")
+        return value
+
     @field_validator("start_time")
     @classmethod
     def validate_start_time(cls, value):
@@ -169,6 +176,29 @@ def establishment_location(item_id: ResourceId, user: UserDependency):
                 (location_id, item_id, user.user_id),
             )
     return {"location_id": location_id}
+
+@router.post("/game-setup/unassigned-event")
+def unassigned_event(user: UserDependency):
+    with database_cursor(write=True) as cursor:
+        # Serialize creation per account, including across SQL Server workers.
+        lock = "" if DB_TYPE == "sqlite" else " WITH (UPDLOCK, HOLDLOCK)"
+        cursor.execute(f"SELECT user_id FROM users{lock} WHERE user_id = ?", (user.user_id,))
+        cursor.fetchone()
+        cursor.execute(
+            "SELECT event_id FROM events WHERE user_id = ? AND event_type = ? ORDER BY event_id",
+            (user.user_id, "SystemUnassigned"),
+        )
+        row = cursor.fetchone()
+        if row:
+            return {"event_id": row[0]}
+        sql = (
+            "INSERT INTO events (user_id, event_name, event_type, enabled) VALUES (?, ?, ?, ?) RETURNING event_id"
+            if DB_TYPE == "sqlite" else
+            "INSERT INTO events (user_id, event_name, event_type, enabled) OUTPUT INSERTED.event_id VALUES (?, ?, ?, ?)"
+        )
+        cursor.execute(sql, (user.user_id, "Unassigned Games", "SystemUnassigned", False))
+        return {"event_id": cursor.fetchone()[0]}
+
 
 events = Resource(
     table="events",

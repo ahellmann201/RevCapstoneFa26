@@ -16,7 +16,7 @@ it("requires login and has no add button", async () => {
     await import("../eventArchives.js");
     expect(request).not.toHaveBeenCalled();
     expect(document.getElementById("archive-status").textContent).toContain("Please log in");
-    expect(document.querySelector(".add-establishment")).toBeNull();
+    expect(document.querySelector('button[aria-label="Add event"]')).toBeNull();
 });
 it("lists only disabled events and restores after confirmation with failure recovery", async () => {
     getAuthToken.mockReturnValue("token");

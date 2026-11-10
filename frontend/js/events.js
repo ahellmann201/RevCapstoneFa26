@@ -80,7 +80,7 @@ function displayTime(value) {
     return `${Number(hour) % 12 || 12}:${minute} ${Number(hour) >= 12 ? "PM" : "AM"}`;
 }
 function render() {
-    const activeEvents = events.filter((record) => record.enabled !== false && record.enabled !== 0);
+    const activeEvents = events.filter((record) => record.event_type !== "SystemUnassigned" && record.enabled !== false && record.enabled !== 0);
     empty.hidden = activeEvents.length > 0;
     list.replaceChildren();
     for (const record of activeEvents) {

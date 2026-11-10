@@ -88,7 +88,7 @@
         <footer class="game_footer">
             <div class="secondary_actions">
                 <button type="button" disabled>Shot Info</button>
-                <button type="button" disabled>Comment</button>
+                <button type="button" id="comment_button">Comment</button>
             </div>
 
             <button type="button" id="next_frame" class="next_button">
@@ -119,6 +119,21 @@
         </div>
     </dialog>
 
+    <dialog id="shot-comment-dialog" class="shot-comment-dialog" aria-labelledby="shot-comment-title">
+        <form id="shot-comment-form">
+            <h2 id="shot-comment-title">Shot comment</h2>
+            <label for="comment-shot">Shot</label>
+            <select id="comment-shot"></select>
+            <label for="shot-comment">Comment</label>
+            <textarea id="shot-comment" maxlength="1000" rows="6" aria-describedby="comment-count"></textarea>
+            <p id="comment-count">0 / 1000</p>
+            <p id="comment-status" role="status"></p>
+            <div class="comment-actions">
+                <button type="button" id="cancel-comment">Cancel</button>
+                <button type="submit" id="save-comment">Save Comment</button>
+            </div>
+        </form>
+    </dialog>
     <script type="module" src="/js/game.js"></script>
 </body>
 </html>
