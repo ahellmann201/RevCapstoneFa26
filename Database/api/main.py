@@ -107,9 +107,11 @@ app.include_router(statistics_router)
 
 @app.on_event("startup")
 def migrate_local_establishments():
-    from Database.database.connection import DB_TYPE, get_connection
+    from Database.database.connection import get_connection
+
     if DB_TYPE == "sqlite":
         from Database.database.sqlite_schema import migrate_establishments, migrate_events
+
         connection = get_connection()
         try:
             migrate_establishments(connection)
@@ -118,7 +120,10 @@ def migrate_local_establishments():
         finally:
             connection.close()
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> origin/Nadia
 class DisplayNameRequest(BaseModel):
     model_config = ConfigDict(
         extra="forbid",

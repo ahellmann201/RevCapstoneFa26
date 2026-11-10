@@ -1,15 +1,79 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/icons/revmetrix_logo.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Revmetrix | Stats</title>
-    <link rel="stylesheet" href="/css/stats.css" />
-  </head>
-  <body>
+    <link rel="icon" type="image/svg+xml" href="/icons/revmetrix_logo.png">
+    <link rel="stylesheet" href="/css/stats.css">
+</head>
+<body>
     <navbar></navbar>
-    <main></main>
-    <script type="module" src="/js/empty_page.js"></script>
-  </body>
+    <main class="stats-page">
+        <header class="stats-heading">
+            <p class="stats-eyebrow">YOUR GAME HISTORY</p>
+            <h1>Bowling Stats</h1>
+            <p class="stats-intro">Only finished, valid games count toward your average and highest score. Scoring includes strikes, spares, fouls, and tenth-frame bonuses.</p>
+        </header>
+
+        <section class="stats-summary" aria-label="All-time statistics">
+            <article class="stat-card">
+                <p class="stat-label">Completed games</p>
+                <p class="stat-value" id="completed-games">—</p>
+                <p class="stat-caption">finished and valid</p>
+            </article>
+            <article class="stat-card stat-card-featured">
+                <p class="stat-label">Average score</p>
+                <p class="stat-value" id="average-score">—</p>
+                <p class="stat-caption">across finished, valid games</p>
+            </article>
+            <article class="stat-card">
+                <p class="stat-label">Highest score</p>
+                <p class="stat-value" id="highest-score">—</p>
+                <p class="stat-caption">highest completed-game score</p>
+            </article>
+            <article class="stat-card">
+                <p class="stat-label">Invalid games</p>
+                <p class="stat-value" id="invalid-games">—</p>
+                <p class="stat-caption">excluded from score totals</p>
+            </article>
+        </section>
+
+        <section class="recent-section" aria-labelledby="recent-title">
+            <div class="section-heading">
+                <div>
+                    <p class="stats-eyebrow">COMPLETED GAMES</p>
+                    <h2 id="recent-title">Games</h2>
+                </div>
+                <span class="recent-count" id="recent-count"></span>
+            </div>
+            <form class="game-filters" id="game-filters">
+                <label class="filter-field" for="date-from">From date
+                    <input id="date-from" name="date-from" type="date">
+                </label>
+                <label class="filter-field" for="date-to">To date
+                    <input id="date-to" name="date-to" type="date">
+                </label>
+                <label class="filter-field" for="score-min">Minimum score
+                    <input id="score-min" name="score-min" type="number" min="0" max="300" step="1" inputmode="numeric">
+                </label>
+                <label class="filter-field" for="score-max">Maximum score
+                    <input id="score-max" name="score-max" type="number" min="0" max="300" step="1" inputmode="numeric">
+                </label>
+                <label class="filter-field filter-sort" for="game-sort">Sort by
+                    <select id="game-sort" name="sort">
+                        <option value="date-desc">Date: newest first</option>
+                        <option value="date-asc">Date: oldest first</option>
+                        <option value="score-desc">Score: highest first</option>
+                        <option value="score-asc">Score: lowest first</option>
+                    </select>
+                </label>
+                <button class="clear-filters" id="clear-filters" type="button">Clear filters</button>
+            </form>
+            <p class="stats-status" id="stats-status" role="status" aria-live="polite">Loading your stats…</p>
+            <ol class="recent-games" id="recent-games" aria-label="Completed games"></ol>
+        </section>
+    </main>
+    <script type="module" src="/js/stats.js"></script>
+</body>
 </html>

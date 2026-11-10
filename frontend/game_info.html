@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Revmetrix | Game Info</title>
+    <link rel="icon" type="image/svg+xml" href="/icons/revmetrix_logo.png">
+    <link rel="stylesheet" href="/css/game_info.css">
+</head>
+<body>
+    <navbar></navbar>
+    <main class="game-info-page">
+        <header class="page-heading">
+            <p class="eyebrow">YOUR BOWLING HISTORY</p>
+            <h1>Game Info</h1>
+            <p>Review this game, shot by shot, and track your all-time scoring average.</p>
+        </header>
+
+        <section class="overview" aria-label="All-time game statistics">
+            <article class="overview-card"><span>Completed games</span><strong id="completed-games">—</strong></article>
+            <article class="overview-card overview-card-highlight"><span>Average score</span><strong id="average-score">—</strong></article>
+            <article class="overview-card"><span>Highest score</span><strong id="highest-score">—</strong></article>
+        </section>
+
+        <p class="page-status" id="page-status" role="status" aria-live="polite">Loading game details…</p>
+        <section class="game-detail" id="game-detail" aria-label="Selected game details" hidden></section>
+    </main>
+    <script type="module" src="/js/game_info.js"></script>
+</body>
+</html>

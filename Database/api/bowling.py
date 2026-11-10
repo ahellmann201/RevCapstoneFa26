@@ -4,6 +4,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from Database.database.connection import DB_TYPE
 from Database.api.resource_routes import Resource, add_resource_routes
 from Database.api.resource_routes import UserDependency, ResourceId, database_cursor, require_record
 from Database.database.connection import DB_TYPE
