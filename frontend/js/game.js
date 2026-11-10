@@ -72,6 +72,7 @@ let busy = false;
 let loading = Boolean(requestedDatabaseId || database.game);
 let databaseMessage = "";
 let viewingFrame = null;
+let viewingShot = 1;
 let loadFailed = false;
 
 function confirmedFrames() {
@@ -118,7 +119,6 @@ async function saveToDatabase() {
             url.searchParams.set("game_id", database.game.game_id);
             window.history.replaceState(null, "", url);
         }
-        document.querySelector(".game_badge").textContent = `Game ${database.game.game_number}`;
     } catch (error) {
         database.blocked = true;
         databaseMessage = database.game
@@ -245,8 +245,20 @@ for (let frame = 1; frame <= FRAME_COUNT; frame++) {
     frameStrip.appendChild(card);
     card.addEventListener("click", () => {
         if (busy || loading || loadFailed || frame > currentFrame) return;
-        viewingFrame = frame === currentFrame ? null : frame;
+        viewingFrame = frame;
+        viewingShot = 1;
         updateFrame();
+    });
+    card.querySelectorAll(".frame_rolls span").forEach((cell, index) => {
+        cell.addEventListener("click", (event) => {
+            event.stopPropagation();
+            if (busy || loading || loadFailed || frame > currentFrame) return;
+            const shot = getFrameShots(frameId)[index];
+            if (!shot || (frame === currentFrame && index + 1 > currentShot)) return;
+            viewingFrame = frame;
+            viewingShot = index + 1;
+            updateFrame();
+        });
     });
 }
 // Pin positions: back row to front row.
@@ -301,7 +313,7 @@ pinLayout.forEach(({ number, row, column }) => {
 function updateFrame() {
     const displayedFrame = viewingFrame ?? currentFrame;
     const displayedShots = getFrameShots(frames[displayedFrame - 1].id);
-    const displayedShot = viewingFrame === null ? currentShot : displayedShots.length;
+    const displayedShot = viewingFrame === null ? currentShot : viewingShot;
     const startingPins = getStartingPins(displayedFrame, displayedShot);
     const leave = getPinLeave(displayedShots[displayedShot - 1]) ?? startingPins;
 
@@ -507,7 +519,7 @@ function renderScorecard() {
         card.querySelectorAll(".frame_rolls span").forEach((cell, index) => {
             const shotNumber = index + 1;
             const shotId = shots[index];
-            const active = viewingFrame === null && isCurrent && shotNumber === currentShot;
+            const active = isCurrent && shotNumber === (viewingFrame === null ? currentShot : viewingShot);
 
             cell.classList.toggle("is_current_shot", active && !gameFinished);
             cell.textContent = "";
@@ -519,7 +531,7 @@ function renderScorecard() {
             const leave = getPinLeave(shotId);
 
             // Preview the active shot before Next confirms it.
-            if (!result && active && leave !== null) {
+            if (!result && active && viewingFrame === null && leave !== null) {
                 const startingPins = getStartingPins(frameNumber, shotNumber);
 
                 result = {
@@ -712,7 +724,6 @@ async function restoreDatabaseProgress() {
         database.blocked = false;
         delete database.error;
         databaseMessage = "Database progress loaded.";
-        document.querySelector(".game_badge").textContent = `Game ${saved.game.game_number}`;
     } catch (error) {
         database.blocked = true;
         loadFailed = true;
@@ -748,7 +759,7 @@ document.getElementById("comment_button").addEventListener("click", () => {
         commentShot.append(option);
     });
     if (!shots.length) return;
-    commentShot.value = shots[Math.min(currentShot - 1, shots.length - 1)];
+    commentShot.value = shots[Math.min((viewingFrame === null ? currentShot : viewingShot) - 1, shots.length - 1)];
     commentStatus.textContent = "";
     showShotComment();
     commentDialog.showModal();

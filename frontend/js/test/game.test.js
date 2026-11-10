@@ -89,6 +89,21 @@ describe("cached game and Finish flow", () => {
         await vi.waitFor(() => expect(document.getElementById("next_frame").disabled).toBe(false));
     }
 
+    it("opens the first shot of a selected frame without changing game progress", async () => {
+        await loadGame();
+        document.querySelector('.pin[data-pin="1"]').click();
+        click("next_frame");
+        click("spare_button"); click("next_frame");
+        document.querySelector('[data-frame="1"] .frame_number').click();
+        expect(document.getElementById("frame_title").textContent).toBe("Frame 1 \u00b7 Shot 1");
+        expect(document.querySelector('.pin[data-pin="1"]').getAttribute("aria-pressed")).toBe("true");
+        expect(document.querySelector('.pin[data-pin="2"]').getAttribute("aria-pressed")).toBe("false");
+        expect(document.querySelector('.pin[data-pin="2"]').disabled).toBe(true);
+        expect(document.getElementById("next_frame").textContent).toBe("Return to current frame");
+        click("next_frame");
+        expect(document.getElementById("frame_title").textContent).toBe("Frame 2 \u00b7 Shot 1");
+    });
+
     it("keeps guest games local and scores a perfect game", async () => {
         await loadGame();
         expect(document.getElementById("save_shot")).toBeNull();
