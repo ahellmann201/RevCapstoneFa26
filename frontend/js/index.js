@@ -79,6 +79,11 @@ export function scheduleEvent() {
     window.location.href = "/events.html"
 }
 export async function startGame() {
+    if (!getAuthToken()) {
+        sessionStorage.removeItem("pendingGameSetup");
+        window.location.href = "/game.html";
+        return;
+    }
     const dialog = document.getElementById("game-setup-dialog");
     document.getElementById("game-setup-form").reset();
     dialog.showModal();
@@ -87,7 +92,7 @@ export async function startGame() {
     eventSelect.replaceChildren(new Option("No event", ""));
     establishmentSelect.replaceChildren(new Option("No establishment", ""));
     const message = document.querySelector(".game-setup-note");
-    message.textContent = "Games without an event are saved privately to your account when you use Save Shot.";
+    message.textContent = "When logged in, Next Shot saves your progress automatically. An event is optional.";
     if (!getAuthToken()) return;
     const submit = document.querySelector('#game-setup-form button[type="submit"]');
     submit.disabled = true;
