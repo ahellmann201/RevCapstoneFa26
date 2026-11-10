@@ -27,6 +27,7 @@ export function closeSidebar() {
 
 export function goHome() {window.location.href = "/index.html";}
 export function goToBallArsenal() {window.location.href = "/ball_arsenal.html";}
+export function goToCompareBalls() {window.location.href = "/compare_balls.html";}
 export function goToEstablishments() {window.location.href = "/establishments.html";}
 export function goToEvents() {window.location.href = "/events.html";}
 export function goToSessions() {window.location.href = "/sessions.html";}
@@ -90,6 +91,9 @@ export function loadNavbar() {
             </div>
             <div class="sidebar_section">
                 <button class="ball_arsenal_button sidebar_button" id="ball-arsenal-button">Ball Arsenal</button>
+            </div>
+            <div class="sidebar_section">
+                <button class="compare_balls_button sidebar_button" id="compare-balls-button">Compare Balls</button>
             </div>
             <div class="sidebar_section">
                 <button class="establishments_button sidebar_button" id="establishments-button">Establishments</button>
@@ -167,6 +171,9 @@ export function loadNavbar() {
     document
         .getElementById("ball-arsenal-button")
         .addEventListener("click", goToBallArsenal);
+    document
+        .getElementById("compare-balls-button")
+        .addEventListener("click", goToCompareBalls);
     document
         .getElementById("establishments-button")
         .addEventListener("click", goToEstablishments);

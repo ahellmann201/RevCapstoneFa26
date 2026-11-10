@@ -32,6 +32,7 @@ class StatisticsResponse(BaseModel):
 def get_statistics(
     user: Annotated[UserResponse, Depends(current_user)],
     recent_limit: Annotated[int, Query(ge=1, le=100)] = 10,
+    recent_offset: Annotated[int, Query(ge=0, le=2147483647)] = 0,
 ):
     # Reuse the same ownership scope as /games, including establishment ownership.
     # Fetch the game hierarchy in one query rather than one query per game.
@@ -71,4 +72,4 @@ def get_statistics(
             else:
                 pins = tuple(pin for pin in range(1, 11) if mask & (1 << (pin - 1)))
                 shots.append(RecordedShot(shot_number, pins, bool(foul)))
-    return calculate_statistics(list(records.values()), recent_limit)
+    return calculate_statistics(list(records.values()), recent_limit, recent_offset)

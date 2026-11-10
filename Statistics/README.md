@@ -6,8 +6,9 @@ connecting to SQL Server.
 
 The authenticated API endpoint is `GET /statistics?recent_limit=10`. Use the
 existing Bearer token in Swagger at https://api.revmetrix.io/docs (or local port 8000 in local mode). The default recent
-limit is 10; allowed values are 1 through 100. That limit affects only the recent
-list, not the all-time totals.
+limit is 10; allowed values are 1 through 100. `recent_offset` pages through the
+ordered completed-game list (for example, `recent_limit=100&recent_offset=100`).
+The limit and offset affect only that list, not the all-time totals.
 
 Example response for an account with no completed games:
 

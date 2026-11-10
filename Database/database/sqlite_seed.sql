@@ -152,3 +152,127 @@ WHERE users.username = 'heisenberg'
       WHERE balls.user_id = users.user_id
         AND balls.ball_name = seed.ball_name
   );
+
+-- Fifteen complete, distinct games for the seeded user1 history. Every game
+-- has its own dated session, ten frames, and twenty shot records. Scores are
+-- shot-derived (45 through 59) and match the editable summary columns too.
+INSERT INTO events (user_id, event_name, event_type)
+SELECT users.user_id, 'User1 Test Game History', 'Practice'
+FROM users
+WHERE users.username = 'user1'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM events
+      WHERE events.user_id = users.user_id
+        AND events.event_name = 'User1 Test Game History'
+  );
+
+WITH RECURSIVE game_numbers(n) AS (
+    VALUES (1)
+    UNION ALL
+    SELECT n + 1 FROM game_numbers WHERE n < 15
+)
+INSERT INTO sessions (event_id, date_time, opponent, score, record)
+SELECT
+    (SELECT MIN(event_id) FROM events
+     WHERE user_id = users.user_id AND event_name = 'User1 Test Game History'),
+    datetime('2026-01-05', printf('+%d days', (game_numbers.n - 1) * 7)),
+    'Test Opponent ' || printf('%02d', game_numbers.n),
+    9 * CASE WHEN game_numbers.n <= 9 THEN 5 ELSE 6 END
+      + CASE WHEN game_numbers.n <= 9 THEN game_numbers.n - 1 ELSE game_numbers.n - 10 END,
+    NULL
+FROM game_numbers
+CROSS JOIN users
+WHERE users.username = 'user1'
+  AND NOT EXISTS (
+      SELECT 1 FROM sessions
+      WHERE sessions.event_id = (
+          SELECT MIN(event_id) FROM events
+          WHERE user_id = users.user_id AND event_name = 'User1 Test Game History'
+      )
+        AND sessions.opponent = 'Test Opponent ' || printf('%02d', game_numbers.n)
+  );
+
+WITH RECURSIVE game_numbers(n) AS (
+    VALUES (1)
+    UNION ALL
+    SELECT n + 1 FROM game_numbers WHERE n < 15
+)
+INSERT INTO games (session_id, game_number, lane_number, game_score, game_result)
+SELECT
+    sessions.session_id,
+    game_numbers.n,
+    1 + ((game_numbers.n - 1) % 8),
+    9 * CASE WHEN game_numbers.n <= 9 THEN 5 ELSE 6 END
+      + CASE WHEN game_numbers.n <= 9 THEN game_numbers.n - 1 ELSE game_numbers.n - 10 END,
+    NULL
+FROM game_numbers
+JOIN sessions
+  ON sessions.opponent = 'Test Opponent ' || printf('%02d', game_numbers.n)
+JOIN events
+  ON events.event_id = sessions.event_id
+JOIN users
+  ON users.user_id = events.user_id
+WHERE users.username = 'user1'
+  AND events.event_name = 'User1 Test Game History'
+  AND NOT EXISTS (
+      SELECT 1 FROM games
+      WHERE games.session_id = sessions.session_id
+        AND games.game_number = game_numbers.n
+  );
+
+WITH RECURSIVE frame_numbers(n) AS (
+    VALUES (1)
+    UNION ALL
+    SELECT n + 1 FROM frame_numbers WHERE n < 10
+)
+INSERT INTO frames (game_id, frame_number, frame_result)
+SELECT
+    games.game_id,
+    frame_numbers.n,
+    CASE WHEN frame_numbers.n < 10
+      THEN frame_numbers.n * CASE WHEN games.game_number <= 9 THEN 5 ELSE 6 END
+      ELSE 9 * CASE WHEN games.game_number <= 9 THEN 5 ELSE 6 END
+        + CASE WHEN games.game_number <= 9 THEN games.game_number - 1 ELSE games.game_number - 10 END
+    END
+FROM games
+JOIN sessions ON sessions.session_id = games.session_id
+JOIN events ON events.event_id = sessions.event_id
+JOIN users ON users.user_id = events.user_id
+CROSS JOIN frame_numbers
+WHERE users.username = 'user1'
+  AND events.event_name = 'User1 Test Game History'
+  AND NOT EXISTS (
+      SELECT 1 FROM frames
+      WHERE frames.game_id = games.game_id
+        AND frames.frame_number = frame_numbers.n
+  );
+
+WITH shot_numbers(n) AS (
+    VALUES (1), (2)
+)
+INSERT INTO shots (frame_id, shot_number, foul, pin_leave, comment)
+SELECT
+    frames.frame_id,
+    shot_numbers.n,
+    0,
+    1023 - ((1 << CASE
+        WHEN frames.frame_number < 10 AND games.game_number <= 9 THEN 5
+        WHEN frames.frame_number < 10 THEN 6
+        WHEN games.game_number <= 9 THEN games.game_number - 1
+        ELSE games.game_number - 10
+    END) - 1),
+    'Seed game ' || games.game_number || ', frame ' || frames.frame_number || ', shot ' || shot_numbers.n
+FROM frames
+JOIN games ON games.game_id = frames.game_id
+JOIN sessions ON sessions.session_id = games.session_id
+JOIN events ON events.event_id = sessions.event_id
+JOIN users ON users.user_id = events.user_id
+CROSS JOIN shot_numbers
+WHERE users.username = 'user1'
+  AND events.event_name = 'User1 Test Game History'
+  AND NOT EXISTS (
+      SELECT 1 FROM shots
+      WHERE shots.frame_id = frames.frame_id
+        AND shots.shot_number = shot_numbers.n
+  );
