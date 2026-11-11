@@ -1,6 +1,7 @@
 /** Initializes the home page navbar and personalized welcome message. */
 import { loadNavbar } from "./navbar.js";
 import { listAll } from "./game_persistence.js";
+import { loadWeeklyEvents } from "./weekly_events.js";
 import Event from "./objects/event.js"
 import { getAuthToken } from "./authentication.js";
 import { getDisplayName } from "./requests.js";
@@ -58,6 +59,7 @@ function pickRandomWelcomeMessage(name) {
 
 function pageLoad() {
     loadWelcomeMessage();
+    loadWeeklyEvents();
 }
 
 function checkForUpcomingEvent() {

@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -22,6 +22,42 @@
         <button class="button_1" id="schedule-event-button">Schedule Event</button>
         <button class="button_2" id="start-game-button">Start Game</button>
       </div>
+      <section class="week-schedule" aria-labelledby="week-title">
+        <header class="week-heading">
+          <h2 id="week-title">This Week</h2>
+          <span id="week-status" role="status"></span>
+        </header>
+        <ol class="week-days" tabindex="0" aria-label="Weekly events, scroll horizontally to see all seven days">
+          <li class="week-day">
+            <h3>Monday</h3>
+            <div class="day-events"></div>
+          </li>
+          <li class="week-day">
+            <h3>Tuesday</h3>
+            <div class="day-events"></div>
+          </li>
+          <li class="week-day">
+            <h3>Wednesday</h3>
+            <div class="day-events"></div>
+          </li>
+          <li class="week-day">
+            <h3>Thursday</h3>
+            <div class="day-events"></div>
+          </li>
+          <li class="week-day">
+            <h3>Friday</h3>
+            <div class="day-events"></div>
+          </li>
+          <li class="week-day">
+            <h3>Saturday</h3>
+            <div class="day-events"></div>
+          </li>
+          <li class="week-day">
+            <h3>Sunday</h3>
+            <div class="day-events"></div>
+          </li>
+        </ol>
+      </section>
     </div>
     <dialog class="game-setup" id="game-setup-dialog" aria-labelledby="game-setup-title" aria-describedby="game-setup-description">
       <form id="game-setup-form">
@@ -45,3 +81,4 @@
     <script type="module" src="/js/index.js"></script>
   </body>
 </html>
+
