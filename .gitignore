@@ -98,6 +98,12 @@ android/local.properties
 android/captures/
 android/.cxx/
 android/.externalNativeBuild/
+android/.idea/
+android/**/*.iml
+
+# Packaged Android builds (including copies outside android/)
+*.apk
+*.aab
 
 # ==========================================
 # iOS

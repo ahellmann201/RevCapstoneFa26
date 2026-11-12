@@ -99,6 +99,7 @@ export function createAuthPopup(type) {
                     autocomplete="${isSignup ? "new-password" : "current-password"}"
                     maxlength="128"
                 >
+                <button type="button" class="password_visibility" aria-controls="${type}_password" aria-pressed="false">Show password</button>
 
                 ${isSignup ? "" : '<a href="/reset_password.html">Forgot password?</a>'}
 
@@ -118,6 +119,19 @@ export function createAuthPopup(type) {
     `);
 
     const popup = document.getElementById(popupId);
+    const password = document.getElementById(`${type}_password`);
+    const visibility = popup.querySelector(".password_visibility");
+    visibility.addEventListener("click", () => {
+        const show = password.type === "password";
+        password.type = show ? "text" : "password";
+        visibility.textContent = show ? "Hide password" : "Show password";
+        visibility.setAttribute("aria-pressed", String(show));
+    });
+    popup.addEventListener("close", () => {
+        password.type = "password";
+        visibility.textContent = "Show password";
+        visibility.setAttribute("aria-pressed", "false");
+    });
 
     setupPopupDrag(popup);
 

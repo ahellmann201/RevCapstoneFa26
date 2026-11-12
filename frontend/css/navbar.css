@@ -1,5 +1,22 @@
 @import "/css/theme.css";
 
+.popup_content button.password_visibility {
+    align-self: flex-end;
+    width: auto;
+    min-height: 44px;
+    margin: 0;
+    padding: 4px 8px;
+    border: 0;
+    background: transparent;
+    color: var(--bg-color);
+    font: inherit;
+    cursor: pointer;
+}
+.popup_content button.password_visibility:focus-visible {
+    outline: 2px solid var(--button-color-1);
+    outline-offset: 2px;
+}
+
 :root {
     --navbar-height: 5rem;
     --navabr-bg-color: rgba(0,0,0, 0.5);
