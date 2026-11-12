@@ -57,9 +57,12 @@ function pickRandomWelcomeMessage(name) {
     }
 }
 
+const requestedNewGame = new URLSearchParams(window.location.search).get("start_game") === "1";
+
 function pageLoad() {
     loadWelcomeMessage();
     loadWeeklyEvents();
+    if (requestedNewGame) void startGame();
 }
 
 function checkForUpcomingEvent() {
@@ -83,7 +86,7 @@ export function scheduleEvent() {
 export async function startGame() {
     if (!getAuthToken()) {
         sessionStorage.removeItem("pendingGameSetup");
-        window.location.href = "/game.html";
+        window.location.href = requestedNewGame ? "/game.html?new=1" : "/game.html";
         return;
     }
     const dialog = document.getElementById("game-setup-dialog");
@@ -126,5 +129,5 @@ document.getElementById("game-setup-form").addEventListener("submit", (event) =>
         establishmentId: data.get("establishment") ? Number(data.get("establishment")) : null,
     }));
     document.getElementById("game-setup-dialog").close();
-    window.location.href = "/game.html";
+    window.location.href = requestedNewGame ? "/game.html?new=1" : "/game.html";
 });

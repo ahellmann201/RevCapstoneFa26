@@ -1,4 +1,4 @@
-﻿import html from "../../game.html?raw";
+import html from "../../game.html?raw";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as Cache from "../cache.js";
 
@@ -202,4 +202,77 @@ describe("cached game and Finish flow", () => {
         await vi.waitFor(() => expect(window.location.href).toBe("/index.html"));
         expect(server.rows["/shots"]).toHaveLength(20);
     });
+    it("swipes to confirm a shot, reviews history, and returns without duplicating it", async () => {
+        await loadGame();
+        const lane = document.querySelector(".lane_panel");
+        function swipe(from, to) {
+            for (const [type, x] of [["pointerdown", from], ["pointerup", to]]) {
+                const event = new Event(type, { bubbles: true });
+                Object.assign(event, { clientX: x, clientY: 150, pointerId: 1, pointerType: "touch", isPrimary: true });
+                lane.dispatchEvent(event);
+            }
+        }
+        click("gutter_button");
+        swipe(230, 100);
+        expect(document.getElementById("frame_title").textContent).toContain("Shot 2");
+        const id = Cache.getActiveGameId();
+        const frame = Cache.getGameFrames(id)[0];
+        expect(Cache.getFrameShots(frame).filter(shot => Cache.getShotResult(shot))).toHaveLength(1);
+        swipe(100, 230);
+        expect(document.getElementById("frame_title").textContent).toContain("Shot 1");
+        expect(document.querySelector(".pin").disabled).toBe(true);
+        swipe(230, 100);
+        expect(document.getElementById("frame_title").textContent).toContain("Shot 2");
+        expect(Cache.getFrameShots(frame).filter(shot => Cache.getShotResult(shot))).toHaveLength(1);
+    });
+
+    it("starts a fresh game explicitly and resumes that same game after reload", async () => {
+        await loadGame();
+        click("gutter_button"); click("next_frame");
+        const oldId = Cache.getActiveGameId();
+        const state = Cache.getGameState(oldId);
+        window.location.search = "?new=1";
+        window.location.href = "http://localhost/game.html?new=1";
+        window.history = { replaceState: vi.fn() };
+        await loadGame();
+        const newId = Cache.getActiveGameId();
+        expect(newId).not.toBe(oldId);
+        expect(document.getElementById("frame_title").textContent).toContain("Shot 1");
+        expect(Cache.getGameState(oldId)).toEqual(state);
+        expect(window.history.replaceState).toHaveBeenCalled();
+        window.location.search = "";
+        await loadGame();
+        expect(Cache.getActiveGameId()).toBe(newId);
+    });
+
+    it("uses G and X to select gutter and strike and confirms them with Next Shot", async () => {
+        await loadGame();
+        document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "g", bubbles: true }));
+        expect(document.getElementById("gutter_button").getAttribute("aria-pressed")).toBe("true");
+        expect(document.getElementById("game_status").textContent).toContain("Gutter selected");
+        click("next_frame");
+        expect(document.getElementById("frame_title").textContent).toContain("Shot 2");
+        document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "x", bubbles: true }));
+        expect(document.getElementById("strike_button").getAttribute("aria-pressed")).toBe("false");
+        click("gutter_button"); click("next_frame");
+        document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "X", bubbles: true }));
+        expect(document.getElementById("strike_button").getAttribute("aria-pressed")).toBe("true");
+        expect(document.querySelectorAll(".pin[aria-pressed='true']")).toHaveLength(10);
+        click("next_frame");
+        expect(document.getElementById("frame_title").textContent).toContain("Frame 3");
+    });
+
+    it("ignores shortcuts while typing, when a dialog is open, or with modifier keys", async () => {
+        await loadGame();
+        const text = document.createElement("input");
+        document.body.append(text);
+        text.dispatchEvent(new KeyboardEvent("keydown", { key: "x", bubbles: true }));
+        document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "x", ctrlKey: true, bubbles: true }));
+        document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "x", repeat: true, bubbles: true }));
+        click("comment_button");
+        document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "x", bubbles: true }));
+        expect(document.getElementById("strike_button").getAttribute("aria-pressed")).toBe("false");
+        expect(document.querySelectorAll(".pin[aria-pressed='true']")).toHaveLength(0);
+    });
+
 });

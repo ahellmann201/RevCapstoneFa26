@@ -17,17 +17,19 @@ class UserRepository:
                 username,
                 password_hash,
                 email,
-                main_hand
+                main_hand,
+                main_language
             )
             OUTPUT INSERTED.user_id
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
             (
                 user.display_name,
                 user.username,
                 password_hash,
                 user.email,
-                user.main_hand.value if user.main_hand else None
+                user.main_hand.value if user.main_hand else None,
+                user.main_language
             )
         )
 
@@ -41,7 +43,7 @@ class UserRepository:
 
         cursor.execute(
             """
-            SELECT user_id, display_name, username, email, main_hand
+            SELECT user_id, display_name, username, email, main_hand, main_language
             FROM users
             WHERE user_id = ?
             """,
@@ -58,7 +60,8 @@ class UserRepository:
             display_name=row[1],
             username=row[2],
             email=row[3],
-            main_hand=Hand(row[4]) if row[4] else None
+            main_hand=Hand(row[4]) if row[4] else None,
+            main_language=row[5]
         )
 
     def get_by_username(self, username: str) -> User | None:
@@ -66,7 +69,7 @@ class UserRepository:
 
         cursor.execute(
             """
-            SELECT user_id, display_name, username, email, main_hand
+            SELECT user_id, display_name, username, email, main_hand, main_language
             FROM users
             WHERE username = ?
             """,
@@ -83,7 +86,8 @@ class UserRepository:
             display_name=row[1],
             username=row[2],
             email=row[3],
-            main_hand=Hand(row[4]) if row[4] else None
+            main_hand=Hand(row[4]) if row[4] else None,
+            main_language=row[5]
         )
 
     def update(self, user: User) -> None:
@@ -93,7 +97,8 @@ class UserRepository:
             SET display_name = ?,
                 username = ?,
                 email = ?,
-                main_hand = ?
+                main_hand = ?,
+                main_language = ?
             WHERE user_id = ?
             """,
             (
@@ -101,6 +106,7 @@ class UserRepository:
                 user.username,
                 user.email,
                 user.main_hand.value if user.main_hand else None,
+                user.main_language,
                 user.user_id
             )
         )

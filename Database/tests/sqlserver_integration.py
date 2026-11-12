@@ -13,6 +13,7 @@ TEST_DATABASE = "revmetrix_integration_test"
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", required=True)
+    parser.add_argument("--check-migrations", action="store_true")
     args = parser.parse_args()
     with open(args.config, encoding="utf-8") as config_file:
         config = dotenv_values(stream=config_file, interpolate=False)
@@ -31,6 +32,10 @@ def main():
             cursor.execute("SELECT DB_NAME()")
             if cursor.fetchone()[0] != TEST_DATABASE:
                 raise RuntimeError("Connected database is not the dedicated integration database.")
+            if args.check_migrations:
+                from Database.tests.sqlserver_migration_scenario import check_migrations
+                check_migrations(connection)
+                return
             cursor.execute("SELECT TOP (0) nickname, [type], phone, home_house, enabled FROM dbo.user_establishments")
             cursor.execute("SELECT TOP (0) token_hash FROM dbo.password_resets")
             cursor.execute("SELECT TOP (0) foul FROM dbo.shots")

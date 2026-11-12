@@ -376,3 +376,34 @@
 .save_display_name:disabled {
     color: rgb(12 12 12 / 50%);
 }
+
+@media (max-width: 640px) {
+    .account_field { width: calc(100% - 24px); min-width: 0; }
+    .pfp_field { flex-direction: column; padding: 16px; gap: 16px; }
+    .pfp_field_content_container, .pfp_field_buttons_container { width: 100%; min-width: 0; }
+    .names_field { flex-direction: column; }
+    .username_area, .display_name_area { width: 100%; min-width: 0; }
+    .save_container { width: 100%; gap: 8px; flex-wrap: wrap; }
+    .save_container > button { min-height: 44px; font-size: 1.1rem; }
+}
+
+@media (max-width: 640px) {
+    :root {
+        --hand-width: 72px;
+        --hand-font-size: 18px;
+        --mainhand-selector-height: 44px;
+        --mainhand-selection-height: 44px;
+        --mainhand-selection-margin-top: 0;
+    }
+    .mainhand_area { width: 100%; flex-direction: column; align-items: flex-start; gap: 12px; padding: 16px; }
+    .mainhand_area > p { margin-left: 0; }
+}
+
+.account_field { background: var(--settings-surface); color: var(--app-text); border: 1px solid var(--appearance-outline, #31505a); }
+.username_disclaimer, .username_field > span { color: var(--settings-muted); }
+body .account_field .display_name_field, body .account_field select { background: var(--appearance-surface, #092b35); color: var(--app-text); border: 1px solid var(--appearance-outline-strong, #52717b); }
+.appearance-preference { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 16px; }
+.appearance-preference label { font-weight: bold; }
+.appearance-preference select { min-height: 44px; min-width: 130px; padding: 8px 12px; border-radius: 12px; font: inherit; }
+.appearance-preference small { flex-basis: 100%; color: var(--settings-muted); }
+.account_field .mainhand_selector, .account_field .cancel_display_name { background: var(--appearance-raised, #254e57); color: var(--app-text); }

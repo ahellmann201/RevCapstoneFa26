@@ -26,3 +26,13 @@ it("places active events on their weekday in time order and excludes hidden reco
     expect(document.querySelector("time").textContent).toBe("9:00 AM");
     expect(document.querySelectorAll(".day-empty")).toHaveLength(6);
 });
+
+it("matches stored weekday values after the displayed heading is translated", async () => {
+    getAuthToken.mockReturnValue("token");
+    const monday = document.querySelector(".week-day h3");
+    monday.dataset.i18n = "Monday";
+    monday.textContent = "Lunes";
+    listAll.mockResolvedValue([{ event_name: "League", week_day: "Monday", start_time: "18:00", enabled: true }]);
+    await loadWeeklyEvents();
+    expect(document.querySelector(".week-event h4").textContent).toBe("League");
+});

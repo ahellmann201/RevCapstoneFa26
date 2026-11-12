@@ -4,7 +4,7 @@
 body {
     height: 100dvh;
     overflow: hidden;
-    color: var(--off-white);
+    color: var(--app-text);
     font-family: var(--standard-font-family);
 }
 
@@ -35,7 +35,7 @@ navbar {
     letter-spacing: .16em;
 }
 .compare-heading h1 { font-size: clamp(2rem, 7vw, 3rem); line-height: 1.15; }
-.compare-intro { margin-top: 8px; color: #c2d0d3; font-size: 1.05rem; }
+.compare-intro { margin-top: 8px; color: var(--appearance-text-soft, #c2d0d3); font-size: 1.05rem; }
 
 .comparison {
     display: flex;
@@ -45,7 +45,7 @@ navbar {
     padding: clamp(16px, 4vw, 32px);
     border: 1px solid #ffffff20;
     border-radius: 22px;
-    background: linear-gradient(145deg, var(--lighter-bg-color), #0b2c35);
+    background: linear-gradient(145deg, var(--lighter-bg-color), var(--appearance-surface, #0b2c35));
     box-shadow: 0 18px 50px #0003;
 }
 .ball-picker { display: flex; flex: 1 1 0; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; border: 0; }
@@ -70,8 +70,8 @@ navbar {
     padding: 9px 12px;
     border: 1px solid #ffffff;
     border-radius: 11px;
-    background: #082832;
-    color: var(--off-white);
+    background: var(--appearance-surface, #082832);
+    color: var(--app-text);
     font: inherit;
     text-align: left;
     cursor: pointer;
@@ -80,10 +80,10 @@ navbar {
     border-color: var(--button-color-2);
     outline: 2px solid var(--button-color-2);
     outline-offset: 1px;
-    background: #031a20;
+    background: var(--appearance-surface, #031a20);
 }
 .ball-choice:focus-visible { outline: 2px solid var(--button-color-2); outline-offset: 3px; }
-.compare-status { flex: 0 0 auto; padding: 8px; color: #c2d0d3; text-align: center; }
+.compare-status { flex: 0 0 auto; padding: 8px; color: var(--appearance-text-soft, #c2d0d3); text-align: center; }
 .comparison-results { flex: 0 0 auto; max-width: 100%; margin-top: 8px; overflow: visible; border: 1px solid #ffffff20; border-radius: 14px; }
 .comparison-results[hidden] { display: none; }
 .comparison-results table { width: 100%; min-width: 0; table-layout: fixed; border-collapse: collapse; text-align: left; }
@@ -91,7 +91,7 @@ navbar {
 .comparison-results tr:last-child th, .comparison-results tr:last-child td { border-bottom: 0; }
 .comparison-results th:last-child, .comparison-results td:last-child { border-right: 0; }
 .comparison-results thead { background: #ffffff0b; }
-.comparison-results thead th { background: #10343d; }
+.comparison-results thead th { background: var(--appearance-surface, #10343d); }
 .comparison-results th { font-weight: bold; }
 .compare-sort-button {
     display: inline-flex;
@@ -110,7 +110,7 @@ navbar {
 }
 .compare-sort-button:hover { color: var(--button-color-2); }
 .compare-sort-button:focus-visible { outline: 2px solid var(--button-color-2); outline-offset: 3px; }
-.comparison-results .row-header { background: #10343d; color: #c2d0d3; }
+.comparison-results .row-header { background: var(--appearance-surface, #10343d); color: var(--appearance-text-soft, #c2d0d3); }
 .comparison-results th:last-child, .comparison-results .compare-remove-cell { width: 48px; padding-right: 4px; padding-left: 4px; text-align: center; }
 .compare-remove {
     display: inline-grid;
@@ -120,7 +120,7 @@ navbar {
     border: 0;
     border-radius: 9px;
     background: transparent;
-    color: #c2d0d3;
+    color: var(--appearance-text-soft, #c2d0d3);
     cursor: pointer;
 }
 .compare-remove svg { display: block; width: 24px; height: 24px; }
@@ -135,4 +135,15 @@ navbar {
     .comparison { padding: 14px; }
     .ball-list { grid-template-columns: minmax(0, 1fr); }
     .comparison-results th, .comparison-results td { padding: 10px 8px; font-size: .9rem; }
+}
+
+/* Let phone users scroll the page rather than a fixed-height picker. */
+@media (max-width: 640px) {
+    body { height: auto; min-height: 100dvh; overflow: visible; }
+    .compare-page { height: auto; min-height: calc(100dvh - var(--navbar-height)); }
+    .comparison, .ball-picker, .ball-list { flex: initial; }
+    .ball-picker, .ball-list { overflow: visible; }
+    .comparison-results { overflow-x: auto; touch-action: pan-x pan-y; }
+    .comparison-results table { min-width: 360px; }
+    .compare-sort-button { white-space: normal; overflow-wrap: anywhere; }
 }

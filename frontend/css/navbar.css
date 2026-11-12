@@ -449,8 +449,9 @@ body:has(.auth_popup[open]) {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 80dvw;
+    width: min(480px, calc(100vw - 32px));
     height: auto;
+    color: #102332;
     background-color: var(--menu-bg-color);
     border-radius: 20px;
     padding: 1rem;
@@ -477,9 +478,21 @@ body:has(.auth_popup[open]) {
     text-align: center;
 }
 
-.log_out_popup_header_container > h3 {
-    font-weight: lighter;
+.log_out_popup_header_container > h1 {
+    color: #102332;
+    font-size: 2rem;
+    line-height: 1.2;
+    margin-bottom: 12px;
 }
+.log_out_popup_header_container > h3 {
+    color: #425466;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.6;
+}
+.log_out_popup_button { min-height: 44px; flex: 1; color: #102332; cursor: pointer; }
+.log_out_popup_buttons_container { gap: 12px; }
+.log_out_popup_button:focus-visible { outline: 2px solid #102332; outline-offset: 3px; }
 
 .log_out_popup_buttons_container {
     width: calc(100% - 1rem);
@@ -553,3 +566,34 @@ body:has(.auth_popup[open]) {
     left: 50%;
     transform: translate(-50%, 0);
 }
+
+/* Language controls share the app font and stay usable on small screens. */
+.language-preference {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem;
+}
+.language-preference select {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    font: inherit;
+    color: #102332;
+    background: #f5f7fa;
+}
+
+.sidebar > .sidebar_section { flex-shrink: 0; }
+.sidebar .language-preference { height: auto; }
+@media (max-width: 640px) {
+    .navbar > h1 { font-size: clamp(1.3rem, 6vw, 2.4rem); }
+    .sidebar { position: fixed; top: 0; bottom: 0; max-width: calc(100vw - 24px); overscroll-behavior-y: contain; }
+    .sidebar_section > button { white-space: normal; text-align: left; font-size: 1.5rem; }
+    .sidebar_section { height: auto; min-height: 48px; }
+    .profile_picture_container { height: 52px; }
+}
+
+/* Keep the brand above the navbar's frosted background. */
+.navbar > h1 { z-index: 2; pointer-events: none; }

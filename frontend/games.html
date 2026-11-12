@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/icons/revmetrix_logo.png">
+    <link rel="stylesheet" href="/css/games.css">
+    <title>RevMetrix | Games</title>
+</head>
+<body>
+    <navbar></navbar>
+    <main class="games-page">
+        <header class="games-heading">
+            <div>
+                <h1 data-i18n="Games">Games</h1>
+                <p>Choose a saved game to view its scorecard or continue playing.</p>
+            </div>
+            <a class="start-game-link" href="/index.html?start_game=1" data-i18n="Start Game">Start Game</a>
+        </header>
+        <a id="resume-local-game" class="local-game-link" href="/game.html" hidden>Continue your current game on this device</a>
+        <label class="game-search-label" for="game-search">Find a game</label>
+        <input type="search" id="game-search" placeholder="Search by game number, event, or date">
+        <p id="games-status" role="status">Loading your games…</p>
+        <ul id="games-list" class="games-list"></ul>
+    </main>
+    <script type="module" src="/js/games.js"></script>
+</body>
+</html>

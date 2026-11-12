@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from Database.database.connection import DB_TYPE
 from Database.api.resource_routes import Resource, add_resource_routes
 from Database.api.resource_routes import UserDependency, ResourceId, database_cursor, require_record
-from Database.database.connection import DB_TYPE
+
 
 
 router = APIRouter()
@@ -55,7 +55,7 @@ class EventInput(InputModel):
     location_id: Id | None = None
     nickname: str | None = Field(default=None, max_length=100)
     week_day: Literal["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] | None = None
-    start_time: str | None = Field(default=None, min_length=5, max_length=5, pattern=r"^\d{2}:\d{2}$")
+    start_time: str | None = None
     games_per_session: PositiveNumber = 3
     enabled: bool = True
 
@@ -71,6 +71,8 @@ class EventInput(InputModel):
     def validate_start_time(cls, value):
         if value is not None:
             time.fromisoformat(value)
+            if len(value) != 5 or value[2] != ":":
+                raise ValueError("Use HH:MM for start time")
         return value
 
 

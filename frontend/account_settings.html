@@ -15,14 +15,26 @@
     <navbar></navbar>
 
     <div class="fields_container">
+        <div class="account_field language-preference">
+            <label for="account-language" data-i18n="Language">Language</label>
+            <select id="account-language" data-language-picker></select>
+            <span role="status" data-language-status></span>
+        </div>
+        <div class="account_field appearance-preference">
+            <label for="account-theme" data-i18n="Appearance">Appearance</label>
+            <select id="account-theme" data-theme-picker aria-describedby="theme-description">
+                <option value="dark" data-i18n="Dark">Dark</option><option value="light" data-i18n="Light">Light</option>
+            </select>
+            <small id="theme-description" data-i18n="Saved on this browser, including when logged out.">Saved on this browser, including when logged out.</small>
+        </div>
         <div class="account_field pfp_field">
             <div class="pfp_field_content_container">
-                <h1>Profile Picture</h1>
+                <h1 data-i18n="Profile Picture">Profile Picture</h1>
                 <div class="pfp_field_picture_container" id="pfp-field-picture-container"></div> <!--The pfp image is put into this with js-->
             </div>
             <div class="pfp_field_buttons_container">
                 <button class="button_1 upload_pfp_button pfp_button" id="upload-pfp-button">
-                    <p>Upload</p>
+                    <p data-i18n="Upload">Upload</p>
                     <svg xmlns="http://www.w3.org/2000/svg"
                         width="24"
                         height="24"
@@ -40,7 +52,7 @@
                     </svg>
                 </button>
                 <button class="button_2 delete_pfp_button pfp_button" id="delete-pfp-button">
-                    <p>Delete</p>
+                    <p data-i18n="Delete">Delete</p>
                     <svg xmlns="http://www.w3.org/2000/svg" 
                         width="24" 
                         height="24" 
@@ -62,15 +74,15 @@
         </div>
         <div class="account_field names_field">
             <div class="username_area">
-                <p class="username_header">Username</p>
+                <p class="username_header" data-i18n="Username">Username</p>
                 <p class="username_field" id="username-field"><span>@</span></p>
-                <p class="username_disclaimer">Username cannot be changed</p>
+                <p class="username_disclaimer" data-i18n="Username cannot be changed">Username cannot be changed</p>
             </div>
             <div class="display_name_area">
-                <p>Display Name</p>
-                <input type="text" id="display-name-field" class="text_input display_name_field" placeholder="No Display Name">
+                <p data-i18n="Display Name">Display Name</p>
+                <input type="text" id="display-name-field" class="text_input display_name_field" placeholder="No Display Name" data-i18n-placeholder="No Display Name">
                 <div class="display_name_option">
-                    <p>Display entire name</p>
+                    <p data-i18n="Display entire name">Display entire name</p>
 
                     <label class="switch">
                         <input type="checkbox" id="display-name-full-toggle">
@@ -78,23 +90,23 @@
                     </label>
                 </div>
                 <div class="save_container">
-                    <button class="cancel_display_name" id="cancel-display-name">Cancel</button>
-                    <button class="save_display_name" id="save-display-name" disabled>Save Changes</button>
+                    <button class="cancel_display_name" id="cancel-display-name" data-i18n="Cancel">Cancel</button>
+                    <button class="save_display_name" id="save-display-name" disabled data-i18n="Save Changes">Save Changes</button>
                 </div>
             </div>
         </div>
         <div class="extra_field account_field">
             <div class="mainhand_area">
-                <p>Main Hand</p>
+                <p data-i18n="Main Hand">Main Hand</p>
                 <div class="mainhand_selector" id="mainhand-selector">
                     <div class="mainhand_selection" id="mainhand-selection">
-                        <div class="left_hand hand mainhand_overlay" id="left-hand-overlay">Left</div>
-                        <div class="both_hands hand mainhand_overlay" id="both-hands-overlay">Both</div>
-                        <div class="right_hand hand mainhand_overlay" id="right-hand-overlay">Right</div>
+                        <div class="left_hand hand mainhand_overlay" id="left-hand-overlay" data-i18n="Left">Left</div>
+                        <div class="both_hands hand mainhand_overlay" id="both-hands-overlay" data-i18n="Both">Both</div>
+                        <div class="right_hand hand mainhand_overlay" id="right-hand-overlay" data-i18n="Right">Right</div>
                     </div>
-                    <div class="left_hand hand mainhand_underlay" id="left-hand">Left</div>
-                    <div class="both_hands hand mainhand_underlay" id="both-hands">Both</div>
-                    <div class="right_hand hand mainhand_underlay" id="right-hand">Right</div>
+                    <div class="left_hand hand mainhand_underlay" id="left-hand" data-i18n="Left">Left</div>
+                    <div class="both_hands hand mainhand_underlay" id="both-hands" data-i18n="Both">Both</div>
+                    <div class="right_hand hand mainhand_underlay" id="right-hand" data-i18n="Right">Right</div>
                 </div>
             </div>
         </div>

@@ -1,5 +1,6 @@
 import * as Cache from "./cache.js";
 import * as API from "./api_client.js";
+import { getLanguage, setLanguage } from "./language.js";
 
 export function clearAuthToken() {
     Cache.clearCache();
@@ -67,6 +68,7 @@ async function completeLogin(username, password) {
         Cache.setDisplayName(user.Display_Name);
         Cache.setEmail(user.Email);
         Cache.setMainhand(user.Main_Hand);
+        setLanguage(user.Main_Language ?? "en");
 
         sessionStorage.setItem("canReachDatabase", "true");
     } catch (error) {
@@ -124,6 +126,7 @@ export async function submitAuth(type = "login") {
                 email,
                 password,
                 displayName,
+                getLanguage(),
             );
 
             accountCreated = true;

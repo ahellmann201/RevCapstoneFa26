@@ -12,7 +12,8 @@ export async function loadWeeklyEvents() {
         const events = await listAll("/events");
         if (!getAuthToken()) { status.textContent = ""; return; }
         for (const day of days) {
-            const weekday = day.querySelector("h3").textContent;
+            const heading = day.querySelector("h3");
+            const weekday = heading.dataset.i18n || heading.textContent;
             const container = day.querySelector(".day-events");
             const scheduled = events.filter((event) => event.week_day === weekday
                 && event.enabled !== false && event.enabled !== 0

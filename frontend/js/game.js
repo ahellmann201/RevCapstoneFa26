@@ -1,4 +1,5 @@
-﻿import { loadNavbar } from "./navbar.js";
+import { enableSwipeNavigation } from "./swipe.js";
+import { loadNavbar } from "./navbar.js";
 import { getAuthToken } from "./authentication.js";
 import { openAuthPopup } from "./popups.js";
 import { createSavedGame, saveConfirmedShots, readSavedGame, updateShotComment } from "./game_persistence.js";
@@ -27,12 +28,18 @@ const requestedDatabaseId = new URLSearchParams(window.location.search ?? "").ge
 const activeId = getActiveGameId();
 const rememberedId = requestedDatabaseId && sessionStorage.getItem(`savedGame:${requestedDatabaseId}:cache`);
 const activeMatchesDatabase = activeId && String(getGameState(activeId)?.database?.game?.game_id) === requestedDatabaseId;
-const gameId = requestedDatabaseId
+const startNewGame = !requestedDatabaseId && new URLSearchParams(window.location.search ?? "").get("new") === "1";
+const gameId = startNewGame ? crypto.randomUUID() : requestedDatabaseId
     ? activeMatchesDatabase ? activeId : rememberedId && getGameState(rememberedId) ? rememberedId : `database-${requestedDatabaseId}`
     : getActiveGameId() ?? crypto.randomUUID();
 const gameState = getGameState(gameId) ?? { createdAt: new Date().toISOString() };
 const shotComments = gameState.shotComments ??= {};
 setActiveGameId(gameId);
+if (startNewGame && typeof window.history?.replaceState === "function") {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("new");
+    window.history.replaceState(null, "", url);
+}
 let currentFrame = gameState.currentFrame ?? 1;
 let currentShot = gameState.currentShot ?? 1;
 let gameFinished = gameState.gameFinished ?? false;
@@ -45,6 +52,7 @@ const frameStrip = document.getElementById("frame_strip");
 const pinRack = document.getElementById("pin_rack");
 const frameTitle = document.getElementById("frame_title");
 const nextButton = document.getElementById("next_frame");
+const previousButton = document.getElementById("previous_shot");
 const gameStatus = document.getElementById("game_status");
 const foulButton = document.getElementById("foul_button");
 const gutterButton = document.getElementById("gutter_button");
@@ -73,6 +81,7 @@ let loading = Boolean(requestedDatabaseId || database.game);
 let databaseMessage = "";
 let viewingFrame = null;
 let viewingShot = 1;
+let selectedShortcut = null;
 let loadFailed = false;
 
 function confirmedFrames() {
@@ -176,7 +185,7 @@ for (const type of ["login", "signup"]) {
 
 function updateShortcutButtons() {
     const strikeAllowed = isStrikeOpportunity(currentFrame, currentShot);
-    const locked = gameFinished || busy || loading || loadFailed || viewingFrame !== null;
+    const locked = gameFinished || busy || loading || loadFailed || database.blocked || viewingFrame !== null;
 
     foulButton.disabled = locked;
     gutterButton.disabled = locked;
@@ -185,10 +194,13 @@ function updateShortcutButtons() {
         locked || currentShot === 1 || strikeAllowed;
 
     foulButton.setAttribute("aria-pressed", String(currentFoul));
+    gutterButton.setAttribute("aria-pressed", String(selectedShortcut === "gutter"));
+    strikeButton.setAttribute("aria-pressed", String(selectedShortcut === "strike"));
 }
 
 function applyShortcut(type) {
-    if (gameFinished || busy || loading || loadFailed || viewingFrame !== null) return;
+    if (gameFinished || busy || loading || loadFailed || database.blocked || viewingFrame !== null) return;
+    selectedShortcut = type;
 
     const startingPins = getStartingPins(currentFrame, currentShot);
     currentFoul = type === "foul";
@@ -298,6 +310,7 @@ pinLayout.forEach(({ number, row, column }) => {
     if (gameFinished || busy || loading || pin.disabled) return;
 
     currentFoul = false;
+    selectedShortcut = null;
 
     const knockedDown = pin.getAttribute("aria-pressed") === "true";
     pin.setAttribute("aria-pressed", String(!knockedDown));
@@ -322,6 +335,11 @@ function updateFrame() {
     gameStatus.textContent = gameFinished
         ? "Game complete"
         : `Frame ${currentFrame} of ${FRAME_COUNT} \u00b7 Shot ${currentShot}`;
+
+    if (selectedShortcut && viewingFrame === null && !gameFinished) {
+        const name = selectedShortcut[0].toUpperCase() + selectedShortcut.slice(1);
+        gameStatus.textContent += ` — ${name} selected. Next Shot confirms it.`;
+    }
 
     pinRack.querySelectorAll(".pin").forEach((pin) => {
         const number = Number(pin.dataset.pin);
@@ -359,6 +377,8 @@ function updateFrame() {
         : 'Next Shot';
     nextButton.disabled = busy || loading || loadFailed || Boolean(database.blocked);
 
+    previousButton.disabled = busy || loading || loadFailed ||
+        ((viewingFrame ?? currentFrame) === 1 && (viewingFrame === null ? currentShot : viewingShot) === 1);
     updateShortcutButtons();
     cacheGameProgress();
     updateDatabaseControls();
@@ -426,6 +446,7 @@ nextButton.addEventListener("click", async () => {
     }
 
     currentFoul = false;
+    selectedShortcut = null;
     updateFrame();
     if (getAuthToken() !== null) await saveToDatabase();
 });
@@ -805,3 +826,44 @@ if (gameFinished && gameState.finishRequested && getAuthToken() !== null && !loa
     finishGame();
 }
 
+
+function navigateShot(direction) {
+    if (busy || loading || loadFailed || database.blocked || document.querySelector("dialog[open]")) return;
+    if (direction === "next" && viewingFrame === null) {
+        if (!gameFinished) nextButton.click();
+        return;
+    }
+    const positions = frames.slice(0, currentFrame).flatMap(frame =>
+        getFrameShots(frame.id).map((id, index) => ({ frame: frame.number, shot: index + 1, id }))
+            .filter(position => position.frame === currentFrame
+                ? position.shot <= currentShot
+                : getShotResult(position.id) !== null));
+    const index = positions.findIndex(position => position.frame === (viewingFrame ?? currentFrame) &&
+        position.shot === (viewingFrame === null ? currentShot : viewingShot));
+    const target = positions[index + (direction === "next" ? 1 : -1)];
+    if (!target) {
+        if (direction === "next" && viewingFrame !== null) {
+            viewingFrame = null;
+            updateFrame();
+        }
+        return;
+    }
+    viewingFrame = target.frame === currentFrame && target.shot === currentShot ? null : target.frame;
+    viewingShot = target.shot;
+    updateFrame();
+}
+
+previousButton.addEventListener("click", () => navigateShot("previous"));
+enableSwipeNavigation(document.querySelector(".lane_panel"), navigateShot);
+
+
+document.addEventListener("keydown", event => {
+    if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || event.isComposing) return;
+    if (event.target.closest?.("input, textarea, select, [contenteditable='true'], [contenteditable=''], navbar")) return;
+    if (document.querySelector("dialog[open], .log_out_popup:not(.hidden)") ||
+        document.body.classList.contains("navigation-open")) return;
+    const button = { g: gutterButton, x: strikeButton }[event.key.toLowerCase()];
+    if (!button || button.disabled) return;
+    event.preventDefault();
+    button.click();
+});

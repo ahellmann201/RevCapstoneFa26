@@ -22,7 +22,7 @@
     border: 1px solid var(--establishment-border);
     border-radius: 12px;
     background: var(--establishment-surface);
-    color: #f5f7f7;
+    color: var(--appearance-text, #f5f7f7);
     font: 400 1rem var(--standard-font-family);
 }
 .games-stepper { display: grid; grid-template-columns: minmax(0, 1fr) 48px 48px; gap: 8px; }

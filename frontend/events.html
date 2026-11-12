@@ -11,7 +11,7 @@
     <navbar></navbar>
     <main class="establishments-page">
         <header class="establishments-heading">
-            <h1>Events</h1>
+            <h1 data-i18n="Events">Events</h1>
             <a class="event-archives-link" href="/eventArchives.html" aria-label="Event archives" title="Event archives">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                     <path d="M4 8h16v12H4zM3 4h18v4H3zM9 12h6" />
@@ -26,7 +26,7 @@
     <dialog class="establishment-dialog" id="event-dialog" aria-labelledby="event-dialog-title">
         <form id="event-form">
             <header class="dialog-heading">
-                <h2 id="event-dialog-title">Add Event</h2>
+                <h2 id="event-dialog-title" data-i18n="Add Event">Add Event</h2>
                 <button class="close-dialog" id="close-event" type="button" aria-label="Close">&times;</button>
             </header>
             <div class="establishment-fields">
@@ -39,17 +39,17 @@
                 <label class="establishment-field">Type
                     <select name="event_type">
                         <option value="">Select type</option>
-                        <option>League</option><option>Tournament</option><option>Practice</option><option>Other</option>
+                        <option value="League" data-i18n="League">League</option><option value="Tournament" data-i18n="Tournament">Tournament</option><option value="Practice" data-i18n="Practice">Practice</option><option value="Other" data-i18n="Other">Other</option>
                     </select>
                 </label>
                 <label class="establishment-field">Location
-                    <select name="location_id" id="event-location"><option value="">Select location</option></select>
+                    <select name="location_id" id="event-location"><option value="" data-i18n="Select location">Select location</option></select>
                 </label>
                 <label class="establishment-field">Week Day
                     <select name="week_day">
-                        <option value="">Select day</option>
-                        <option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option>
-                        <option>Friday</option><option>Saturday</option><option>Sunday</option>
+                        <option value="" data-i18n="Select day">Select day</option>
+                        <option value="Monday" data-i18n="Monday">Monday</option><option value="Tuesday" data-i18n="Tuesday">Tuesday</option><option value="Wednesday" data-i18n="Wednesday">Wednesday</option><option value="Thursday" data-i18n="Thursday">Thursday</option>
+                        <option value="Friday" data-i18n="Friday">Friday</option><option value="Saturday" data-i18n="Saturday">Saturday</option><option value="Sunday" data-i18n="Sunday">Sunday</option>
                     </select>
                 </label>
                 <label class="establishment-field">Start Time
@@ -64,10 +64,10 @@
                 </label>
             </div>
             <footer class="dialog-actions">
-                <button class="cancel-establishment" id="cancel-event" type="button">Cancel</button>
-                <button class="apply-establishment" id="apply-event" type="submit">Add</button>
+                <button class="cancel-establishment" id="cancel-event" type="button" data-i18n="Cancel">Cancel</button>
+                <button class="apply-establishment" id="apply-event" type="submit" data-i18n="Add">Add</button>
             </footer>
-            <button class="delete-record" id="disable-event" type="button" hidden>Disable Event</button>
+            <button class="delete-record" id="disable-event" type="button" hidden data-i18n="Disable Event">Disable Event</button>
             <p class="page-status" id="event-form-status" role="status"></p>
         </form>
     </dialog>
@@ -76,8 +76,8 @@
         <h2 id="disable-event-title">Disable event?</h2>
         <p id="disable-event-description"></p>
         <div class="dialog-actions">
-            <button class="cancel-establishment" id="cancel-disable-event" type="button" autofocus>Cancel</button>
-            <button class="apply-establishment" id="confirm-disable-event" type="button">Disable Event</button>
+            <button class="cancel-establishment" id="cancel-disable-event" type="button" autofocus data-i18n="Cancel">Cancel</button>
+            <button class="apply-establishment" id="confirm-disable-event" type="button" data-i18n="Disable Event">Disable Event</button>
         </div>
         <p class="page-status" id="disable-event-status" role="status"></p>
     </dialog>

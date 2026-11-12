@@ -14,6 +14,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, SecretStr
 
 from Database.api.auth import password_hasher
 from Database.api.resource_routes import database_cursor
+from Database.database.connection import DB_TYPE
 
 router = APIRouter(prefix="/auth/password-reset", tags=["Authentication"])
 logger = logging.getLogger(__name__)
@@ -97,12 +98,15 @@ def request_reset(data: ResetRequest, background_tasks: BackgroundTasks, respons
 def complete_reset(data: ResetCompletion):
     with database_cursor(write=True) as cursor:
         token_hash = digest(data.token.get_secret_value())
-        cursor.execute("SELECT user_id FROM password_resets WHERE token_hash = ? AND expires_at > ?",
-                       (token_hash, int(time())))
+        # Claim the token atomically. The delete rolls back if the update fails.
+        predicate = "WHERE token_hash = ? AND expires_at > ?"
+        claim = (f"DELETE FROM password_resets {predicate} RETURNING user_id"
+                 if DB_TYPE == "sqlite" else
+                 f"DELETE FROM password_resets OUTPUT DELETED.user_id {predicate}")
+        cursor.execute(claim, (token_hash, int(time())))
         row = cursor.fetchone()
         if row is None:
             raise HTTPException(400, "Invalid or expired reset link")
         encoded_hash = password_hasher.hash(data.password.get_secret_value()).encode()
         cursor.execute("UPDATE users SET password_hash = ? WHERE user_id = ?", (encoded_hash, row[0]))
-        cursor.execute("DELETE FROM password_resets WHERE user_id = ?", (row[0],))
     return Response(status_code=204, headers={"Cache-Control": "no-store"})

@@ -3,8 +3,8 @@
 
 :root {
     --history-highlight: var(--button-color-2);
-    --history-muted: #a6bdc3;
-    --history-surface: #092b35;
+    --history-muted: var(--appearance-muted, #a6bdc3);
+    --history-surface: var(--appearance-surface, #092b35);
     --history-border: #ffffff24;
 }
 
@@ -17,12 +17,12 @@ body { min-height: 100dvh; background: var(--bg-color); color: var(--off-white);
 
 .overview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 22px; }
 .overview-card { display: grid; gap: 4px; padding: 15px 18px; border: 1px solid var(--history-border); border-radius: 15px; background: var(--history-surface); }
-.overview-card span { color: #d6e2e5; font-size: .82rem; }
+.overview-card span { color: var(--appearance-text-soft, #d6e2e5); font-size: .82rem; }
 .overview-card strong { color: var(--history-highlight); font-size: 1.8rem; line-height: 1.1; }
 .overview-card-highlight { border-color: #e79f4066; background: linear-gradient(145deg, #29444a, #102f38); }
 
-.page-status { padding: 22px; border: 1px solid var(--history-border); border-radius: 15px; background: #062630; color: var(--history-muted); text-align: center; }
-.game-detail { min-width: 0; padding: 18px; border: 1px solid var(--history-border); border-radius: 18px; background: #062630; }
+.page-status { padding: 22px; border: 1px solid var(--history-border); border-radius: 15px; background: var(--appearance-navigation, #062630); color: var(--history-muted); text-align: center; }
+.game-detail { min-width: 0; padding: 18px; border: 1px solid var(--history-border); border-radius: 18px; background: var(--appearance-navigation, #062630); }
 .detail-heading h2 { font-size: 1.35rem; }
 .detail-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding-bottom: 14px; border-bottom: 1px solid var(--history-border); }
 .back-to-stats { display: inline-block; margin-bottom: 8px; color: var(--history-highlight); font-size: .85rem; text-decoration: none; }
@@ -30,7 +30,7 @@ body { min-height: 100dvh; background: var(--bg-color); color: var(--off-white);
 .detail-heading p { margin-top: 3px; color: var(--history-muted); font-size: .88rem; }
 .detail-score { color: var(--history-highlight); font-size: 2.2rem; font-weight: bold; line-height: 1; text-align: right; }
 .detail-score small { display: block; color: var(--history-muted); font-size: .67rem; font-weight: normal; }
-.game-metrics { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 12px 0; color: #d6e2e5; font-size: .84rem; }
+.game-metrics { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 12px 0; color: var(--appearance-text-soft, #d6e2e5); font-size: .84rem; }
 .game-metrics span { color: var(--history-muted); }
 .frames-title { margin: 5px 0 10px; font-size: 1rem; }
 .frame-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }

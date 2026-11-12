@@ -4,14 +4,14 @@
 :root {
     --stats-accent: var(--button-color-1, #d06c01);
     --stats-highlight: var(--button-color-2, #e79f40);
-    --stats-muted: #a6bdc3;
-    --stats-surface: #092b35;
+    --stats-muted: var(--appearance-muted, #a6bdc3);
+    --stats-surface: var(--appearance-surface, #092b35);
 }
 
 body {
     min-height: 100dvh;
     background: var(--bg-color);
-    color: var(--off-white);
+    color: var(--app-text);
     font-family: var(--standard-font-family);
     overflow-x: hidden;
 }
@@ -49,7 +49,7 @@ body {
     border-color: color-mix(in srgb, var(--stats-highlight) 55%, transparent);
     background: linear-gradient(145deg, #29444a, #102f38 76%);
 }
-.stat-label { color: #d6e2e5; font-size: .9rem; }
+.stat-label { color: var(--appearance-text-soft, #d6e2e5); font-size: .9rem; }
 .stat-value { margin-top: 8px; color: var(--stats-highlight); font-size: 2.6rem; font-weight: bold; line-height: 1; }
 .stat-caption { margin-top: 10px; color: var(--stats-muted); font-size: .8rem; }
 
@@ -66,9 +66,9 @@ body {
     padding: 14px;
     border: 1px solid #ffffff1c;
     border-radius: 16px;
-    background: #062630;
+    background: var(--appearance-navigation, #062630);
 }
-.filter-field { display: grid; min-width: 0; gap: 5px; color: #d6e2e5; font-size: .78rem; }
+.filter-field { display: grid; min-width: 0; gap: 5px; color: var(--appearance-text-soft, #d6e2e5); font-size: .78rem; }
 .filter-field input, .filter-field select {
     width: 100%;
     min-height: 42px;
@@ -76,7 +76,7 @@ body {
     border: 1px solid #ffffff28;
     border-radius: 9px;
     background: var(--stats-surface);
-    color: var(--off-white);
+    color: var(--app-text);
     font: 400 .9rem var(--standard-font-family);
 }
 .clear-filters {
@@ -85,7 +85,7 @@ body {
     border: 1px solid #ffffff28;
     border-radius: 9px;
     background: transparent;
-    color: #d6e2e5;
+    color: var(--appearance-text-soft, #d6e2e5);
     font: 400 .85rem var(--standard-font-family);
     cursor: pointer;
 }
@@ -94,7 +94,7 @@ body {
     padding: 22px;
     border: 1px solid #ffffff1c;
     border-radius: 16px;
-    background: #062630;
+    background: var(--appearance-navigation, #062630);
     color: var(--stats-muted);
     text-align: center;
 }
@@ -114,8 +114,8 @@ body {
     color: inherit;
     text-decoration: none;
 }
-.recent-game:hover { border-color: var(--stats-highlight); background: #103440; }
-.game-date { color: #d6e2e5; font-size: .95rem; }
+.recent-game:hover { border-color: var(--stats-highlight); background: var(--appearance-raised, #103440); }
+.game-date { color: var(--appearance-text-soft, #d6e2e5); font-size: .95rem; }
 .game-score { min-width: 58px; color: var(--stats-highlight); font-size: 1.5rem; font-weight: bold; text-align: right; }
 .stats-page :focus-visible { outline: 2px solid var(--stats-highlight); outline-offset: 4px; }
 

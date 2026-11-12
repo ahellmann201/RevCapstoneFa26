@@ -1,4 +1,6 @@
 """Shared API contract exercised against real SQLite and SQL Server databases."""
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
 from unittest.mock import patch
 
 
@@ -17,6 +19,19 @@ def run_scenario(usernames):
             assert response.status_code == 200, response.text
             return {"Authorization": "Bearer " + response.json()["access_token"]}
         owner, other = register(usernames[0]), register(usernames[1])
+        assert client.get("/auth/me", headers=owner).json()["main_language"] == "en"
+        for language in ("es", "fr", "de", "zh-CN", "en"):
+            response = client.put("/auth/me/language", headers=owner,
+                json={"main_language": language})
+            assert response.status_code == 200, response.text
+            assert response.json()["main_language"] == language
+            assert client.get("/auth/me", headers=owner).json()["main_language"] == language
+            assert client.get("/auth/me", headers=other).json()["main_language"] == "en"
+        assert client.put("/auth/me/language", json={"main_language": "es"}).status_code == 401
+        assert client.put("/auth/me/language", headers=owner,
+            json={"main_language": "unknown"}).status_code == 422
+        assert client.put("/auth/me/language", headers=owner,
+            json={"main_language": "es", "user_id": 999}).status_code == 422
         def post(path, payload, headers=owner):
             response = client.post(path, json=payload, headers=headers)
             assert response.status_code == 201, response.text
@@ -127,7 +142,15 @@ def run_scenario(usernames):
             payload = {"token": token, "password": "NewOfflinePassword123!"}
             with patch.object(password_reset, "time", return_value=time() + 901):
                 assert client.post(path + "/complete", json=payload).status_code == 400
-            assert client.post(path + "/complete", json=payload).status_code == 204
+            start = Barrier(2)
+            def redeem():
+                with TestClient(app) as concurrent_client:
+                    start.wait(timeout=10)
+                    return concurrent_client.post(path + "/complete", json=payload).status_code
+
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                attempts = [executor.submit(redeem) for _ in range(2)]
+                assert sorted(attempt.result(timeout=30) for attempt in attempts) == [204, 400]
             assert client.post(path + "/complete", json=payload).status_code == 400
             assert client.get("/auth/me", headers=owner).status_code == 401
             assert client.get("/auth/me", headers=other).status_code == 200

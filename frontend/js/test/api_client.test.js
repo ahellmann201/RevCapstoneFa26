@@ -11,9 +11,9 @@ afterEach(() => {
     vi.resetModules();
 });
 
-describe("API requests use the local backend on the website's host", () => {
+describe("API requests use the shared HTTPS backend", () => {
     for (const hostname of ["localhost", "10.127.37.132", "192.168.1.20"]) {
-        it(`uses the local API when the website runs on ${hostname}`, async () => {
+        it(`uses the hosted API when the website runs on ${hostname}`, async () => {
             vi.stubGlobal("window", { location: { hostname } });
             const fetchMock = vi.fn().mockResolvedValue({
                 ok: true,
@@ -24,7 +24,7 @@ describe("API requests use the local backend on the website's host", () => {
             const { testPython } = await import("../api_client.js");
             await testPython();
             expect(fetchMock).toHaveBeenCalledTimes(1);
-            expect(fetchMock.mock.calls[0][0]).toBe(`http://${hostname}:8000/health`);
+            expect(fetchMock.mock.calls[0][0]).toBe("https://api.revmetrix.io/health");
         });
     }
 });

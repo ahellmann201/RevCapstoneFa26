@@ -15,6 +15,9 @@ BEGIN
         password_hash VARBINARY(255) NOT NULL,
         email         NVARCHAR(255) NOT NULL UNIQUE,
         main_hand     CHAR(1),
+        main_language NVARCHAR(10) NOT NULL DEFAULT 'en',
+        CONSTRAINT CK_users_main_language
+            CHECK (main_language IN ('en', 'es', 'fr', 'de', 'zh-CN')),
 
         CONSTRAINT CK_users_main_hand
             CHECK (main_hand IN ('L', 'R'))
@@ -101,16 +104,16 @@ END;
 IF OBJECT_ID('events', 'U') IS NULL
 BEGIN
     CREATE TABLE events (
+        nickname NVARCHAR(100) NULL,
+        week_day NVARCHAR(9) NULL,
+        start_time CHAR(5) NULL,
+        games_per_session INT NOT NULL DEFAULT 3,
+        enabled BIT NOT NULL DEFAULT 1,
         event_id    INT IDENTITY(1,1) PRIMARY KEY,
         user_id     INT NOT NULL,
         event_name  NVARCHAR(255) NOT NULL,
         event_type  NVARCHAR(100),
         location_id INT,
-        nickname NVARCHAR(100),
-        week_day NVARCHAR(9),
-        start_time CHAR(5),
-        games_per_session INT NOT NULL DEFAULT 3,
-        enabled BIT NOT NULL DEFAULT 1,
 
         FOREIGN KEY (user_id)
             REFERENCES users(user_id)

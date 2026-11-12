@@ -305,6 +305,8 @@ by Capacitor. Backend test instructions are in [Database/tests/README.md](Databa
 
 To test against a dedicated remote SQL Server database, follow the [opt-in SQL Server integration instructions](Database/tests/README.md#remote-sql-server-integration-test).
 
+The [integration test guide](Database/tests/README.md) also documents repeatable SQL Server migration checks, a browser foul save/reopen test, and a live recovery email smoke test.
+
 ## Optional local SQL Server development
 
 Install [Microsoft ODBC Driver 18](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server)
@@ -477,3 +479,52 @@ Ciclopes notes/platform scaffolding do not mean end-to-end inference works.
 | Uncertain shot save | Reload/reconcile before resubmitting; do not blindly duplicate writes. |
 | Empty statistics | Only complete legal games count; Stats UI is still a placeholder. |
 | jsdom navigation messages in tests | The simulated browser does not navigate; inspect the test results separately. |
+
+### Interface language
+
+Choose Language in the sidebar or Account Settings. English, Spanish, French,
+German, and Simplified Chinese are available. Guests keep their choice on this device. Signed-in users save their choice to
+users.main_language and restore it after login or on another device. It applies to translated navigation, form labels, and page controls.
+User-entered names and records keep their original text. Some generated messages
+and server errors currently remain in English.
+
+The frontend includes ball comparison, event archives, game details, a statistics
+page, and the home page weekly event schedule. Run the frontend with your usual
+development command. The updated backend must also be deployed for the new
+game-setup and event-location endpoints.
+
+
+Before deploying the account-language update to SQL Server, back up the database
+and apply Database/scripts/migrate_user_language.sql using an administrator.
+It adds main_language NVARCHAR(10) NOT NULL DEFAULT 'en' and restricts it to the
+five supported language codes. Existing accounts start in English.
+Apply this migration before rebuilding/restarting the API.
+SQLite initialization upgrades existing users tables without resetting records.
+The authenticated PUT /auth/me/language endpoint accepts
+{"main_language": "es"} and updates only the current account.
+
+### Mobile navigation
+
+The home page weekly schedule scrolls vertically. On the game lane, swipe left
+to confirm and advance the current shot using the same save flow as Next Shot.
+Swipe right to review an earlier shot. While reviewing, swipe left to move
+forward through recorded shots and return to the current shot. Previous Shot
+and Next Shot buttons remain available. Swiping does not finish or leave a game.
+The scorecard keeps native horizontal scrolling.
+
+### Responsive layout
+
+At viewport widths of 1100 CSS pixels or more, navigation stays visible in a
+256-pixel left sidebar. Narrower windows use the hamburger drawer with a backdrop,
+Escape-to-close, and keyboard focus containment. The active page is highlighted.
+Lists and account settings adapt to the available width, and the wide game page
+places its controls beside the lane. Shrinking the window restores the mobile
+layout without reloading or clearing game state.
+
+### Games navigation
+
+Games lists all of the signed-in user's saved games with event/date context and
+a search field. Selecting a game opens its saved scorecard for viewing or
+continuing. Start Game opens the home page's event/establishment setup and starts
+a fresh game. The menu omits the placeholder Sessions, Ciclops, Smart Dot, and
+Smart Watch destinations.

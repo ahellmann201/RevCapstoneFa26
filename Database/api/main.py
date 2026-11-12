@@ -105,25 +105,6 @@ app.include_router(bowling_router)
 app.include_router(statistics_router)
 
 
-@app.on_event("startup")
-def migrate_local_establishments():
-    from Database.database.connection import get_connection
-
-    if DB_TYPE == "sqlite":
-        from Database.database.sqlite_schema import migrate_establishments, migrate_events
-
-        connection = get_connection()
-        try:
-            migrate_establishments(connection)
-            migrate_events(connection)
-            connection.commit()
-        finally:
-            connection.close()
-
-<<<<<<< HEAD
-
-=======
->>>>>>> origin/Nadia
 class DisplayNameRequest(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -151,7 +132,7 @@ def update_display_name(
                 UPDATE users
                 SET display_name = ?
                 WHERE user_id = ?
-                RETURNING user_id, display_name, username, email, main_hand
+                RETURNING user_id, display_name, username, email, main_hand, main_language
                 """
                 if DB_TYPE == "sqlite"
                 else f"""

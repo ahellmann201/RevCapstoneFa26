@@ -197,3 +197,22 @@ class SQLiteDatabaseTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+
+def test_existing_sqlite_shot_survives_two_foul_upgrades():
+    from contextlib import closing
+    from Database.database.sqlite_schema import SCHEMA
+
+    with closing(sqlite3.connect(":memory:")) as connection:
+        connection.execute("PRAGMA foreign_keys = ON")
+        legacy = SCHEMA.replace("    foul INTEGER NOT NULL DEFAULT 0 CHECK (foul IN (0, 1)),\n", "")
+        connection.executescript(legacy)
+        connection.execute("INSERT INTO sessions DEFAULT VALUES")
+        connection.execute("INSERT INTO games (session_id, game_number) VALUES (1, 1)")
+        connection.execute("INSERT INTO frames (game_id, frame_number) VALUES (1, 1)")
+        connection.execute("INSERT INTO shots (frame_id, shot_number, pin_leave) VALUES (1, 1, 1023)")
+        for _ in range(2):
+            initialize_schema(connection)
+            assert connection.execute("SELECT shot_id, pin_leave, foul FROM shots").fetchone() == (1, 1023, 0)
+        assert connection.execute("PRAGMA foreign_key_check").fetchall() == []

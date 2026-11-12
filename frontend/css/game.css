@@ -2,26 +2,26 @@
 
 :root {
     --page-background: var(--bg-color, #001e26);
-    --text-color: #f5f7f7;
+    --text-color: var(--appearance-text, #f5f7f7);
     --text-on-pin: #ffffff;
     --text-on-accent: #132c33;
-    --text-light: #d6e2e5;
-    --text-muted: #a6bdc3;
+    --text-light: var(--appearance-text-soft, #d6e2e5);
+    --text-muted: var(--appearance-muted, #a6bdc3);
     --text-disabled: #bac9ce;
-    --shot-label-color: #c9d2d5;
+    --shot-label-color: var(--appearance-label, #c9d2d5);
     --accent-color: var(--button-color-1, #e79f40);
-    --border-color: #31505a;
-    --card-background: #092b35;
-    --frame-current-background: #19363c;
-    --lane-background-start: #103440;
-    --lane-background-end: #062630;
+    --border-color: var(--appearance-outline, #31505a);
+    --card-background: var(--appearance-surface, #092b35);
+    --frame-current-background: var(--appearance-current, #19363c);
+    --lane-background-start: var(--appearance-raised, #103440);
+    --lane-background-end: var(--appearance-navigation, #062630);
     --pin-shadow: #a96b21;
     --pin-selected-color: #17404c;
     --pin-selected-shadow: #485b63;
     --shot-border: #526064;
-    --shot-background: #213b42;
-    --next-disabled-color: #304951;
-    --shot-selected-background: #43504a;
+    --shot-background: var(--appearance-shot, #213b42);
+    --next-disabled-color: var(--appearance-disabled, #304951);
+    --shot-selected-background: var(--appearance-selected, #43504a);
     --border-width: 1px;
     --focus-outline-width: 2px;
     --focus-outline-offset: 4px;
@@ -483,7 +483,7 @@ body {
     overflow-y: auto;
     border: 1px solid var(--border-color);
     border-radius: 24px;
-    background: linear-gradient(155deg, #103440, #062630);
+    background: linear-gradient(155deg, var(--appearance-raised, #103440), var(--appearance-navigation, #062630));
     color: var(--text-color);
     font-family: inherit;
     color-scheme: dark;
@@ -507,3 +507,13 @@ body {
 .comment-actions button[type="submit"] { background: var(--accent-color); color: var(--text-on-accent); font-weight: bold; }
 .comment-actions button:disabled { opacity: .5; cursor: wait; }
 .shot-comment-dialog :focus-visible { outline: 2px solid var(--accent-color); outline-offset: 4px; }
+
+.lane_panel { touch-action: pan-y pinch-zoom; }
+.swipe_hint { margin-bottom: 12px; color: var(--text-muted); font-size: 0.85rem; line-height: 1.4; }
+.secondary_actions { flex-wrap: wrap; }
+@media (hover: hover) and (pointer: fine) {
+    .swipe_hint { display: none; }
+}
+
+.shot_actions kbd { font: inherit; font-size: .65rem; opacity: .8; }
+@media (hover: none) { .shot_actions kbd { display: none; } }

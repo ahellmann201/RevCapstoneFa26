@@ -44,6 +44,7 @@
             </header>
 
             <p class="pin_hint">Tap the pins you knocked down.</p>
+            <p class="swipe_hint">Swipe left for the next shot. Swipe right to review previous shots.</p>
 
             <div class="lane_controls">
                 <div
@@ -59,9 +60,9 @@
                         <span>Foul</span>
                     </button>
 
-                    <button type="button" id="gutter_button">
+                    <button type="button" id="gutter_button" aria-keyshortcuts="G" title="Gutter (G)" aria-pressed="false">
                         <strong>-</strong>
-                        <span>Gutter</span>
+                        <span>Gutter <kbd>G</kbd></span>
                     </button>
 
                     <button type="button" id="spare_button">
@@ -69,9 +70,9 @@
                         <span>Spare</span>
                     </button>
 
-                    <button type="button" id="strike_button">
+                    <button type="button" id="strike_button" aria-keyshortcuts="X" title="Strike (X)" aria-pressed="false">
                         <strong>X</strong>
-                        <span>Strike</span>
+                        <span>Strike <kbd>X</kbd></span>
                     </button>
                 </div>
             </div>
@@ -79,7 +80,7 @@
 
         <footer class="game_footer">
             <div class="secondary_actions">
-                <button type="button" disabled>Shot Info</button>
+                <button type="button" id="previous_shot" disabled>Previous Shot</button>
                 <button type="button" id="comment_button">Comment</button>
             </div>
 
@@ -105,8 +106,8 @@
                 Your game will not be saved if you stay signed out.
                 Log in or sign up to keep it.
             </p>
-            <button type="button" id="finish_login" class="popup_primary">Log In</button>
-            <button type="button" id="finish_signup" class="popup_switch">Sign Up</button>
+            <button type="button" id="finish_login" class="popup_primary" data-i18n="Log In">Log In</button>
+            <button type="button" id="finish_signup" class="popup_switch" data-i18n="Sign Up">Sign Up</button>
             <button type="button" id="stay_signed_out" class="popup_close">Stay Signed Out</button>
         </div>
     </dialog>
@@ -121,7 +122,7 @@
             <p id="comment-count">0 / 1000</p>
             <p id="comment-status" role="status"></p>
             <div class="comment-actions">
-                <button type="button" id="cancel-comment">Cancel</button>
+                <button type="button" id="cancel-comment" data-i18n="Cancel">Cancel</button>
                 <button type="submit" id="save-comment">Save Comment</button>
             </div>
         </form>
