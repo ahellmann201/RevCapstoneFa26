@@ -36,3 +36,14 @@ it("matches stored weekday values after the displayed heading is translated", as
     await loadWeeklyEvents();
     expect(document.querySelector(".week-event h4").textContent).toBe("League");
 });
+
+it("opens game setup for the tapped event", async () => {
+    getAuthToken.mockReturnValue("token");
+    listAll.mockResolvedValue([{ event_id: 42, event_name: "League", week_day: "Monday", start_time: "18:00", enabled: true }]);
+    const select = vi.fn();
+    await loadWeeklyEvents(select);
+    const card = document.querySelector(".week-event");
+    expect(card.tagName).toBe("BUTTON");
+    card.click();
+    expect(select).toHaveBeenCalledWith(42);
+});

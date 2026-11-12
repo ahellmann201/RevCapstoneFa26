@@ -1,7 +1,7 @@
 import { listAll } from "./game_persistence.js";
 import { getAuthToken } from "./authentication.js";
 
-export async function loadWeeklyEvents() {
+export async function loadWeeklyEvents(onSelectEvent = () => {}) {
     const days = [...document.querySelectorAll(".week-day")];
     const status = document.getElementById("week-status");
     for (const day of days) day.querySelector(".day-events").replaceChildren();
@@ -21,8 +21,11 @@ export async function loadWeeklyEvents() {
                 .sort((a, b) => (a.start_time || "99:99").localeCompare(b.start_time || "99:99")
                     || a.event_name.localeCompare(b.event_name));
             for (const event of scheduled) {
-                const card = document.createElement("article");
+                const card = document.createElement("button");
+                card.type = "button";
                 card.className = "week-event";
+                card.setAttribute("aria-label", `Start a game for ${event.event_name}`);
+                card.addEventListener("click", () => onSelectEvent(event.event_id));
                 const time = document.createElement(event.start_time ? "time" : "span");
                 if (event.start_time) {
                     const [hours, minutes] = event.start_time.split(":");

@@ -1,5 +1,6 @@
 /** Initializes the home page navbar and personalized welcome message. */
 import { loadNavbar } from "./navbar.js";
+import { getActiveGameId, getGameState } from "./cache.js";
 import { listAll } from "./game_persistence.js";
 import { loadWeeklyEvents } from "./weekly_events.js";
 import Event from "./objects/event.js"
@@ -58,10 +59,13 @@ function pickRandomWelcomeMessage(name) {
 }
 
 const requestedNewGame = new URLSearchParams(window.location.search).get("start_game") === "1";
+let weeklyGame = false;
+let forceNewGame = false;
+let pendingEventChoice = null;
 
 function pageLoad() {
     loadWelcomeMessage();
-    loadWeeklyEvents();
+    loadWeeklyEvents((eventId) => { void startGame(eventId); });
     if (requestedNewGame) void startGame();
 }
 
@@ -78,15 +82,24 @@ function checkForUpcomingEvent() {
 document.addEventListener("DOMContentLoaded", pageLoad);
 
 document.getElementById("schedule-event-button").addEventListener("click", scheduleEvent);
-document.getElementById("start-game-button").addEventListener("click", startGame);
+document.getElementById("start-game-button").addEventListener("click", () => { void startGame(); });
 
 export function scheduleEvent() {
     window.location.href = "/events.html"
 }
-export async function startGame() {
+export async function startGame(selectedEventId = null, startNew = false) {
+    const activeId = getActiveGameId();
+    const active = activeId && getGameState(activeId);
+    if (!startNew && active && !active.finishedAt) {
+        pendingEventChoice = selectedEventId;
+        document.getElementById("resume-game-dialog").showModal();
+        return;
+    }
+    forceNewGame = startNew || !active || Boolean(active.finishedAt);
+    weeklyGame = selectedEventId !== null;
     if (!getAuthToken()) {
         sessionStorage.removeItem("pendingGameSetup");
-        window.location.href = requestedNewGame ? "/game.html?new=1" : "/game.html";
+        window.location.href = forceNewGame || requestedNewGame ? "/game.html?new=1" : "/game.html";
         return;
     }
     const dialog = document.getElementById("game-setup-dialog");
@@ -111,6 +124,16 @@ export async function startGame() {
             if (establishment.enabled === false || establishment.enabled === 0) continue;
             establishmentSelect.append(new Option(establishment.establishment_name, establishment.establishment_id));
         }
+        if (selectedEventId !== null) {
+            const selected = events.find((event) => event.event_id === selectedEventId
+                && event.enabled !== false && event.enabled !== 0 && event.event_type !== "SystemUnassigned");
+            if (selected) {
+                eventSelect.value = String(selected.event_id);
+                const house = establishments.find((entry) => selected.location_id != null
+                    && entry.location_id === selected.location_id && entry.enabled !== false && entry.enabled !== 0);
+                if (house) establishmentSelect.value = String(house.establishment_id);
+            } else message.textContent = "This event is no longer available. Please choose another event.";
+        }
     } catch {
         message.textContent = "Could not load your choices. You can continue without an event or establishment.";
     } finally {
@@ -129,5 +152,18 @@ document.getElementById("game-setup-form").addEventListener("submit", (event) =>
         establishmentId: data.get("establishment") ? Number(data.get("establishment")) : null,
     }));
     document.getElementById("game-setup-dialog").close();
-    window.location.href = requestedNewGame ? "/game.html?new=1" : "/game.html";
+    window.location.href = forceNewGame || requestedNewGame || weeklyGame ? "/game.html?new=1" : "/game.html";
+});
+
+document.getElementById("continue-game-choice").addEventListener("click", () => {
+    sessionStorage.removeItem("pendingGameSetup");
+    document.getElementById("resume-game-dialog").close();
+    window.location.href = "/game.html";
+});
+document.getElementById("new-game-choice").addEventListener("click", () => {
+    document.getElementById("resume-game-dialog").close();
+    void startGame(pendingEventChoice, true);
+});
+document.getElementById("cancel-resume-game").addEventListener("click", () => {
+    document.getElementById("resume-game-dialog").close();
 });

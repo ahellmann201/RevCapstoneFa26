@@ -78,6 +78,15 @@
         </div>
       </form>
     </dialog>
+    <dialog class="game-setup" id="resume-game-dialog" aria-labelledby="resume-game-title" aria-describedby="resume-game-description">
+      <h2 id="resume-game-title">Continue your game?</h2>
+      <p id="resume-game-description">You have an unfinished game on this device. Continue it or start a new game.</p>
+      <div class="game-setup-actions">
+        <button type="button" id="new-game-choice">Start New Game</button>
+        <button type="button" id="continue-game-choice" autofocus>Continue Game</button>
+      </div>
+      <div class="game-setup-actions"><button type="button" id="cancel-resume-game">Cancel</button></div>
+    </dialog>
     <script type="module" src="/js/index.js"></script>
   </body>
 </html>
