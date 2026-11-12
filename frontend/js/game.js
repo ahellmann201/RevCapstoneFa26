@@ -2,7 +2,7 @@ import { enableSwipeNavigation } from "./swipe.js";
 import { loadNavbar } from "./navbar.js";
 import { getAuthToken } from "./authentication.js";
 import { openAuthPopup } from "./popups.js";
-import { createSavedGame, saveConfirmedShots, readSavedGame, updateShotComment } from "./game_persistence.js";
+import { createSavedGame, saveConfirmedShots, readSavedGame, updateSavedShot, updateShotComment } from "./game_persistence.js";
 import {
     setPinLeave,
     getPinLeave,
@@ -65,6 +65,7 @@ databaseStatus.setAttribute("role", "status");
 document.querySelector(".game_footer").append(databaseStatus);
 
 const database = gameState.database ??= { frameIds: {}, shotIds: {} };
+const editedShotIds = new Set(gameState.editedShotIds ?? []);
 const pendingSetup = sessionStorage.getItem("pendingGameSetup");
 if (pendingSetup) {
     try {
@@ -119,7 +120,16 @@ async function saveToDatabase() {
     try {
         await createSavedGame(database, cacheGameProgress);
         sessionStorage.setItem(`savedGame:${database.game.game_id}:cache`, gameId);
-        await saveConfirmedShots(database, confirmedFrames(), cacheGameProgress);
+        const savedFrames = confirmedFrames();
+        await saveConfirmedShots(database, savedFrames, cacheGameProgress);
+        for (const frame of savedFrames) {
+            for (const shot of frame.shots) {
+                if (!editedShotIds.has(shot.id) || !database.shotIds[shot.id]) continue;
+                await updateSavedShot(database.shotIds[shot.id], shot);
+                editedShotIds.delete(shot.id);
+                cacheGameProgress();
+            }
+        }
         databaseMessage = "All confirmed shots saved.";
         if (typeof window.history?.replaceState === "function") {
             // Keep the local cache key until a reload; the URL enables database recovery.
@@ -142,7 +152,10 @@ async function saveToDatabase() {
 
 
 function cacheGameProgress() {
-    Object.assign(gameState, { currentFrame, currentShot, gameFinished, currentFoul });
+    Object.assign(gameState, {
+        currentFrame, currentShot, gameFinished, currentFoul,
+        editedShotIds: [...editedShotIds],
+    });
     setGameState(gameId, gameState);
 }
 
@@ -183,30 +196,73 @@ for (const type of ["login", "signup"]) {
 }
 
 function updateShortcutButtons() {
-    const strikeAllowed = isStrikeOpportunity(currentFrame, currentShot);
-    const locked = gameFinished || busy || loading || loadFailed || viewingFrame !== null;
+    const displayedFrame = viewingFrame ?? currentFrame;
+    const displayedShot = viewingFrame === null ? currentShot : viewingShot;
+    const strikeAllowed = isStrikeOpportunity(displayedFrame, displayedShot);
+    const locked = gameFinished || busy || loading || loadFailed;
 
     foulButton.disabled = locked;
     gutterButton.disabled = locked;
     strikeButton.disabled = locked || !strikeAllowed;
     spareButton.disabled =
-        locked || currentShot === 1 || strikeAllowed;
+        locked || displayedShot === 1 || strikeAllowed;
 
-    foulButton.setAttribute("aria-pressed", String(currentFoul));
+    const displayedShotId = getFrameShots(frames[displayedFrame - 1].id)[displayedShot - 1];
+    const displayedFoul = viewingFrame === null
+        ? currentFoul
+        : Boolean(getShotResult(displayedShotId)?.foul);
+    foulButton.setAttribute("aria-pressed", String(displayedFoul));
 }
 
 function applyShortcut(type) {
-    if (gameFinished || busy || loading || loadFailed || viewingFrame !== null) return;
+    if (gameFinished || busy || loading || loadFailed) return;
 
-    const startingPins = getStartingPins(currentFrame, currentShot);
-    currentFoul = type === "foul";
+    const displayedFrame = viewingFrame ?? currentFrame;
+    const displayedShot = viewingFrame === null ? currentShot : viewingShot;
+    const startingPins = getStartingPins(displayedFrame, displayedShot);
+    const foul = type === "foul";
+    if (viewingFrame === null) currentFoul = foul;
 
     // Foul and gutter credit zero pins.
     // Restore the available rack so the following shot starts correctly.
     const leave =
-        type === "foul" || type === "gutter" ? startingPins : [];
+        foul || type === "gutter" ? startingPins : [];
 
-    setPinLeave(getCurrentShotId(), leave);
+    if (viewingFrame !== null) {
+        saveEditedShot(displayedFrame, displayedShot, leave, foul);
+    } else {
+        setPinLeave(getCurrentShotId(), leave);
+        updateFrame();
+    }
+}
+
+function saveEditedShot(frameNumber, shotNumber, leave, foul = false) {
+    const shots = getFrameShots(frames[frameNumber - 1].id);
+    const startingPins = getStartingPins(frameNumber, shotNumber);
+    const shotId = shots[shotNumber - 1];
+    setPinLeave(shotId, leave);
+    setShotResult(shotId, {
+        pins: foul ? 0 : startingPins.length - leave.length,
+        foul,
+    });
+
+    // Editing an earlier roll can change which pins were available later in
+    // the frame. Keep subsequent saved rolls valid against the revised rack.
+    for (let index = shotNumber; index < shots.length; index++) {
+        const nextShotId = shots[index];
+        const nextStartingPins = getStartingPins(frameNumber, index + 1);
+        const nextLeave = (getPinLeave(nextShotId) ?? nextStartingPins)
+            .filter((pin) => nextStartingPins.includes(pin));
+        const nextFoul = Boolean(getShotResult(nextShotId)?.foul);
+        setPinLeave(nextShotId, nextLeave);
+        setShotResult(nextShotId, {
+            pins: nextFoul ? 0 : nextStartingPins.length - nextLeave.length,
+            foul: nextFoul,
+        });
+    }
+    for (let index = shotNumber - 1; index < shots.length; index++) {
+        if (database.shotIds[shots[index]]) editedShotIds.add(shots[index]);
+    }
     updateFrame();
 }
 
@@ -305,14 +361,24 @@ pinLayout.forEach(({ number, row, column }) => {
     pin.addEventListener("click", () => {
     if (gameFinished || busy || loading || pin.disabled) return;
 
-    currentFoul = false;
+    if (viewingFrame === null) currentFoul = false;
 
     const knockedDown = pin.getAttribute("aria-pressed") === "true";
     pin.setAttribute("aria-pressed", String(!knockedDown));
 
-    cacheLeave();
-    updateShortcutButtons();
-    cacheGameProgress();
+    if (viewingFrame !== null) {
+        const frameNumber = viewingFrame;
+        const shotNumber = viewingShot;
+        const leave = Array.from(
+            pinRack.querySelectorAll('.pin[aria-pressed="false"]'),
+            (item) => Number(item.dataset.pin)
+        ).sort((a, b) => a - b);
+        saveEditedShot(frameNumber, shotNumber, leave);
+    } else {
+        cacheLeave();
+        updateShortcutButtons();
+        cacheGameProgress();
+    }
     });
 
     pinRack.appendChild(pin);
@@ -339,7 +405,7 @@ function updateFrame() {
             String(!leave.includes(number))
         );
 
-        pin.disabled = gameFinished || busy || loading || loadFailed || viewingFrame !== null || !startingPins.includes(number);
+        pin.disabled = gameFinished || busy || loading || loadFailed || !startingPins.includes(number);
     });
 
     renderScorecard();
@@ -395,6 +461,7 @@ nextButton.addEventListener("click", async () => {
     if (viewingFrame !== null) {
         viewingFrame = null;
         updateFrame();
+        if (editedShotIds.size && getAuthToken() !== null) await saveToDatabase();
         return;
     }
     if (gameFinished) {
@@ -817,10 +884,10 @@ if (gameFinished && gameState.finishRequested && getAuthToken() !== null && !loa
 
 
 function navigateShot(direction) {
-    if (busy || loading || loadFailed || database.blocked || document.querySelector("dialog[open]")) return;
+    if (busy || loading || loadFailed || database.blocked || document.querySelector("dialog[open]")) return false;
     if (direction === "next" && viewingFrame === null) {
         if (!gameFinished) nextButton.click();
-        return;
+        return !gameFinished;
     }
     const positions = frames.slice(0, currentFrame).flatMap(frame =>
         getFrameShots(frame.id).map((id, index) => ({ frame: frame.number, shot: index + 1, id }))
@@ -834,12 +901,18 @@ function navigateShot(direction) {
         if (direction === "next" && viewingFrame !== null) {
             viewingFrame = null;
             updateFrame();
+            if (editedShotIds.size && getAuthToken() !== null) void saveToDatabase();
+            return true;
         }
-        return;
+        return false;
     }
     viewingFrame = target.frame === currentFrame && target.shot === currentShot ? null : target.frame;
     viewingShot = target.shot;
     updateFrame();
+    if (viewingFrame === null && editedShotIds.size && getAuthToken() !== null) {
+        void saveToDatabase();
+    }
+    return true;
 }
 
 previousButton.addEventListener("click", () => navigateShot("previous"));

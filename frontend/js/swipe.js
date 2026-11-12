@@ -22,10 +22,20 @@ export function enableSwipeNavigation(element, navigate) {
             event.timeStamp - gesture.time > 1000) return;
         // Suppress a synthetic pin click after a completed swipe.
         suppressClickUntil = performance.now() + 400;
-        navigate(dx < 0 ? "next" : "previous");
+        const direction = dx < 0 ? "next" : "previous";
+        if (navigate(direction) !== false) {
+            const animationClass = `swipe-${direction}`;
+            element.classList.remove("swipe-next", "swipe-previous");
+            // Restart the animation when the user swipes again before it finishes.
+            void element.offsetWidth;
+            element.classList.add(animationClass);
+        }
     });
 
     element.addEventListener("pointercancel", () => { start = null; });
+    element.addEventListener("animationend", (event) => {
+        if (event.target === element) element.classList.remove("swipe-next", "swipe-previous");
+    });
     element.addEventListener("click", (event) => {
         if (event.detail !== 0 && performance.now() < suppressClickUntil) {
             event.preventDefault();
