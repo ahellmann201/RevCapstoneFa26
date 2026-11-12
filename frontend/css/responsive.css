@@ -190,3 +190,14 @@ body.has-app-shell .game-info-page { width: min(calc(100% - 32px), 1180px); }
 @media (prefers-reduced-motion: reduce) {
     body.has-app-shell .sidebar { transition: none; }
 }
+
+/* Keep controls below phone notches and give the page a little breathing room. */
+@media (max-width: 1099px) {
+    body.has-app-shell { --phone-top-space: calc(env(safe-area-inset-top, 0px) + 8px); }
+    body.has-app-shell navbar, body.has-app-shell .navbar { height: calc(var(--navbar-height) + var(--phone-top-space)); }
+    body.has-app-shell .navbar_body { top: var(--phone-top-space); height: var(--navbar-height); }
+    body.has-app-shell .navbar > h1 { transform: translateY(calc(var(--phone-top-space) / 2)); }
+    body.has-app-shell .sidebar_section_close_sidebar { top: calc(16px + env(safe-area-inset-top, 0px)); }
+    body.has-app-shell .header { top: calc(var(--navbar-height) + var(--phone-top-space)); }
+    body.has-app-shell .sidebar { padding-top: calc(20px + env(safe-area-inset-top, 0px)); padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+}

@@ -11,6 +11,57 @@ import "./api_client.js";
 
 retryConnection(true);
 
+let swipeListeners;
+function enableMenuSwipe() {
+    swipeListeners?.abort();
+    swipeListeners = new AbortController();
+    const signal = swipeListeners.signal;
+    let start = null;
+    let suppressClickUntil = 0;
+    const blocked = "input, textarea, select, button, a, [contenteditable], dialog, .lane_panel";
+    document.body.addEventListener("touchstart", event => {
+        start = null;
+        if (event.touches.length !== 1 || window.matchMedia("(min-width: 1100px)").matches ||
+            document.querySelector("dialog[open]") || event.target.closest(blocked)) return;
+        // Leave horizontal scorecards, tables, and carousels to their own gestures.
+        for (let node = event.target; node && node !== document.body; node = node.parentElement) {
+            if (node.scrollWidth > node.clientWidth + 1 && /auto|scroll/.test(getComputedStyle(node).overflowX)) return;
+        }
+        const touch = event.touches[0];
+        if (touch.clientX < 24 || touch.clientX > innerWidth - 24) return;
+        start = { x: touch.clientX, y: touch.clientY, id: touch.identifier, time: event.timeStamp,
+            open: document.body.classList.contains("navigation-open") };
+    }, { passive: true, signal });
+    document.body.addEventListener("touchmove", event => {
+        if (!start) return;
+        if (event.touches.length !== 1) { start = null; return; }
+        const touch = event.touches[0];
+        const dx = touch.clientX - start.x, dy = touch.clientY - start.y;
+        if (Math.abs(dy) > 12 && Math.abs(dy) >= Math.abs(dx)) { start = null; return; }
+        if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.5 &&
+            (start.open ? dx < 0 : dx > 0) && event.cancelable) event.preventDefault();
+    }, { passive: false, signal });
+    document.body.addEventListener("touchend", event => {
+        const gesture = start;
+        start = null;
+        if (!gesture || event.touches.length || window.matchMedia("(min-width: 1100px)").matches) return;
+        const touch = [...event.changedTouches].find(item => item.identifier === gesture.id);
+        if (!touch) return;
+        const dx = touch.clientX - gesture.x, dy = touch.clientY - gesture.y;
+        if (Math.abs(dx) < 72 || Math.abs(dx) < Math.abs(dy) * 1.5 || event.timeStamp - gesture.time > 1000) return;
+        if (!gesture.open && dx > 0) openSidebar();
+        else if (gesture.open && dx < 0) closeSidebar();
+        else return;
+        suppressClickUntil = performance.now() + 400;
+    }, { passive: true, signal });
+    document.body.addEventListener("touchcancel", () => { start = null; }, { passive: true, signal });
+    document.body.addEventListener("click", event => {
+        if (event.detail && performance.now() < suppressClickUntil) {
+            event.preventDefault(); event.stopImmediatePropagation();
+        }
+    }, { capture: true, signal });
+}
+
 function updateSidebarAccessibility() {
     const sidebar = document.getElementById("sidebar");
     const desktop = window.matchMedia("(min-width: 1100px)").matches;
@@ -302,6 +353,7 @@ export function loadNavbar() {
         }
     });
     updateSidebarAccessibility();
+    enableMenuSwipe();
     initializeLanguage();
     void syncAccountLanguage();
 

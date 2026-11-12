@@ -68,3 +68,43 @@ it("shows working destinations and marks game screens under Games", () => {
         expect(document.getElementById(id)).toBeNull();
     }
 });
+
+
+function swipe(target, dx, dy = 0, cancel = false) {
+    const touch = { identifier: 1, clientX: 220, clientY: 220 };
+    const start = new Event("touchstart", { bubbles: true });
+    Object.defineProperty(start, "touches", { value: [touch] });
+    target.dispatchEvent(start);
+    const end = new Event(cancel ? "touchcancel" : "touchend", { bubbles: true });
+    Object.defineProperties(end, {
+        touches: { value: [] },
+        changedTouches: { value: [{ ...touch, clientX: 220 + dx, clientY: 220 + dy }] },
+    });
+    target.dispatchEvent(end);
+}
+it("opens with a right swipe and closes with a left swipe on mobile", () => {
+    loadNavbar();
+    swipe(document.querySelector("main"), 110);
+    expect(document.getElementById("sidebar").inert).toBe(false);
+    swipe(document.querySelector(".sidebar-brand"), -110);
+    expect(document.getElementById("sidebar").inert).toBe(true);
+});
+it("ignores scrolling, cancelled gestures, controls, game lane and desktop swipes", () => {
+    loadNavbar();
+    const main = document.querySelector("main");
+    main.innerHTML = '<input><div class="lane_panel">Lane</div><div class="table">Table</div>';
+    const table = main.querySelector(".table");
+    table.style.overflowX = "auto";
+    Object.defineProperty(table, "scrollWidth", { value: 500 });
+    Object.defineProperty(table, "clientWidth", { value: 200 });
+    swipe(main, 20);
+    swipe(main, 80, 160);
+    swipe(main, 110, 0, true);
+    swipe(main.querySelector("input"), 110);
+    swipe(main.querySelector(".lane_panel"), 110);
+    swipe(table, 110);
+    expect(document.getElementById("sidebar").inert).toBe(true);
+    media.matches = true;
+    swipe(main, 110);
+    expect(document.body.classList.contains("navigation-open")).toBe(false);
+});
