@@ -117,3 +117,26 @@ it("renders native language names with the correct Unicode characters", async ()
     expect([...document.querySelector("[data-language-picker]").options].map(option => option.textContent))
         .toEqual(["English", "Espa\u00f1ol", "Fran\u00e7ais", "Deutsch", "\u7b80\u4f53\u4e2d\u6587"]);
 });
+
+
+it("translates the real appearance controls in every language without changing the theme", async () => {
+    const { readFileSync } = await import("node:fs");
+    const html = readFileSync("frontend/account_settings.html", "utf8");
+    const parsed = new DOMParser().parseFromString(html, "text/html");
+    document.body.replaceChildren(parsed.querySelector(".appearance-preference"));
+    const { setLanguage } = await import("../language.js");
+    const { initializeTheme, setTheme, getTheme } = await import("../theme.js");
+    const { translations } = await import("../translations.js");
+    initializeTheme();
+    setTheme("light");
+    for (const code of ["es", "fr", "de", "zh-CN", "en"]) {
+        setLanguage(code);
+        expect(document.querySelector("label").textContent).toBe(translations[code].Appearance);
+        expect(document.querySelector('[value="dark"]').textContent).toBe(translations[code].Dark);
+        expect(document.querySelector('[value="light"]').textContent).toBe(translations[code].Light);
+        expect(document.querySelector("small").textContent).toBe(translations[code]["Saved on this browser, including when logged out."]);
+        expect(document.querySelector("select").value).toBe("light");
+        expect(getTheme()).toBe("light");
+    }
+    setTheme("dark");
+});

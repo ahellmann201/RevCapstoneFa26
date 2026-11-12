@@ -34,3 +34,31 @@ export function getPfpHue() {
 window.randomizePfpHue = randomizePfpHue;
 window.applyPfpHue = applyPfpHue;
 window.getPfpHue = getPfpHue;
+
+
+// Appearance is a browser preference and survives logout.
+const THEME_KEY = "revmetrix.theme";
+export function getTheme() {
+    try { return localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark"; }
+    catch { return "dark"; }
+}
+export function setTheme(value) {
+    const theme = value === "light" ? "light" : "dark";
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.style.colorScheme = theme;
+    try { localStorage.setItem(THEME_KEY, theme); } catch { /* Apply even if storage is unavailable. */ }
+    document.querySelectorAll("[data-theme-picker]").forEach(picker => { picker.value = theme; });
+    return theme;
+}
+export function initializeTheme() {
+    setTheme(getTheme());
+    document.querySelectorAll("[data-theme-picker]").forEach(picker => {
+        picker.onchange = () => setTheme(picker.value);
+    });
+}
+setTheme(getTheme());
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initializeTheme, { once: true });
+else initializeTheme();
+window.addEventListener("storage", event => {
+    if (event.key === THEME_KEY || event.key === null) initializeTheme();
+});

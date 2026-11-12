@@ -81,6 +81,7 @@ let loading = Boolean(requestedDatabaseId || database.game);
 let databaseMessage = "";
 let viewingFrame = null;
 let viewingShot = 1;
+let selectedShortcut = null;
 let loadFailed = false;
 
 function confirmedFrames() {
@@ -184,7 +185,7 @@ for (const type of ["login", "signup"]) {
 
 function updateShortcutButtons() {
     const strikeAllowed = isStrikeOpportunity(currentFrame, currentShot);
-    const locked = gameFinished || busy || loading || loadFailed || viewingFrame !== null;
+    const locked = gameFinished || busy || loading || loadFailed || database.blocked || viewingFrame !== null;
 
     foulButton.disabled = locked;
     gutterButton.disabled = locked;
@@ -193,10 +194,13 @@ function updateShortcutButtons() {
         locked || currentShot === 1 || strikeAllowed;
 
     foulButton.setAttribute("aria-pressed", String(currentFoul));
+    gutterButton.setAttribute("aria-pressed", String(selectedShortcut === "gutter"));
+    strikeButton.setAttribute("aria-pressed", String(selectedShortcut === "strike"));
 }
 
 function applyShortcut(type) {
-    if (gameFinished || busy || loading || loadFailed || viewingFrame !== null) return;
+    if (gameFinished || busy || loading || loadFailed || database.blocked || viewingFrame !== null) return;
+    selectedShortcut = type;
 
     const startingPins = getStartingPins(currentFrame, currentShot);
     currentFoul = type === "foul";
@@ -306,6 +310,7 @@ pinLayout.forEach(({ number, row, column }) => {
     if (gameFinished || busy || loading || pin.disabled) return;
 
     currentFoul = false;
+    selectedShortcut = null;
 
     const knockedDown = pin.getAttribute("aria-pressed") === "true";
     pin.setAttribute("aria-pressed", String(!knockedDown));
@@ -330,6 +335,11 @@ function updateFrame() {
     gameStatus.textContent = gameFinished
         ? "Game complete"
         : `Frame ${currentFrame} of ${FRAME_COUNT} \u00b7 Shot ${currentShot}`;
+
+    if (selectedShortcut && viewingFrame === null && !gameFinished) {
+        const name = selectedShortcut[0].toUpperCase() + selectedShortcut.slice(1);
+        gameStatus.textContent += ` — ${name} selected. Next Shot confirms it.`;
+    }
 
     pinRack.querySelectorAll(".pin").forEach((pin) => {
         const number = Number(pin.dataset.pin);
@@ -436,6 +446,7 @@ nextButton.addEventListener("click", async () => {
     }
 
     currentFoul = false;
+    selectedShortcut = null;
     updateFrame();
     if (getAuthToken() !== null) await saveToDatabase();
 });
@@ -844,3 +855,15 @@ function navigateShot(direction) {
 
 previousButton.addEventListener("click", () => navigateShot("previous"));
 enableSwipeNavigation(document.querySelector(".lane_panel"), navigateShot);
+
+
+document.addEventListener("keydown", event => {
+    if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || event.isComposing) return;
+    if (event.target.closest?.("input, textarea, select, [contenteditable='true'], [contenteditable=''], navbar")) return;
+    if (document.querySelector("dialog[open], .log_out_popup:not(.hidden)") ||
+        document.body.classList.contains("navigation-open")) return;
+    const button = { g: gutterButton, x: strikeButton }[event.key.toLowerCase()];
+    if (!button || button.disabled) return;
+    event.preventDefault();
+    button.click();
+});

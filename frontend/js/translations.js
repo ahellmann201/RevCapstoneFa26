@@ -1,6 +1,10 @@
 /** Interface strings only. Bowling records retain their original text. */
 export const translations = {
     "en": {
+        "Appearance": "Appearance",
+        "Dark": "Dark",
+        "Light": "Light",
+        "Saved on this browser, including when logged out.": "Saved on this browser, including when logged out.",
         "Language": "Language",
         "Home": "Home",
         "Ball Arsenal": "Ball Arsenal",
@@ -101,6 +105,10 @@ export const translations = {
         "Games": "Games"
     },
     "es": {
+        "Appearance": "Apariencia",
+        "Dark": "Oscuro",
+        "Light": "Claro",
+        "Saved on this browser, including when logged out.": "Se guarda en este navegador, incluso al cerrar sesi\u00f3n.",
         "Language": "Idioma",
         "Home": "Inicio",
         "Ball Arsenal": "Mis bolas",
@@ -201,6 +209,10 @@ export const translations = {
         "Games": "Partidas"
     },
     "fr": {
+        "Appearance": "Apparence",
+        "Dark": "Sombre",
+        "Light": "Clair",
+        "Saved on this browser, including when logged out.": "Enregistr\u00e9 dans ce navigateur, m\u00eame apr\u00e8s la d\u00e9connexion.",
         "Language": "Langue",
         "Home": "Accueil",
         "Ball Arsenal": "Mes boules",
@@ -301,6 +313,10 @@ export const translations = {
         "Games": "Parties"
     },
     "de": {
+        "Appearance": "Darstellung",
+        "Dark": "Dunkel",
+        "Light": "Hell",
+        "Saved on this browser, including when logged out.": "Wird in diesem Browser gespeichert, auch nach dem Abmelden.",
         "Language": "Sprache",
         "Home": "Startseite",
         "Ball Arsenal": "Meine Bälle",
@@ -401,6 +417,10 @@ export const translations = {
         "Games": "Spiele"
     },
     "zh-CN": {
+        "Appearance": "\u5916\u89c2",
+        "Dark": "\u6df1\u8272",
+        "Light": "\u6d45\u8272",
+        "Saved on this browser, including when logged out.": "\u4fdd\u5b58\u5728\u6b64\u6d4f\u89c8\u5668\u4e2d\uff0c\u9000\u51fa\u767b\u5f55\u540e\u4ecd\u7136\u6709\u6548\u3002",
         "Language": "语言",
         "Home": "首页",
         "Ball Arsenal": "保龄球装备",

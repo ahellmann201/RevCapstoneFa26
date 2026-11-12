@@ -80,3 +80,25 @@ input {
     input:not([type="checkbox"]):not([type="radio"]), select, textarea { font-size: max(16px, 1rem); }
     dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflow-y: auto; }
 }
+
+:root { color-scheme: dark; --app-text: #f0f0f0; --settings-surface: #153640; --settings-muted: #b6cbd1; }
+:root[data-theme="light"] {
+ color-scheme: light; --bg-color: #f1f6f7; --lighter-bg-color: #e2edf0; --lighter-bg-color-2: #d0e1e6; --app-text: #162f38; --settings-surface: #ffffff; --settings-muted: #49646e;
+ --appearance-surface: #ffffff;
+ --appearance-raised: #e2edf0;
+ --appearance-navigation: #edf4f5;
+ --appearance-outline: #a3bac2;
+ --appearance-outline-strong: #69848d;
+ --appearance-text: #162f38;
+ --appearance-text-soft: #294752;
+ --appearance-muted: #49646e;
+ --appearance-label: #35535e;
+ --appearance-current: #fff0da;
+ --appearance-shot: #e3eef0;
+ --appearance-disabled: #d5e0e4;
+ --appearance-selected: #f7dfbd;
+}
+body { color: var(--app-text); }
+
+:root[data-theme="light"] { --text-input-color: #162f38; }
+:root[data-theme="light"] .text_input { color: #162f38; }
