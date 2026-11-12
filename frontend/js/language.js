@@ -5,10 +5,10 @@ import { request } from "./api_client.js";
 const storageKey = "revmetrix.language";
 export const languages = [
     { code: "en", name: "English" },
-    { code: "es", name: "EspaÃƒÂ±ol" },
-    { code: "fr", name: "FranÃƒÂ§ais" },
+    { code: "es", name: "Espa\u00f1ol" },
+    { code: "fr", name: "Fran\u00e7ais" },
     { code: "de", name: "Deutsch" },
-    { code: "zh-CN", name: "Ã§Â®â‚¬Ã¤Â½â€œÃ¤Â¸Â­Ã¦â€“â€¡" },
+    { code: "zh-CN", name: "\u7b80\u4f53\u4e2d\u6587" },
 ];
 
 function storedLanguage() {

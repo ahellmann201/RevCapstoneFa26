@@ -376,3 +376,25 @@
 .save_display_name:disabled {
     color: rgb(12 12 12 / 50%);
 }
+
+@media (max-width: 640px) {
+    .account_field { width: calc(100% - 24px); min-width: 0; }
+    .pfp_field { flex-direction: column; padding: 16px; gap: 16px; }
+    .pfp_field_content_container, .pfp_field_buttons_container { width: 100%; min-width: 0; }
+    .names_field { flex-direction: column; }
+    .username_area, .display_name_area { width: 100%; min-width: 0; }
+    .save_container { width: 100%; gap: 8px; flex-wrap: wrap; }
+    .save_container > button { min-height: 44px; font-size: 1.1rem; }
+}
+
+@media (max-width: 640px) {
+    :root {
+        --hand-width: 72px;
+        --hand-font-size: 18px;
+        --mainhand-selector-height: 44px;
+        --mainhand-selection-height: 44px;
+        --mainhand-selection-margin-top: 0;
+    }
+    .mainhand_area { width: 100%; flex-direction: column; align-items: flex-start; gap: 12px; padding: 16px; }
+    .mainhand_area > p { margin-left: 0; }
+}

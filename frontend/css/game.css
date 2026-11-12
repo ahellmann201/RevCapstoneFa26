@@ -507,3 +507,10 @@ body {
 .comment-actions button[type="submit"] { background: var(--accent-color); color: var(--text-on-accent); font-weight: bold; }
 .comment-actions button:disabled { opacity: .5; cursor: wait; }
 .shot-comment-dialog :focus-visible { outline: 2px solid var(--accent-color); outline-offset: 4px; }
+
+.lane_panel { touch-action: pan-y pinch-zoom; }
+.swipe_hint { margin-bottom: 12px; color: var(--text-muted); font-size: 0.85rem; line-height: 1.4; }
+.secondary_actions { flex-wrap: wrap; }
+@media (hover: hover) and (pointer: fine) {
+    .swipe_hint { display: none; }
+}

@@ -1,0 +1,192 @@
+/* Shared responsive shell. Keep the app's established navy, teal, and orange. */
+:root {
+    --navigation-width: 256px;
+    --shell-border: #31505a;
+    --shell-surface: #092b35;
+    --navbar-height: 72px;
+}
+
+body.has-app-shell {
+    min-height: 100dvh;
+    height: auto;
+    overflow-x: clip;
+    overflow-y: auto;
+}
+body.has-app-shell navbar {
+    display: block;
+    position: sticky;
+    inset: 0 0 auto;
+    width: 100%;
+    height: var(--navbar-height);
+    z-index: 40;
+}
+body.has-app-shell .navbar {
+    width: 100%;
+    height: var(--navbar-height);
+    border-bottom: 1px solid var(--shell-border);
+    background: #062630;
+}
+body.has-app-shell .navbar > h1 {
+    font-size: clamp(1.25rem, 4vw, 2rem);
+    letter-spacing: 0.1em;
+}
+body.has-app-shell .navbar_body {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: transparent;
+}
+body.has-app-shell .elements_container { padding: 0 20px; }
+body.has-app-shell .hamburger_button {
+    width: 36px;
+    height: 28px;
+    margin: 0;
+    padding: 0;
+    flex: 0 0 auto;
+    overflow: visible;
+}
+body.has-app-shell .hamburger_button > div { height: 3px; border-radius: 4px; }
+body.has-app-shell .profile_picture_container {
+    width: 44px;
+    height: 44px;
+    margin: 0;
+    padding: 0;
+    border: 2px solid #52717b;
+}
+body.has-app-shell .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: min(var(--navigation-width), calc(100vw - 32px));
+    max-width: none;
+    height: 100dvh;
+    padding: 20px 12px 12px;
+    gap: 12px;
+    color: #d6e2e5;
+    background: linear-gradient(180deg, #103440, #062630 70%);
+    border-right: 1px solid var(--shell-border);
+    box-shadow: 12px 0 40px #0004;
+    z-index: 60;
+    overflow: hidden;
+    transition: transform 200ms ease, visibility 200ms;
+}
+body.has-app-shell .sidebar_inactive { left: 0; transform: translateX(-100%); visibility: hidden; }
+body.has-app-shell .sidebar_active { left: 0; transform: translateX(0); visibility: visible; }
+.sidebar-brand { padding: 8px 12px 18px; font-size: 1.45rem; font-weight: bold; letter-spacing: .1em; color: var(--button-color-2); }
+body.has-app-shell .sidebar_links { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+body.has-app-shell .sidebar_section { height: auto; min-height: 0; margin: 0 0 4px; padding: 0; }
+body.has-app-shell .sidebar_section > .sidebar_button {
+    display: block;
+    min-height: 44px;
+    height: auto;
+    padding: 11px 14px;
+    border-left: 3px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: #d6e2e5;
+    font-size: 1.05rem;
+    line-height: 1.3;
+    text-align: left;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+}
+body.has-app-shell .sidebar_button:hover { background: #254e57; color: white; }
+body.has-app-shell .sidebar_button[aria-current="page"] {
+    border-left-color: var(--button-color-2);
+    background: #29444a;
+    color: #ffc77d;
+    font-weight: bold;
+}
+body.has-app-shell .sidebar_section_close_sidebar { position: absolute; top: 16px; right: 12px; width: 36px; }
+body.has-app-shell .close_sidebar_button { width: 32px; height: 32px; margin: 0; border-radius: 8px; background: transparent; }
+body.has-app-shell .close_sidebar_button > div { width: 24px; height: 2px; background: #d6e2e5; }
+body.has-app-shell .sidebar .language-preference { flex: 0 0 auto; padding: 12px; border-top: 1px solid var(--shell-border); }
+body.has-app-shell .sidebar .language-preference label { font-size: .85rem; color: #a6bdc3; }
+body.has-app-shell .sidebar .language-preference select { background: #103440; color: #f5f7f7; border: 1px solid #52717b; font-size: 1rem; }
+body.has-app-shell .sidebar_auth { flex: 0 0 auto; padding-top: 8px; margin: 0; border-top: 1px solid var(--shell-border); }
+body.has-app-shell .sidebar_auth > button { min-height: 44px; margin: 0; border-radius: 10px; font-size: 1rem; padding: 10px; cursor: pointer; }
+.sidebar-backdrop { position: fixed; inset: 0; width: 100%; height: 100dvh; border: 0; background: #001219b8; z-index: 50; }
+.sidebar-backdrop[hidden] { display: none; }
+body.navigation-open { overflow: hidden; }
+body.has-app-shell .pfp_dropdown { right: 16px; margin: 0; }
+body.has-app-shell .sidebar :focus-visible,
+body.has-app-shell .navbar :focus-visible { outline: 2px solid var(--button-color-2); outline-offset: 3px; }
+
+/* Content remains in normal document flow, including the arsenal and comparison. */
+body.has-app-shell .header {
+    position: sticky;
+    top: var(--navbar-height);
+    inset-inline: auto;
+    width: 100%;
+    height: auto;
+    padding: 16px clamp(12px, 4vw, 48px);
+    gap: 12px;
+    background: var(--bg-color);
+    z-index: 20;
+}
+body.has-app-shell .ball_list_container {
+    position: static;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    padding: 16px clamp(12px, 4vw, 48px) 32px;
+    overflow: visible;
+}
+body.has-app-shell .compare-page { height: auto; min-height: calc(100dvh - var(--navbar-height)); }
+body.has-app-shell .comparison, body.has-app-shell .ball-picker, body.has-app-shell .ball-list { flex: initial; }
+body.has-app-shell .ball-picker, body.has-app-shell .ball-list { overflow: visible; }
+body.has-app-shell .comparison-results { overflow-x: auto; }
+body.has-app-shell .comparison-results table { min-width: 360px; }
+body.has-app-shell .compare-sort-button { white-space: normal; }
+body.has-app-shell .landing,
+body.has-app-shell .establishments-page,
+body.has-app-shell .stats-page { width: min(100%, 1180px); }
+body.has-app-shell .game-info-page { width: min(calc(100% - 32px), 1180px); }
+
+@media (min-width: 768px) {
+    body.has-app-shell .establishment-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    body.has-app-shell .week-day { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 20px; align-items: start; }
+    body.has-app-shell .day-events { grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); }
+    body.has-app-shell .fields_container {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: start;
+        gap: 24px;
+        width: min(100%, 1180px);
+        margin: 0 auto;
+        padding: 24px;
+    }
+    body.has-app-shell .account_field { width: 100%; margin: 0; min-width: 0; }
+    body.has-app-shell .fields_container > .language-preference { grid-column: 1 / -1; }
+    body.has-app-shell .pfp_field { flex-direction: column; padding: 24px; gap: 20px; grid-row: span 2; }
+    body.has-app-shell .pfp_field_content_container,
+    body.has-app-shell .pfp_field_buttons_container { width: 100%; min-width: 0; }
+    body.has-app-shell .pfp_field_picture_container { width: min(180px, 100%); height: auto; aspect-ratio: 1; margin-inline: auto; }
+    body.has-app-shell .names_field { padding: 24px; }
+    body.has-app-shell .extra_field { padding: 16px; }
+}
+
+@media (min-width: 1100px) {
+    body.has-app-shell { padding-left: var(--navigation-width); }
+    body.has-app-shell .sidebar { transform: none; visibility: visible; box-shadow: none; transition: none; }
+    body.has-app-shell .sidebar_section_close_sidebar,
+    body.has-app-shell .hamburger_button,
+    body.has-app-shell .sidebar-backdrop { display: none; }
+    body.has-app-shell .elements_container { justify-content: flex-end; }
+    body.has-app-shell .navbar > h1 { left: 28px; font-size: 1rem; color: #a6bdc3; }
+    body.has-app-shell .game_page {
+        width: min(100%, 1100px);
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 260px;
+        gap: 20px;
+        align-items: start;
+        padding: 24px;
+    }
+    body.has-app-shell .score_section { grid-column: 1 / -1; }
+    body.has-app-shell .game_footer { position: sticky; top: calc(var(--navbar-height) + 24px); margin-top: 10px; }
+    body.has-app-shell .lane_panel { min-width: 0; }
+    body.has-app-shell .add-establishment { right: 28px; bottom: 28px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.has-app-shell .sidebar { transition: none; }
+}

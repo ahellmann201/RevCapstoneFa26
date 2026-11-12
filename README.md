@@ -502,3 +502,29 @@ Apply this migration before rebuilding/restarting the API.
 SQLite initialization upgrades existing users tables without resetting records.
 The authenticated PUT /auth/me/language endpoint accepts
 {"main_language": "es"} and updates only the current account.
+
+### Mobile navigation
+
+The home page weekly schedule scrolls vertically. On the game lane, swipe left
+to confirm and advance the current shot using the same save flow as Next Shot.
+Swipe right to review an earlier shot. While reviewing, swipe left to move
+forward through recorded shots and return to the current shot. Previous Shot
+and Next Shot buttons remain available. Swiping does not finish or leave a game.
+The scorecard keeps native horizontal scrolling.
+
+### Responsive layout
+
+At viewport widths of 1100 CSS pixels or more, navigation stays visible in a
+256-pixel left sidebar. Narrower windows use the hamburger drawer with a backdrop,
+Escape-to-close, and keyboard focus containment. The active page is highlighted.
+Lists and account settings adapt to the available width, and the wide game page
+places its controls beside the lane. Shrinking the window restores the mobile
+layout without reloading or clearing game state.
+
+### Games navigation
+
+Games lists all of the signed-in user's saved games with event/date context and
+a search field. Selecting a game opens its saved scorecard for viewing or
+continuing. Start Game opens the home page's event/establishment setup and starts
+a fresh game. The menu omits the placeholder Sessions, Ciclops, Smart Dot, and
+Smart Watch destinations.

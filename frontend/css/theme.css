@@ -45,7 +45,7 @@ button {
 
 body {
     background-color: var(--bg-color);
-    overflow-x: none;
+    overflow-x: clip;
 }
 
 .button_1 {
@@ -74,4 +74,9 @@ input {
 
 .hidden {
     display: none;
+}
+
+@media (max-width: 640px) {
+    input:not([type="checkbox"]):not([type="radio"]), select, textarea { font-size: max(16px, 1rem); }
+    dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflow-y: auto; }
 }

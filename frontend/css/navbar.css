@@ -571,3 +571,16 @@ body:has(.auth_popup[open]) {
     color: #102332;
     background: #f5f7fa;
 }
+
+.sidebar > .sidebar_section { flex-shrink: 0; }
+.sidebar .language-preference { height: auto; }
+@media (max-width: 640px) {
+    .navbar > h1 { font-size: clamp(1.3rem, 6vw, 2.4rem); }
+    .sidebar { position: fixed; top: 0; bottom: 0; max-width: calc(100vw - 24px); overscroll-behavior-y: contain; }
+    .sidebar_section > button { white-space: normal; text-align: left; font-size: 1.5rem; }
+    .sidebar_section { height: auto; min-height: 48px; }
+    .profile_picture_container { height: 52px; }
+}
+
+/* Keep the brand above the navbar's frosted background. */
+.navbar > h1 { z-index: 2; pointer-events: none; }

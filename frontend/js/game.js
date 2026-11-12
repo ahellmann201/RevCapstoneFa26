@@ -1,4 +1,5 @@
-﻿import { loadNavbar } from "./navbar.js";
+import { enableSwipeNavigation } from "./swipe.js";
+import { loadNavbar } from "./navbar.js";
 import { getAuthToken } from "./authentication.js";
 import { openAuthPopup } from "./popups.js";
 import { createSavedGame, saveConfirmedShots, readSavedGame, updateShotComment } from "./game_persistence.js";
@@ -27,12 +28,18 @@ const requestedDatabaseId = new URLSearchParams(window.location.search ?? "").ge
 const activeId = getActiveGameId();
 const rememberedId = requestedDatabaseId && sessionStorage.getItem(`savedGame:${requestedDatabaseId}:cache`);
 const activeMatchesDatabase = activeId && String(getGameState(activeId)?.database?.game?.game_id) === requestedDatabaseId;
-const gameId = requestedDatabaseId
+const startNewGame = !requestedDatabaseId && new URLSearchParams(window.location.search ?? "").get("new") === "1";
+const gameId = startNewGame ? crypto.randomUUID() : requestedDatabaseId
     ? activeMatchesDatabase ? activeId : rememberedId && getGameState(rememberedId) ? rememberedId : `database-${requestedDatabaseId}`
     : getActiveGameId() ?? crypto.randomUUID();
 const gameState = getGameState(gameId) ?? { createdAt: new Date().toISOString() };
 const shotComments = gameState.shotComments ??= {};
 setActiveGameId(gameId);
+if (startNewGame && typeof window.history?.replaceState === "function") {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("new");
+    window.history.replaceState(null, "", url);
+}
 let currentFrame = gameState.currentFrame ?? 1;
 let currentShot = gameState.currentShot ?? 1;
 let gameFinished = gameState.gameFinished ?? false;
@@ -45,6 +52,7 @@ const frameStrip = document.getElementById("frame_strip");
 const pinRack = document.getElementById("pin_rack");
 const frameTitle = document.getElementById("frame_title");
 const nextButton = document.getElementById("next_frame");
+const previousButton = document.getElementById("previous_shot");
 const gameStatus = document.getElementById("game_status");
 const foulButton = document.getElementById("foul_button");
 const gutterButton = document.getElementById("gutter_button");
@@ -359,6 +367,8 @@ function updateFrame() {
         : 'Next Shot';
     nextButton.disabled = busy || loading || loadFailed || Boolean(database.blocked);
 
+    previousButton.disabled = busy || loading || loadFailed ||
+        ((viewingFrame ?? currentFrame) === 1 && (viewingFrame === null ? currentShot : viewingShot) === 1);
     updateShortcutButtons();
     cacheGameProgress();
     updateDatabaseControls();
@@ -804,3 +814,33 @@ restoreDatabaseProgress();
 if (gameFinished && gameState.finishRequested && getAuthToken() !== null && !loading) {
     finishGame();
 }
+
+
+function navigateShot(direction) {
+    if (busy || loading || loadFailed || database.blocked || document.querySelector("dialog[open]")) return;
+    if (direction === "next" && viewingFrame === null) {
+        if (!gameFinished) nextButton.click();
+        return;
+    }
+    const positions = frames.slice(0, currentFrame).flatMap(frame =>
+        getFrameShots(frame.id).map((id, index) => ({ frame: frame.number, shot: index + 1, id }))
+            .filter(position => position.frame === currentFrame
+                ? position.shot <= currentShot
+                : getShotResult(position.id) !== null));
+    const index = positions.findIndex(position => position.frame === (viewingFrame ?? currentFrame) &&
+        position.shot === (viewingFrame === null ? currentShot : viewingShot));
+    const target = positions[index + (direction === "next" ? 1 : -1)];
+    if (!target) {
+        if (direction === "next" && viewingFrame !== null) {
+            viewingFrame = null;
+            updateFrame();
+        }
+        return;
+    }
+    viewingFrame = target.frame === currentFrame && target.shot === currentShot ? null : target.frame;
+    viewingShot = target.shot;
+    updateFrame();
+}
+
+previousButton.addEventListener("click", () => navigateShot("previous"));
+enableSwipeNavigation(document.querySelector(".lane_panel"), navigateShot);

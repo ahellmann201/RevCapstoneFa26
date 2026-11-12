@@ -136,3 +136,14 @@ navbar {
     .ball-list { grid-template-columns: minmax(0, 1fr); }
     .comparison-results th, .comparison-results td { padding: 10px 8px; font-size: .9rem; }
 }
+
+/* Let phone users scroll the page rather than a fixed-height picker. */
+@media (max-width: 640px) {
+    body { height: auto; min-height: 100dvh; overflow: visible; }
+    .compare-page { height: auto; min-height: calc(100dvh - var(--navbar-height)); }
+    .comparison, .ball-picker, .ball-list { flex: initial; }
+    .ball-picker, .ball-list { overflow: visible; }
+    .comparison-results { overflow-x: auto; touch-action: pan-x pan-y; }
+    .comparison-results table { min-width: 360px; }
+    .compare-sort-button { white-space: normal; overflow-wrap: anywhere; }
+}

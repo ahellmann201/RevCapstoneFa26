@@ -1,5 +1,6 @@
 /** Implements the site navbar, sidebar, and its authentication controls. */
 import "../css/navbar.css";
+import "../css/responsive.css";
 import "./theme.js";
 import { initializeLanguage, syncAccountLanguage } from "./language.js";
 import { clearAuthToken, getAuthToken, logOut, setAuthToken } from "./authentication.js";
@@ -10,23 +11,37 @@ import "./api_client.js";
 
 retryConnection(true);
 
-export function openSidebar() {
+function updateSidebarAccessibility() {
     const sidebar = document.getElementById("sidebar");
-    sidebar.classList.remove("sidebar_inactive");
-    sidebar.classList.add("sidebar_active");
+    const desktop = window.matchMedia("(min-width: 1100px)").matches;
+    const open = desktop || sidebar.classList.contains("sidebar_active");
+    sidebar.inert = !open;
+    sidebar.setAttribute("aria-hidden", String(!open));
+    document.getElementById("hamburger-button").setAttribute("aria-expanded", String(open));
+    document.getElementById("sidebar-backdrop").hidden = desktop || !open;
+    document.body.classList.toggle("navigation-open", !desktop && open);
 }
 
+export function openSidebar() {
+    const sidebar = document.getElementById("sidebar");
+    sidebar.classList.replace("sidebar_inactive", "sidebar_active");
+    updateSidebarAccessibility();
+    document.getElementById("close-sidebar-button").focus();
+}
 
 export function closeSidebar() {
     const sidebar = document.getElementById("sidebar");
-    sidebar.classList.remove("sidebar_active");
-    sidebar.classList.add("sidebar_inactive");
-
+    sidebar.classList.replace("sidebar_active", "sidebar_inactive");
+    updateSidebarAccessibility();
+    if (!window.matchMedia("(min-width: 1100px)").matches && sidebar.contains(document.activeElement)) {
+        document.getElementById("hamburger-button").focus();
+    }
     navigator.vibrate?.(10);
 }
 
-
 export function goHome() {window.location.href = "/index.html";}
+export function goToGames() {window.location.href = "/games.html";}
+export function goToStartGame() {window.location.href = "/index.html?start_game=1";}
 export function goToBallArsenal() {window.location.href = "/ball_arsenal.html";}
 export function goToCompareBalls() {window.location.href = "/compare_balls.html";}
 export function goToEstablishments() {window.location.href = "/establishments.html";}
@@ -56,6 +71,7 @@ export function togglePfpDropdown() {
 
 export function loadNavbar() {
     const navbar = document.querySelector("navbar");
+    document.body.classList.add("has-app-shell");
 
     const notLoggedInPfpDropdownHTML = `
     <div class="dropdown_area">
@@ -79,16 +95,25 @@ export function loadNavbar() {
 
 
     navbar.innerHTML = `
-        <div class="sidebar sidebar_inactive" id="sidebar">
+        <button type="button" class="sidebar-backdrop" id="sidebar-backdrop" aria-label="Close navigation" hidden></button>
+        <div class="sidebar sidebar_inactive" id="sidebar" role="navigation" aria-label="Main navigation">
+            <div class="sidebar-brand">REVMETRIX</div>
             <div class="sidebar_section sidebar_section_close_sidebar">
-                <button class="close_sidebar_button" id="close-sidebar-button">
+                <button type="button" class="close_sidebar_button" id="close-sidebar-button" aria-label="Close navigation">
                     <div></div>
                     <div></div>
                 </button>
             </div>
 
+            <div class="sidebar_links">
             <div class="sidebar_section">
                 <button class="home_button sidebar_button" id="home-button" data-i18n="Home">Home</button>
+            </div>
+            <div class="sidebar_section">
+                <button class="sidebar_button" id="start-game-nav-button" data-i18n="Start Game">Start Game</button>
+            </div>
+            <div class="sidebar_section">
+                <button class="sidebar_button" id="games-button" data-i18n="Games">Games</button>
             </div>
             <div class="sidebar_section">
                 <button class="ball_arsenal_button sidebar_button" id="ball-arsenal-button" data-i18n="Ball Arsenal">Ball Arsenal</button>
@@ -103,23 +128,15 @@ export function loadNavbar() {
                 <button class="events_button sidebar_button" id="events-button" data-i18n="Events">Events</button>
             </div>
             <div class="sidebar_section">
-                <button class="sessions_button sidebar_button" id="sessions-button" data-i18n="Sessions">Sessions</button>
-            </div>
-            <div class="sidebar_section">
-                <button class="sidebar_button ciclops_button" id="ciclops-button">Ciclops</button>
-            </div>
-            <div class="sidebar_section">
-                <button class="sidebar_button smart_dot_button" id="smart-button">Smart Dot</button>
-            </div>
-            <div class="sidebar_section">
                 <button class="sidebar_button stats_button" id="stats-button" data-i18n="Stats">Stats</button>
             </div>
+
+
+
             <div class="sidebar_section">
-                <button class="sidebar_button smart_watch_button" id="smart-watch-button">Smart Watch</button>
+                <button class="sidebar_button" id="sidebar-account-settings-button" data-i18n="Account Settings">Account Settings</button>
             </div>
-
-
-
+            </div>
             <div class="sidebar_section language-preference">
                 <label for="sidebar-language" data-i18n="Language">Language</label>
                 <select id="sidebar-language" data-language-picker></select>
@@ -136,14 +153,14 @@ export function loadNavbar() {
 
             <div class="navbar_body">
                 <div class="elements_container">
-                    <button class="hamburger_button" id="hamburger-button">
+                    <button type="button" class="hamburger_button" id="hamburger-button" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false">
                         <div></div>
                         <div></div>
                         <div></div>
                     </button>
 
-                    <div class="profile_picture_container" id="profile-picture-container">
-                    </div>
+                    <button type="button" class="profile_picture_container" id="profile-picture-container" aria-label="Open account menu">
+                    </button>
 
                     <div class="pfp_dropdown pfp_dropdown_inactive" id="pfp-dropdown">
                         <div class="dropdown_arrow_container">
@@ -186,26 +203,14 @@ export function loadNavbar() {
     document
         .getElementById("events-button")
         .addEventListener("click", goToEvents);
-    document
-        .getElementById("sessions-button")
-        .addEventListener("click", goToSessions);
 
 
-    document
-        .getElementById("ciclops-button")
-        .addEventListener("click", goToCiclops);
 
-    document
-        .getElementById("smart-button")
-        .addEventListener("click", goToSmartDot);
 
     document
         .getElementById("stats-button")
         .addEventListener("click", goToStats);
 
-    document
-        .getElementById("smart-watch-button")
-        .addEventListener("click", goToSmartWatch);
 
     document
         .getElementById("profile-picture-container")
@@ -255,6 +260,48 @@ export function loadNavbar() {
 
 
     logOutButton?.addEventListener("click", showLogOutPopup);
+    document.getElementById("sidebar-backdrop").addEventListener("click", () => {
+        closeSidebar();
+        document.getElementById("hamburger-button").focus();
+    });
+    document.getElementById("sidebar-account-settings-button").addEventListener("click", goToAccountSettings);
+    document.getElementById("start-game-nav-button").addEventListener("click", goToStartGame);
+    document.getElementById("games-button").addEventListener("click", goToGames);
+    const routes = {
+        "home-button": "index.html",
+        "games-button": "games.html",
+        "ball-arsenal-button": "ball_arsenal.html",
+        "compare-balls-button": "compare_balls.html",
+        "establishments-button": "establishments.html",
+        "events-button": "events.html",
+        "stats-button": "stats.html",
+        "sidebar-account-settings-button": "account_settings.html",
+    };
+    let page = window.location.pathname.split("/").pop() || "index.html";
+    if (page === "game.html" || page === "game_info.html") page = "games.html";
+    for (const [id, path] of Object.entries(routes)) {
+        if (path === page) document.getElementById(id).setAttribute("aria-current", "page");
+    }
+    const desktopQuery = window.matchMedia("(min-width: 1100px)");
+    desktopQuery.addEventListener("change", () => {
+        closeSidebar();
+        if (!desktopQuery.matches) document.getElementById("hamburger-button").focus();
+    });
+    navbar.addEventListener("keydown", event => {
+        if (desktopQuery.matches || !document.body.classList.contains("navigation-open")) return;
+        if (event.key === "Escape") {
+            closeSidebar();
+            document.getElementById("hamburger-button").focus();
+        }
+        if (event.key === "Tab") {
+            const controls = [...document.getElementById("sidebar").querySelectorAll("button:not(.hidden), select")]
+                .filter(element => !element.disabled);
+            const first = controls[0], last = controls.at(-1);
+            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+        }
+    });
+    updateSidebarAccessibility();
     initializeLanguage();
     void syncAccountLanguage();
 

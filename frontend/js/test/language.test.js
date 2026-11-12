@@ -109,3 +109,11 @@ it("ignores a late profile response after the user chooses a new language", asyn
     await syncing;
     expect(language.getLanguage()).toBe("de");
 });
+
+
+it("renders native language names with the correct Unicode characters", async () => {
+    const language = await import("../language.js");
+    language.initializeLanguage();
+    expect([...document.querySelector("[data-language-picker]").options].map(option => option.textContent))
+        .toEqual(["English", "Espa\u00f1ol", "Fran\u00e7ais", "Deutsch", "\u7b80\u4f53\u4e2d\u6587"]);
+});

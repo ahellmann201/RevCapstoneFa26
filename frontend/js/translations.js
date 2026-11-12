@@ -97,7 +97,8 @@ export const translations = {
         "Reset Password": "Reset Password",
         "New Password": "New Password",
         "Confirm Password": "Confirm Password",
-        "Forgot password?": "Forgot password?"
+        "Forgot password?": "Forgot password?",
+        "Games": "Games"
     },
     "es": {
         "Language": "Idioma",
@@ -196,7 +197,8 @@ export const translations = {
         "Reset Password": "Restablecer contraseña",
         "New Password": "Nueva contraseña",
         "Confirm Password": "Confirmar contraseña",
-        "Forgot password?": "¿Olvidaste tu contraseña?"
+        "Forgot password?": "¿Olvidaste tu contraseña?",
+        "Games": "Partidas"
     },
     "fr": {
         "Language": "Langue",
@@ -295,7 +297,8 @@ export const translations = {
         "Reset Password": "Réinitialiser le mot de passe",
         "New Password": "Nouveau mot de passe",
         "Confirm Password": "Confirmer le mot de passe",
-        "Forgot password?": "Mot de passe oublié ?"
+        "Forgot password?": "Mot de passe oublié ?",
+        "Games": "Parties"
     },
     "de": {
         "Language": "Sprache",
@@ -394,7 +397,8 @@ export const translations = {
         "Reset Password": "Passwort zurücksetzen",
         "New Password": "Neues Passwort",
         "Confirm Password": "Passwort bestätigen",
-        "Forgot password?": "Passwort vergessen?"
+        "Forgot password?": "Passwort vergessen?",
+        "Games": "Spiele"
     },
     "zh-CN": {
         "Language": "语言",
@@ -493,6 +497,7 @@ export const translations = {
         "Reset Password": "重置密码",
         "New Password": "新密码",
         "Confirm Password": "确认密码",
-        "Forgot password?": "忘记密码？"
+        "Forgot password?": "忘记密码？",
+        "Games": "比赛"
     }
 };
