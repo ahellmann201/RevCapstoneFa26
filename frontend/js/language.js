@@ -47,7 +47,65 @@ export function translatePage(root = document) {
     for (const picker of root.querySelectorAll("[data-language-picker]")) {
         picker.value = currentLanguage;
         picker.setAttribute("aria-label", translate("Language"));
+        syncSidebarLanguagePicker(picker);
     }
+}
+
+function syncSidebarLanguagePicker(picker) {
+    const wrapper = picker.closest(".language-preference")?.querySelector("[data-sidebar-language-picker]");
+    if (!wrapper) return;
+    const trigger = wrapper.querySelector("[data-language-picker-trigger]");
+    const label = wrapper.querySelector("[data-language-picker-label]");
+    const menu = wrapper.querySelector("[data-language-picker-menu]");
+    const selectedOption = [...picker.options].find((option) => option.value === picker.value);
+    if (label && selectedOption) label.textContent = selectedOption.textContent;
+    if (trigger) trigger.setAttribute("aria-label", translate("Language"));
+    if (menu) {
+        for (const optionButton of menu.querySelectorAll("[role=option]")) {
+            const selected = optionButton.dataset.value === picker.value;
+            optionButton.setAttribute("aria-selected", String(selected));
+            optionButton.tabIndex = selected ? 0 : -1;
+        }
+    }
+}
+
+function initializeSidebarLanguagePicker(picker) {
+    const wrapper = picker.closest(".language-preference")?.querySelector("[data-sidebar-language-picker]");
+    if (!wrapper || wrapper.dataset.ready) return;
+    wrapper.dataset.ready = "true";
+    const trigger = wrapper.querySelector("[data-language-picker-trigger]");
+    const menu = wrapper.querySelector("[data-language-picker-menu]");
+    if (!trigger || !menu) return;
+
+    for (const option of picker.options) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.setAttribute("role", "option");
+        button.dataset.value = option.value;
+        button.textContent = option.textContent;
+        button.addEventListener("click", () => {
+            menu.hidden = true;
+            trigger.setAttribute("aria-expanded", "false");
+            saveLanguage(option.value);
+            trigger.focus();
+        });
+        menu.append(button);
+    }
+
+    trigger.addEventListener("click", () => {
+        const isOpening = menu.hidden;
+        menu.hidden = !isOpening;
+        trigger.setAttribute("aria-expanded", String(isOpening));
+        if (isOpening) menu.querySelector('[aria-selected="true"]')?.focus();
+    });
+    menu.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+            menu.hidden = true;
+            trigger.setAttribute("aria-expanded", "false");
+            trigger.focus();
+        }
+    });
+    syncSidebarLanguagePicker(picker);
 }
 
 export function setLanguage(code) {
@@ -73,6 +131,7 @@ export function initializeLanguage(root = document) {
             option.textContent = language.name;
             picker.append(option);
         }
+        initializeSidebarLanguagePicker(picker);
         picker.addEventListener("change", () => saveLanguage(picker.value));
     }
     translatePage();

@@ -138,8 +138,14 @@ export function loadNavbar() {
             </div>
             </div>
             <div class="sidebar_section language-preference">
-                <label for="sidebar-language" data-i18n="Language">Language</label>
-                <select id="sidebar-language" data-language-picker></select>
+                <label id="sidebar-language-label" data-i18n="Language">Language</label>
+                <div class="sidebar-language-picker" data-sidebar-language-picker role="group" aria-labelledby="sidebar-language-label">
+                    <button type="button" class="sidebar-language-trigger" data-language-picker-trigger aria-haspopup="listbox" aria-expanded="false" aria-label="Language">
+                        <span data-language-picker-label></span><span class="sidebar-language-chevron" aria-hidden="true"></span>
+                    </button>
+                    <div class="sidebar-language-menu" data-language-picker-menu role="listbox" aria-label="Language" hidden></div>
+                </div>
+                <select id="sidebar-language" data-language-picker hidden aria-hidden="true" tabindex="-1"></select>
                 <span role="status" data-language-status></span>
             </div>
             <div class="sidebar_auth" id="sidebar-auth">
