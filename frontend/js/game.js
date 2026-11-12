@@ -200,7 +200,7 @@ function updateShortcutButtons() {
     const displayedFrame = viewingFrame ?? currentFrame;
     const displayedShot = viewingFrame === null ? currentShot : viewingShot;
     const strikeAllowed = isStrikeOpportunity(displayedFrame, displayedShot);
-    const locked = gameFinished || busy || loading || loadFailed;
+    const locked = gameFinished || busy || loading || loadFailed || database.blocked || viewingFrame !== null;
 
     foulButton.disabled = locked;
     gutterButton.disabled = locked;
