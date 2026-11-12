@@ -93,7 +93,7 @@ function updateDatabaseControls() {
 
     databaseStatus.textContent = databaseMessage || database.error || (database.game
         ? `Game #${database.game.game_id}. ${pending.length} confirmed shot(s) awaiting upload.`
-        : "Next Shot saves your progress automatically when you are logged in.");
+        : "");
 
 }
 
