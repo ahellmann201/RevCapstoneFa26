@@ -449,8 +449,9 @@ body:has(.auth_popup[open]) {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 80dvw;
+    width: min(480px, calc(100vw - 32px));
     height: auto;
+    color: #102332;
     background-color: var(--menu-bg-color);
     border-radius: 20px;
     padding: 1rem;
@@ -477,9 +478,21 @@ body:has(.auth_popup[open]) {
     text-align: center;
 }
 
-.log_out_popup_header_container > h3 {
-    font-weight: lighter;
+.log_out_popup_header_container > h1 {
+    color: #102332;
+    font-size: 2rem;
+    line-height: 1.2;
+    margin-bottom: 12px;
 }
+.log_out_popup_header_container > h3 {
+    color: #425466;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.6;
+}
+.log_out_popup_button { min-height: 44px; flex: 1; color: #102332; cursor: pointer; }
+.log_out_popup_buttons_container { gap: 12px; }
+.log_out_popup_button:focus-visible { outline: 2px solid #102332; outline-offset: 3px; }
 
 .log_out_popup_buttons_container {
     width: calc(100% - 1rem);

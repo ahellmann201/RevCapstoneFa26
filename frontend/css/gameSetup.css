@@ -4,31 +4,31 @@
     margin: auto;
     padding: 24px;
     overflow-y: auto;
-    border: 1px solid #31505a;
+    border: 1px solid var(--appearance-outline, #31505a);
     border-radius: 24px;
-    background: linear-gradient(155deg, #103440, #062630);
-    color: #f5f7f7;
+    background: linear-gradient(155deg, var(--appearance-raised, #103440), var(--appearance-navigation, #062630));
+    color: var(--appearance-text, #f5f7f7);
     font-family: var(--standard-font-family);
     box-shadow: 0 24px 80px #0008;
     color-scheme: dark;
 }
 .game-setup::backdrop { background: #001219cc; }
 .game-setup h2 { font-size: 1.6rem; line-height: 1.2; }
-.game-setup p { margin-top: 12px; color: #a6bdc3; line-height: 1.6; }
-.game-setup label { display: block; margin: 20px 0 7px; color: #d6e2e5; font-size: .9rem; font-weight: bold; }
+.game-setup p { margin-top: 12px; color: var(--appearance-muted, #a6bdc3); line-height: 1.6; }
+.game-setup label { display: block; margin: 20px 0 7px; color: var(--appearance-text-soft, #d6e2e5); font-size: .9rem; font-weight: bold; }
 .game-setup select {
     width: 100%;
     min-height: 48px;
     padding: 10px 12px;
-    border: 1px solid #31505a;
+    border: 1px solid var(--appearance-outline, #31505a);
     border-radius: 12px;
-    background: #092b35;
-    color: #f5f7f7;
+    background: var(--appearance-surface, #092b35);
+    color: var(--appearance-text, #f5f7f7);
     font: inherit;
 }
 .game-setup .game-setup-note { font-size: .85rem; }
 .game-setup-actions { display: flex; gap: 10px; margin-top: 24px; }
-.game-setup-actions button { flex: 1; min-height: 48px; padding: 10px; border: 1px solid #31505a; border-radius: 12px; background: transparent; color: #d6e2e5; font: bold 1rem var(--standard-font-family); cursor: pointer; }
+.game-setup-actions button { flex: 1; min-height: 48px; padding: 10px; border: 1px solid var(--appearance-outline, #31505a); border-radius: 12px; background: transparent; color: var(--appearance-text-soft, #d6e2e5); font: bold 1rem var(--standard-font-family); cursor: pointer; }
 .game-setup-actions button[type="submit"] { border: 0; background: var(--button-color-1); color: #132c33; }
 .game-setup-actions button[type="submit"]:hover { background: var(--button-color-2); }
 .game-setup :focus-visible { outline: 2px solid var(--button-color-2); outline-offset: 4px; }

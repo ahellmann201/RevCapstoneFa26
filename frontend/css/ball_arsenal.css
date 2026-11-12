@@ -49,7 +49,7 @@ navbar {
 }
 .header > div,
 .header > button {
-    color: white;
+    color: var(--app-text);
     height: 48px;
     aspect-ratio: 1/1;
     border-radius: 10px;
@@ -78,7 +78,7 @@ navbar {
     color: var(--text-input-color);
     font: 16px var(--text-input-font-family);
     border: none;
-    color: white;
+    color: var(--app-text);
 }
 
 .ball_search_input:focus-visible {
@@ -206,7 +206,7 @@ navbar {
     resize: none;
     overflow: hidden;
     background: transparent;
-    color: white;
+    color: var(--app-text);
     font-size: clamp(0.9rem, 4vw, 1.15rem);
     line-height: 1.2;
     white-space: pre-wrap;
@@ -217,7 +217,7 @@ navbar {
 .ball_expand_button {
     border: 0;
     background-color: var(--button-color-1);
-    color: white;
+    color: var(--app-text);
     cursor: pointer;
     font-size: 1.5rem;
     padding: 0.5rem;
@@ -226,7 +226,7 @@ navbar {
 
 .ball_details {
     padding: 1rem 1rem;
-    color: white;
+    color: var(--app-text);
     background-color: var(--lighter-bg-color-2);
     font-size: 1.5rem;
     line-height: 2.5rem;
@@ -238,7 +238,7 @@ navbar {
     border: 0;
     border-radius: 12px;
     background: var(--error-color);
-    color: var(--off-white);
+    color: var(--app-text);
     font-size: 1rem;
     cursor: pointer;
 }
@@ -375,7 +375,7 @@ navbar {
 
 .ball_popup_actions .ball_delete_confirm {
     background: var(--error-color);
-    color: var(--off-white);
+    color: var(--app-text);
 }
 
 .ball_popup_actions button:disabled {
@@ -393,12 +393,12 @@ navbar {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    color: white;
+    color: var(--app-text);
     font-size: 1.5rem;
 }
 .no_balls_add_button {
     background-color: var(--button-color-1);
-    color: white;
+    color: var(--app-text);
     padding: 0.5rem;
     border: none;
     border-radius: 10px;

@@ -245,4 +245,34 @@ describe("cached game and Finish flow", () => {
         expect(Cache.getActiveGameId()).toBe(newId);
     });
 
+    it("uses G and X to select gutter and strike and confirms them with Next Shot", async () => {
+        await loadGame();
+        document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "g", bubbles: true }));
+        expect(document.getElementById("gutter_button").getAttribute("aria-pressed")).toBe("true");
+        expect(document.getElementById("game_status").textContent).toContain("Gutter selected");
+        click("next_frame");
+        expect(document.getElementById("frame_title").textContent).toContain("Shot 2");
+        document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "x", bubbles: true }));
+        expect(document.getElementById("strike_button").getAttribute("aria-pressed")).toBe("false");
+        click("gutter_button"); click("next_frame");
+        document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "X", bubbles: true }));
+        expect(document.getElementById("strike_button").getAttribute("aria-pressed")).toBe("true");
+        expect(document.querySelectorAll(".pin[aria-pressed='true']")).toHaveLength(10);
+        click("next_frame");
+        expect(document.getElementById("frame_title").textContent).toContain("Frame 3");
+    });
+
+    it("ignores shortcuts while typing, when a dialog is open, or with modifier keys", async () => {
+        await loadGame();
+        const text = document.createElement("input");
+        document.body.append(text);
+        text.dispatchEvent(new KeyboardEvent("keydown", { key: "x", bubbles: true }));
+        document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "x", ctrlKey: true, bubbles: true }));
+        document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "x", repeat: true, bubbles: true }));
+        click("comment_button");
+        document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "x", bubbles: true }));
+        expect(document.getElementById("strike_button").getAttribute("aria-pressed")).toBe("false");
+        expect(document.querySelectorAll(".pin[aria-pressed='true']")).toHaveLength(0);
+    });
+
 });

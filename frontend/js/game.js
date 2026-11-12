@@ -82,6 +82,7 @@ let loading = Boolean(requestedDatabaseId || database.game);
 let databaseMessage = "";
 let viewingFrame = null;
 let viewingShot = 1;
+let selectedShortcut = null;
 let loadFailed = false;
 
 function confirmedFrames() {
@@ -397,6 +398,11 @@ function updateFrame() {
         ? "Game complete"
         : `Frame ${currentFrame} of ${FRAME_COUNT} \u00b7 Shot ${currentShot}`;
 
+    if (selectedShortcut && viewingFrame === null && !gameFinished) {
+        const name = selectedShortcut[0].toUpperCase() + selectedShortcut.slice(1);
+        gameStatus.textContent += ` — ${name} selected. Next Shot confirms it.`;
+    }
+
     pinRack.querySelectorAll(".pin").forEach((pin) => {
         const number = Number(pin.dataset.pin);
 
@@ -503,6 +509,7 @@ nextButton.addEventListener("click", async () => {
     }
 
     currentFoul = false;
+    selectedShortcut = null;
     updateFrame();
     if (getAuthToken() !== null) await saveToDatabase();
 });
@@ -917,3 +924,15 @@ function navigateShot(direction) {
 
 previousButton.addEventListener("click", () => navigateShot("previous"));
 enableSwipeNavigation(document.querySelector(".lane_panel"), navigateShot);
+
+
+document.addEventListener("keydown", event => {
+    if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || event.isComposing) return;
+    if (event.target.closest?.("input, textarea, select, [contenteditable='true'], [contenteditable=''], navbar")) return;
+    if (document.querySelector("dialog[open], .log_out_popup:not(.hidden)") ||
+        document.body.classList.contains("navigation-open")) return;
+    const button = { g: gutterButton, x: strikeButton }[event.key.toLowerCase()];
+    if (!button || button.disabled) return;
+    event.preventDefault();
+    button.click();
+});

@@ -1,6 +1,13 @@
 /** Interface strings only. Bowling records retain their original text. */
 export const translations = {
     "en": {
+        "Delete game": "Delete game",
+        "This also deletes its frames and shots. This cannot be undone.": "This also deletes its frames and shots. This cannot be undone.",
+        "Could not delete the game. Please try again.": "Could not delete the game. Please try again.",
+        "Appearance": "Appearance",
+        "Dark": "Dark",
+        "Light": "Light",
+        "Saved on this browser, including when logged out.": "Saved on this browser, including when logged out.",
         "Language": "Language",
         "Home": "Home",
         "Ball Arsenal": "Ball Arsenal",
@@ -101,6 +108,13 @@ export const translations = {
         "Games": "Games"
     },
     "es": {
+        "Delete game": "Eliminar partida",
+        "This also deletes its frames and shots. This cannot be undone.": "Esto tambi\u00e9n elimina sus cuadros y lanzamientos. No se puede deshacer.",
+        "Could not delete the game. Please try again.": "No se pudo eliminar la partida. Int\u00e9ntalo de nuevo.",
+        "Appearance": "Apariencia",
+        "Dark": "Oscuro",
+        "Light": "Claro",
+        "Saved on this browser, including when logged out.": "Se guarda en este navegador, incluso al cerrar sesi\u00f3n.",
         "Language": "Idioma",
         "Home": "Inicio",
         "Ball Arsenal": "Mis bolas",
@@ -201,6 +215,13 @@ export const translations = {
         "Games": "Partidas"
     },
     "fr": {
+        "Delete game": "Supprimer la partie",
+        "This also deletes its frames and shots. This cannot be undone.": "Cela supprime aussi ses frames et ses lancers. Cette action est irr\u00e9versible.",
+        "Could not delete the game. Please try again.": "Impossible de supprimer la partie. Veuillez r\u00e9essayer.",
+        "Appearance": "Apparence",
+        "Dark": "Sombre",
+        "Light": "Clair",
+        "Saved on this browser, including when logged out.": "Enregistr\u00e9 dans ce navigateur, m\u00eame apr\u00e8s la d\u00e9connexion.",
         "Language": "Langue",
         "Home": "Accueil",
         "Ball Arsenal": "Mes boules",
@@ -301,6 +322,13 @@ export const translations = {
         "Games": "Parties"
     },
     "de": {
+        "Delete game": "Spiel l\u00f6schen",
+        "This also deletes its frames and shots. This cannot be undone.": "Dadurch werden auch die Frames und W\u00fcrfe gel\u00f6scht. Dies kann nicht r\u00fcckg\u00e4ngig gemacht werden.",
+        "Could not delete the game. Please try again.": "Das Spiel konnte nicht gel\u00f6scht werden. Bitte erneut versuchen.",
+        "Appearance": "Darstellung",
+        "Dark": "Dunkel",
+        "Light": "Hell",
+        "Saved on this browser, including when logged out.": "Wird in diesem Browser gespeichert, auch nach dem Abmelden.",
         "Language": "Sprache",
         "Home": "Startseite",
         "Ball Arsenal": "Meine Bälle",
@@ -401,6 +429,13 @@ export const translations = {
         "Games": "Spiele"
     },
     "zh-CN": {
+        "Delete game": "\u5220\u9664\u6bd4\u8d5b",
+        "This also deletes its frames and shots. This cannot be undone.": "\u8fd9\u4e5f\u4f1a\u5220\u9664\u5176\u5404\u8f6e\u548c\u6295\u7403\u8bb0\u5f55\u3002\u6b64\u64cd\u4f5c\u65e0\u6cd5\u64a4\u9500\u3002",
+        "Could not delete the game. Please try again.": "\u65e0\u6cd5\u5220\u9664\u6bd4\u8d5b\u3002\u8bf7\u91cd\u8bd5\u3002",
+        "Appearance": "\u5916\u89c2",
+        "Dark": "\u6df1\u8272",
+        "Light": "\u6d45\u8272",
+        "Saved on this browser, including when logged out.": "\u4fdd\u5b58\u5728\u6b64\u6d4f\u89c8\u5668\u4e2d\uff0c\u9000\u51fa\u767b\u5f55\u540e\u4ecd\u7136\u6709\u6548\u3002",
         "Language": "语言",
         "Home": "首页",
         "Ball Arsenal": "保龄球装备",

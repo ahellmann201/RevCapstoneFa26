@@ -3,6 +3,9 @@ import { loadNavbar } from "./navbar.js";
 import { getAuthToken } from "./authentication.js";
 import { listAll } from "./game_persistence.js";
 import { getActiveGameId, getGameState } from "./cache.js";
+import { request } from "./api_client.js";
+import { removeGame } from "./cache.js";
+import { translate } from "./language.js";
 import { getLanguage } from "./language.js";
 
 loadNavbar();
@@ -45,7 +48,32 @@ function render() {
         const action = document.createElement("strong");
         action.textContent = "View / continue";
         link.append(title, context, played, action);
-        item.append(link);
+        item.className = "saved-game-card";
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "delete-game";
+        remove.title = remove.ariaLabel = `${translate("Delete game")} #${game.game_id}`;
+        remove.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg>';
+        remove.addEventListener("click", async () => {
+            if (!window.confirm(`${translate("Delete game")} #${game.game_id}? ${translate("This also deletes its frames and shots. This cannot be undone.")}`)) return;
+            remove.disabled = true;
+            try {
+                await request(`/games/${encodeURIComponent(game.game_id)}`, { method: "DELETE" });
+                const cachedId = sessionStorage.getItem(`savedGame:${game.game_id}:cache`);
+                if (cachedId) removeGame(cachedId);
+                if (activeId && String(active?.database?.game?.game_id) === String(game.game_id)) {
+                    removeGame(activeId);
+                    document.getElementById("resume-local-game").hidden = true;
+                }
+                sessionStorage.removeItem(`savedGame:${game.game_id}:cache`);
+                games = games.filter(record => record.game_id !== game.game_id);
+                render();
+            } catch {
+                status.textContent = translate("Could not delete the game. Please try again.");
+                remove.disabled = false;
+            }
+        });
+        item.append(link, remove);
         list.append(item);
     }
     status.textContent = list.children.length ? "" : games.length ? "No games match your search." : "No saved games yet. Start a game to get going.";
