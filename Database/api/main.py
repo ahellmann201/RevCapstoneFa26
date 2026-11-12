@@ -23,6 +23,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        # Capacitor's default local origin for iOS WebViews.
+        "capacitor://localhost",
     ],
     # Local demo frontends on private IPv4 networks, on Vite's fixed port.
     allow_origin_regex=(
