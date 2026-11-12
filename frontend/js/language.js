@@ -1,13 +1,14 @@
 /** Device-local interface language, shared by guests and signed-in users. */
 import { translations } from "./translations.js";
+import { request } from "./api_client.js";
 
 const storageKey = "revmetrix.language";
 export const languages = [
     { code: "en", name: "English" },
-    { code: "es", name: "EspaÃ±ol" },
-    { code: "fr", name: "FranÃ§ais" },
+    { code: "es", name: "EspaÃƒÂ±ol" },
+    { code: "fr", name: "FranÃƒÂ§ais" },
     { code: "de", name: "Deutsch" },
-    { code: "zh-CN", name: "ç®€ä½“ä¸­æ–‡" },
+    { code: "zh-CN", name: "Ã§Â®â‚¬Ã¤Â½â€œÃ¤Â¸Â­Ã¦â€“â€¡" },
 ];
 
 function storedLanguage() {
@@ -22,6 +23,8 @@ function supported(code) {
     return Object.hasOwn(translations, code);
 }
 
+let revision = 0;
+let saving = false;
 let currentLanguage = storedLanguage();
 if (!supported(currentLanguage)) currentLanguage = "en";
 
@@ -49,6 +52,7 @@ export function translatePage(root = document) {
 
 export function setLanguage(code) {
     if (!supported(code)) return;
+    revision += 1;
     currentLanguage = code;
     try {
         localStorage.setItem(storageKey, code);
@@ -69,7 +73,7 @@ export function initializeLanguage(root = document) {
             option.textContent = language.name;
             picker.append(option);
         }
-        picker.addEventListener("change", () => setLanguage(picker.value));
+        picker.addEventListener("change", () => saveLanguage(picker.value));
     }
     translatePage();
 }
@@ -78,4 +82,55 @@ if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => initializeLanguage(), { once: true });
 } else {
     initializeLanguage();
+}
+
+
+function showLanguageStatus(message) {
+    for (const status of document.querySelectorAll("[data-language-status]")) {
+        status.textContent = message;
+    }
+}
+
+export async function saveLanguage(code) {
+    if (!supported(code) || saving) return false;
+    const token = sessionStorage.getItem("authentication_token");
+    if (!token || token === "null") {
+        setLanguage(code);
+        return true;
+    }
+    revision += 1;
+    saving = true;
+    for (const picker of document.querySelectorAll("[data-language-picker]")) picker.disabled = true;
+    showLanguageStatus("Saving language…");
+    try {
+        const user = await request("/auth/me/language", {
+            method: "PUT",
+            body: JSON.stringify({ main_language: code }),
+        });
+        if (sessionStorage.getItem("authentication_token") !== token) return false;
+        setLanguage(user.main_language);
+        showLanguageStatus("");
+        return true;
+    } catch {
+        translatePage();
+        showLanguageStatus("Could not save language. Please try again.");
+        return false;
+    } finally {
+        saving = false;
+        for (const picker of document.querySelectorAll("[data-language-picker]")) picker.disabled = false;
+    }
+}
+
+export async function syncAccountLanguage() {
+    const token = sessionStorage.getItem("authentication_token");
+    if (!token || token === "null") return;
+    const startedAt = revision;
+    try {
+        const user = await request("/auth/me");
+        if (startedAt === revision && sessionStorage.getItem("authentication_token") === token) {
+            setLanguage(user.main_language ?? "en");
+        }
+    } catch {
+        // Keep the device preference when the account cannot be reached.
+    }
 }

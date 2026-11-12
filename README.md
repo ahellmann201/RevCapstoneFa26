@@ -483,8 +483,8 @@ Ciclopes notes/platform scaffolding do not mean end-to-end inference works.
 ### Interface language
 
 Choose Language in the sidebar or Account Settings. English, Spanish, French,
-German, and Simplified Chinese are available. The choice is saved on this device
-and applies to translated navigation, form labels, and page controls.
+German, and Simplified Chinese are available. Guests keep their choice on this device. Signed-in users save their choice to
+users.main_language and restore it after login or on another device. It applies to translated navigation, form labels, and page controls.
 User-entered names and records keep their original text. Some generated messages
 and server errors currently remain in English.
 
@@ -492,3 +492,13 @@ The frontend includes ball comparison, event archives, game details, a statistic
 page, and the home page weekly event schedule. Run the frontend with your usual
 development command. The updated backend must also be deployed for the new
 game-setup and event-location endpoints.
+
+
+Before deploying the account-language update to SQL Server, back up the database
+and apply Database/scripts/migrate_user_language.sql using an administrator.
+It adds main_language NVARCHAR(10) NOT NULL DEFAULT 'en' and restricts it to the
+five supported language codes. Existing accounts start in English.
+Apply this migration before rebuilding/restarting the API.
+SQLite initialization upgrades existing users tables without resetting records.
+The authenticated PUT /auth/me/language endpoint accepts
+{"main_language": "es"} and updates only the current account.

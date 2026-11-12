@@ -1,7 +1,7 @@
 /** Implements the site navbar, sidebar, and its authentication controls. */
 import "../css/navbar.css";
 import "./theme.js";
-import { initializeLanguage } from "./language.js";
+import { initializeLanguage, syncAccountLanguage } from "./language.js";
 import { clearAuthToken, getAuthToken, logOut, setAuthToken } from "./authentication.js";
 import { addPfpToContainer } from "./data_handling.js";
 import { createAuthPopup, openAuthPopup, createLogoutPopup, showLogOutPopup } from "./popups.js";
@@ -123,6 +123,7 @@ export function loadNavbar() {
             <div class="sidebar_section language-preference">
                 <label for="sidebar-language" data-i18n="Language">Language</label>
                 <select id="sidebar-language" data-language-picker></select>
+                <span role="status" data-language-status></span>
             </div>
             <div class="sidebar_auth" id="sidebar-auth">
                 <button class="sidebar_login_button" id="sidebar-login-button" data-i18n="Log In">Log In</button>
@@ -255,5 +256,6 @@ export function loadNavbar() {
 
     logOutButton?.addEventListener("click", showLogOutPopup);
     initializeLanguage();
+    void syncAccountLanguage();
 
 }

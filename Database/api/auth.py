@@ -27,6 +27,9 @@ TOKEN_ISSUER = "revmetrix-api"
 TOKEN_AUDIENCE = "revmetrix-client"
 
 
+Language = Literal["en", "es", "fr", "de", "zh-CN"]
+
+
 class RegisterRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -43,6 +46,7 @@ class RegisterRequest(BaseModel):
     email: EmailStr = Field(max_length=255)
     password: SecretStr = Field(min_length=8, max_length=128)
     main_hand: Literal["L", "R"] | None = None
+    main_language: Language = "en"
 
 
 class LoginRequest(BaseModel):
@@ -58,6 +62,7 @@ class UserResponse(BaseModel):
     username: str
     email: str
     main_hand: Literal["L", "R"] | None
+    main_language: Language = "en"
 
 
 class TokenResponse(BaseModel):
@@ -116,11 +121,12 @@ def user_response(row) -> UserResponse:
         username=row[2],
         email=row[3],
         main_hand=row[4],
+        main_language=row[5] if len(row) > 5 else "en",
     )
 
 
 def inserted_columns() -> str:
-    columns = "user_id, display_name, username, email, main_hand"
+    columns = "user_id, display_name, username, email, main_hand, main_language"
     if DB_TYPE == "sqlite":
         return f"RETURNING {columns}"
     return "OUTPUT " + ", ".join(
@@ -153,10 +159,11 @@ def register(data: RegisterRequest) -> UserResponse:
                         username,
                         password_hash,
                         email,
-                        main_hand
+                        main_hand,
+                        main_language
                     )
-                    VALUES (?, ?, ?, ?, ?)
-                    RETURNING user_id, display_name, username, email, main_hand
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    RETURNING user_id, display_name, username, email, main_hand, main_language
                     """
                     if DB_TYPE == "sqlite"
                     else f"""
@@ -165,10 +172,11 @@ def register(data: RegisterRequest) -> UserResponse:
                         username,
                         password_hash,
                         email,
-                        main_hand
+                        main_hand,
+                        main_language
                     )
                     {inserted_columns()}
-                    VALUES (?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?)
                     """
                 )
                 cursor.execute(
@@ -179,6 +187,7 @@ def register(data: RegisterRequest) -> UserResponse:
                         encoded_hash,
                         str(data.email),
                         data.main_hand,
+                        data.main_language,
                     ),
                 )
 
@@ -312,7 +321,8 @@ def current_user(
                     username,
                     email,
                     main_hand,
-                    password_hash
+                    password_hash,
+                    main_language
                 FROM users
                 WHERE user_id = ?
                 """,
@@ -329,7 +339,7 @@ def current_user(
     ):
         raise unauthorized()
 
-    return user_response(row)
+    return user_response((*row[:5], row[6] if len(row) > 6 else "en"))
 
 
 @router.get("/me", response_model=UserResponse)
@@ -337,3 +347,39 @@ def me(
     user: Annotated[UserResponse, Depends(current_user)],
 ) -> UserResponse:
     return user
+
+
+class LanguageRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    main_language: Language
+
+
+@router.put("/me/language", response_model=UserResponse)
+def update_language(
+    data: LanguageRequest,
+    user: Annotated[UserResponse, Depends(current_user)],
+) -> UserResponse:
+    with database() as connection:
+        cursor = connection.cursor()
+        try:
+            try:
+                cursor.execute(
+                    "UPDATE users SET main_language = ? WHERE user_id = ?",
+                    (data.main_language, user.user_id),
+                )
+                cursor.execute(
+                    "SELECT user_id, display_name, username, email, main_hand, main_language "
+                    "FROM users WHERE user_id = ?",
+                    (user.user_id,),
+                )
+                row = cursor.fetchone()
+                if row is None:
+                    raise HTTPException(status_code=404, detail="Account not found")
+                result = user_response(row)
+                connection.commit()
+            except Exception:
+                connection.rollback()
+                raise
+        finally:
+            cursor.close()
+    return result

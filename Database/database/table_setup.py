@@ -15,6 +15,9 @@ BEGIN
         password_hash VARBINARY(255) NOT NULL,
         email         NVARCHAR(255) NOT NULL UNIQUE,
         main_hand     CHAR(1),
+        main_language NVARCHAR(10) NOT NULL DEFAULT 'en',
+        CONSTRAINT CK_users_main_language
+            CHECK (main_language IN ('en', 'es', 'fr', 'de', 'zh-CN')),
 
         CONSTRAINT CK_users_main_hand
             CHECK (main_hand IN ('L', 'R'))

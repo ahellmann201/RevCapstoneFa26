@@ -19,6 +19,19 @@ def run_scenario(usernames):
             assert response.status_code == 200, response.text
             return {"Authorization": "Bearer " + response.json()["access_token"]}
         owner, other = register(usernames[0]), register(usernames[1])
+        assert client.get("/auth/me", headers=owner).json()["main_language"] == "en"
+        for language in ("es", "fr", "de", "zh-CN", "en"):
+            response = client.put("/auth/me/language", headers=owner,
+                json={"main_language": language})
+            assert response.status_code == 200, response.text
+            assert response.json()["main_language"] == language
+            assert client.get("/auth/me", headers=owner).json()["main_language"] == language
+            assert client.get("/auth/me", headers=other).json()["main_language"] == "en"
+        assert client.put("/auth/me/language", json={"main_language": "es"}).status_code == 401
+        assert client.put("/auth/me/language", headers=owner,
+            json={"main_language": "unknown"}).status_code == 422
+        assert client.put("/auth/me/language", headers=owner,
+            json={"main_language": "es", "user_id": 999}).status_code == 422
         def post(path, payload, headers=owner):
             response = client.post(path, json=payload, headers=headers)
             assert response.status_code == 201, response.text

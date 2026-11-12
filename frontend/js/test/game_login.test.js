@@ -5,13 +5,13 @@ vi.mock("../api_client.js", () => ({
     login: vi.fn(async () => ({ access_token: "new-token" })),
     getUser: vi.fn(async () => ({
         User_ID: 42, Username: "bowler", Display_Name: "Bowler",
-        Email: "bowler@example.com", Main_Hand: "right",
+        Email: "bowler@example.com", Main_Hand: "right", Main_Language: "fr",
     })),
 }));
 
 beforeEach(() => {
     sessionStorage.clear();
-    vi.stubGlobal("window", { location: { reload: vi.fn() }, alert: vi.fn() });
+    vi.stubGlobal("window", { dispatchEvent: vi.fn(), location: { reload: vi.fn() }, alert: vi.fn() });
     document.body.innerHTML = '<input id="login_email" value="bowler"><input id="login_password" value="password">';
 });
 afterEach(() => vi.unstubAllGlobals());
@@ -31,6 +31,7 @@ it("retains the guest game and its foul through the real login flow", async () =
     expect(Cache.getFrameShots("frame-one")).toEqual(["shot-one"]);
     expect(Cache.getShotResult("shot-one")).toEqual({ pins: 0, foul: true });
     expect(Cache.getUsername()).toBe("bowler");
+    expect(localStorage.getItem("revmetrix.language")).toBe("fr");
     expect(sessionStorage.getItem("authentication_token")).toBe("new-token");
     expect(window.location.reload).toHaveBeenCalledOnce();
 });

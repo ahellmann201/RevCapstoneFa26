@@ -13,4 +13,4 @@ class User:
     username: str
     email: str
     main_hand: Hand | None = None
-    user_id: int | None = None
+    user_id: int | None = None    main_language: str = "en"

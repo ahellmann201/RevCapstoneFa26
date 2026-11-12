@@ -10,7 +10,9 @@ CREATE TABLE IF NOT EXISTS users (
     username TEXT NOT NULL UNIQUE,
     password_hash BLOB NOT NULL,
     email TEXT NOT NULL UNIQUE,
-    main_hand TEXT CHECK (main_hand IN ('L', 'R'))
+    main_hand TEXT CHECK (main_hand IN ('L', 'R')),
+    main_language TEXT NOT NULL DEFAULT 'en'
+        CHECK (main_language IN ('en', 'es', 'fr', 'de', 'zh-CN'))
 );
 
 CREATE TABLE IF NOT EXISTS clients (
@@ -109,6 +111,7 @@ CREATE TABLE IF NOT EXISTS shots (
 
 def initialize_schema(connection):
     connection.executescript(SCHEMA + SQLITE_RESET_SCHEMA)
+    migrate_user_language(connection)
     migrate_establishments(connection)
     migrate_events(connection)
     if not any(row[1] == "foul" for row in connection.execute("PRAGMA table_info(shots)")):
@@ -140,3 +143,12 @@ def migrate_events(connection):
     }.items():
         if name not in columns:
             connection.execute(f"ALTER TABLE events ADD COLUMN {name} {definition}")
+
+
+def migrate_user_language(connection):
+    columns = {row[1] for row in connection.execute("PRAGMA table_info(users)")}
+    if "main_language" not in columns:
+        connection.execute(
+            "ALTER TABLE users ADD COLUMN main_language TEXT NOT NULL DEFAULT 'en' "
+            "CHECK (main_language IN ('en', 'es', 'fr', 'de', 'zh-CN'))"
+        )

@@ -132,7 +132,7 @@ def update_display_name(
                 UPDATE users
                 SET display_name = ?
                 WHERE user_id = ?
-                RETURNING user_id, display_name, username, email, main_hand
+                RETURNING user_id, display_name, username, email, main_hand, main_language
                 """
                 if DB_TYPE == "sqlite"
                 else f"""

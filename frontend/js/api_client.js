@@ -63,6 +63,7 @@ function frontendProfile(user) {
         Username: user.username,
         Display_Name: user.display_name,
         Email: user.email,
+        Main_Language: user.main_language ?? "en",
         Main_Hand:
             user.main_hand === "L" ? "left"
             : user.main_hand === "R" ? "right"
@@ -149,6 +150,7 @@ export function createAccount(
     email,
     password,
     displayName = "",
+    mainLanguage = "en",
 ) {
     return request("/auth/register", {
         method: "POST",
@@ -158,6 +160,7 @@ export function createAccount(
             password,
             display_name: displayName || username,
             main_hand: null,
+            main_language: mainLanguage,
         }),
     }, false);
 }
