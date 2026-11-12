@@ -61,3 +61,27 @@ it("restores details for editing and disables without deleting history", async (
     await vi.waitFor(() => expect(document.querySelector(".establishment-card")).toBeNull());
     expect(request).toHaveBeenLastCalledWith("/events/9", { method: "PUT", body: JSON.stringify({ event_name: "League", event_type: "League", location_id: null, nickname: "Monday", week_day: "Monday", start_time: "18:00", games_per_session: 4, enabled: false }) });
 });
+
+it("offers the user's establishments and saves their linked master location ID", async () => {
+    getAuthToken.mockReturnValue("token");
+    request.mockImplementation(async (path, options) => {
+        if (path.startsWith("/establishments?")) return [{ establishment_id: 12, establishment_name: "My House", location_id: null, enabled: true }];
+        if (path === "/establishments/12/location") return { location_id: 42 };
+        if (options?.method === "POST") return { event_id: 3, ...JSON.parse(options.body) };
+        return [];
+    });
+    await import("../events.js");
+    await vi.waitFor(() => expect(document.getElementById("add-event").disabled).toBe(false));
+    document.getElementById("add-event").click();
+    const select = document.getElementById("event-location");
+    expect(select.options[1].textContent).toBe("My House");
+    select.value = "establishment:12";
+    const form = document.getElementById("event-form");
+    form.elements.namedItem("event_name").value = "League";
+    form.dispatchEvent(new Event("submit", { cancelable: true }));
+    await vi.waitFor(() => expect(document.querySelector(".establishment-card")).not.toBeNull());
+    expect(request).toHaveBeenCalledWith("/establishments/12/location", { method: "POST" });
+    expect(JSON.parse(request.mock.calls.at(-1)[1].body).location_id).toBe(42);
+    document.querySelector(".establishment-card").click();
+    expect(select.value).toBe("establishment:12");
+});

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Revmetrix | Event Archives</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="stylesheet" href="/css/eventArchives.css">
+</head>
+<body>
+    <navbar></navbar>
+    <main class="establishments-page">
+        <header class="establishments-heading">
+            <h1 data-i18n="Event Archives">Event Archives</h1>
+        </header>
+        <p class="establishments-empty" id="archives-empty">No archived events.</p>
+        <ul class="establishment-list" id="archive-list" aria-label="Archived events"></ul>
+        <p class="page-status" id="archive-status" role="status"></p>
+    </main>
+    <a class="add-establishment archives-back" href="/events.html" aria-label="Back to events" title="Back to events">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="m12 5-7 7 7 7M5 12h15" />
+        </svg>
+    </a>
+    <dialog class="establishment-dialog archive-confirmation" id="unarchive-dialog"
+        aria-labelledby="unarchive-title" aria-describedby="unarchive-description">
+        <h2 id="unarchive-title">Unarchive event?</h2>
+        <p id="unarchive-description"></p>
+        <div class="dialog-actions">
+            <button class="cancel-establishment" id="cancel-unarchive" type="button" autofocus data-i18n="Cancel">Cancel</button>
+            <button class="apply-establishment" id="confirm-unarchive" type="button">Unarchive</button>
+        </div>
+        <p class="page-status" id="unarchive-status" role="status"></p>
+    </dialog>
+    <script type="module" src="/js/eventArchives.js"></script>
+</body>
+</html>

@@ -19,6 +19,8 @@ export default defineConfig({
         emptyOutDir: true,
         rollupOptions: {
             input: {
+                gameInfo: rootPath("./frontend/game_info.html"),
+                compareBalls: rootPath("./frontend/compare_balls.html"),
                 passwordReset: rootPath("./frontend/reset_password.html"),
                 home: rootPath("./frontend/index.html"),
                 game: rootPath("./frontend/game.html"),
@@ -26,6 +28,7 @@ export default defineConfig({
                 schedule: rootPath("./frontend/schedule_event.html"),
                 sessions: rootPath("./frontend/sessions.html"),
                 events: rootPath("./frontend/events.html"),
+                eventArchives: rootPath("./frontend/eventArchives.html"),
                 establishments: rootPath("./frontend/establishments.html"),
                 ciclops: rootPath("./frontend/ciclops.html"),
                 smartDot: rootPath("./frontend/smart_dot.html"),

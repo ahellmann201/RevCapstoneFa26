@@ -19,16 +19,15 @@ const post = (path, body) => request(path, {
 export async function createSavedGame(database, remember) {
     await request("/auth/me");
     if (!database.eventId) {
-        const event = await post("/events", {
-            event_name: `Practice ${new Date().toLocaleString()}`,
-            event_type: "Practice", location_id: null,
-        });
+        const event = database.selectedEventId
+            ? { event_id: database.selectedEventId }
+            : await post("/game-setup/unassigned-event", {});
         database.eventId = event.event_id;
         remember();
     }
     if (!database.sessionId) {
         const session = await post("/sessions", {
-            event_id: database.eventId, establishment_id: null,
+            event_id: database.eventId, establishment_id: database.selectedEstablishmentId ?? null,
             date_time: new Date().toISOString(), opponent: null,
             score: null, record: null,
         });
@@ -63,12 +62,18 @@ export async function saveConfirmedShots(database, frames, remember) {
                 throw_type: shot.symbol === "X" ? "strike"
                     : shot.symbol === "/" ? "spare" : null,
                 pin_leave: shot.leave, foul: shot.result.foul, side: null, position: null,
-                comment: null, ball_id: null,
+                comment: shot.comment || null, ball_id: null,
             });
             database.shotIds[shot.id] = saved.shot_id;
             remember();
         }
     }
+}
+
+export async function updateShotComment(id, comment) {
+    const shot = await request(`/shots/${id}`);
+    const { shot_id, ...payload } = shot;
+    return request(`/shots/${id}`, { method: "PUT", body: JSON.stringify({ ...payload, comment: comment || null }) });
 }
 
 export async function readSavedGame(id) {

@@ -1,5 +1,19 @@
 @import "/css/establishments.css";
 
+.event-archives-link {
+    display: grid;
+    place-items: center;
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    border: 1px solid var(--establishment-border);
+    border-radius: 12px;
+    background: var(--establishment-surface);
+    color: var(--establishment-accent);
+    text-decoration: none;
+}
+.event-archives-link:hover { border-color: var(--establishment-accent); }
+
 .establishment-field:has([name="event_name"]) { grid-column: 1 / -1; }
 .establishment-field select {
     width: 100%;

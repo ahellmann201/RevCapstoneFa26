@@ -47,7 +47,9 @@ def test_resource_crud_routes(authenticated, modules, db, name, payload):
     assert len(response.json()) == 1
     assert cursor.execute.call_args.args[1] == (7, 2, 5)
 
-    cursor.fetchone.side_effect = [(1,)] * (reference_count + 1) + [row]
+    # Event updates also read the type to protect the system event.
+    event_type_check = [(None,)] if name == "events" else []
+    cursor.fetchone.side_effect = [(1,)] + event_type_check + [(1,)] * reference_count + [row]
     assert authenticated.put(f"/{name}/11", json=payload).status_code == 200
     cursor.fetchone.side_effect = None
     cursor.fetchone.return_value = (11,)

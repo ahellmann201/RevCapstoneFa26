@@ -54,7 +54,7 @@ export function createAuthPopup(type) {
                         Sign up to get started.
                     </p>
 
-                    <label for="signup_username">Username</label>
+                    <label for="signup_username" data-i18n="Username">Username</label>
                     <input
                         id="signup_username"
                         type="text"
@@ -90,7 +90,7 @@ export function createAuthPopup(type) {
                     maxlength="${isSignup ? "255" : "100"}"
                 >
 
-                <label for="${type}_password">Password</label>
+                <label for="${type}_password" data-i18n="Password">Password</label>
                 <input
                     id="${type}_password"
                     type="password"
@@ -110,7 +110,7 @@ export function createAuthPopup(type) {
                     ${switchText}
                 </button>
 
-                <button type="button" class="popup_close">
+                <button type="button" class="popup_close" data-i18n="Close">
                     Close
                 </button>
             </div>
@@ -233,7 +233,7 @@ export function createBallPopup(onConfirm) {
                         required
                     >
 
-                    <label for="new-ball-color">Color</label>
+                    <label for="new-ball-color" data-i18n="Color">Color</label>
                     <input
                         class="ball_color_input"
                         id="new-ball-color"
@@ -280,7 +280,7 @@ export function createBallPopup(onConfirm) {
                     <p class="ball_popup_error" id="add-ball-error" role="alert" hidden></p>
 
                     <div class="ball_popup_actions">
-                        <button class="popup_close" type="button">Cancel</button>
+                        <button class="popup_close" type="button" data-i18n="Cancel">Cancel</button>
                         <button class="popup_primary" type="submit">Confirm</button>
                     </div>
                 </form>
@@ -442,7 +442,7 @@ export function createBallFilterPopup(onApply) {
                     <p class="ball_popup_error" id="filter-balls-error" role="alert" hidden></p>
                     <div class="ball_popup_actions">
                         <button class="popup_clear" type="button">Clear</button>
-                        <button class="popup_close" type="button">Cancel</button>
+                        <button class="popup_close" type="button" data-i18n="Cancel">Cancel</button>
                         <button class="popup_primary" type="submit">Apply</button>
                     </div>
                 </form>
@@ -572,8 +572,8 @@ export function createDeleteBallPopup(onConfirm) {
                 <p id="delete-ball-question"></p>
                 <p class="ball_popup_error" id="delete-ball-error" role="alert" hidden></p>
                 <div class="ball_popup_actions">
-                    <button class="popup_close" type="button">Cancel</button>
-                    <button class="popup_primary ball_delete_confirm" type="button">Delete</button>
+                    <button class="popup_close" type="button" data-i18n="Cancel">Cancel</button>
+                    <button class="popup_primary ball_delete_confirm" type="button" data-i18n="Delete">Delete</button>
                 </div>
             </div>
         </dialog>
@@ -768,7 +768,7 @@ export function createLogoutPopup() {
                 <button
                     class="log_out_popup_button log_out_cancel_button"
                     id="log-out-cancel"
-                >
+                 data-i18n="Cancel">
                     Cancel
                 </button>
 

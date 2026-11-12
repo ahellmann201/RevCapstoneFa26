@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Revmetrix | Home</title>
     <link rel="stylesheet" href="css/index.css">
+    <link rel="stylesheet" href="/css/gameSetup.css">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://gstatic.com" crossorigin>
@@ -18,10 +19,65 @@
         <h1 class="welcome_message" id="welcome-message"></h1>
       </div>
       <div class="quick_links_container">
-        <button class="button_1" id="schedule-event-button">Schedule Event</button>
-        <button class="button_2" id="start-game-button">Start Game</button>
+        <button class="button_1" id="schedule-event-button" data-i18n="Schedule Event">Schedule Event</button>
+        <button class="button_2" id="start-game-button" data-i18n="Start Game">Start Game</button>
       </div>
+      <section class="week-schedule" aria-labelledby="week-title">
+        <header class="week-heading">
+          <h2 id="week-title" data-i18n="This Week">This Week</h2>
+          <span id="week-status" role="status"></span>
+        </header>
+        <ol class="week-days" tabindex="0" aria-label="Weekly events, scroll horizontally to see all seven days">
+          <li class="week-day">
+            <h3 data-i18n="Monday">Monday</h3>
+            <div class="day-events"></div>
+          </li>
+          <li class="week-day">
+            <h3 data-i18n="Tuesday">Tuesday</h3>
+            <div class="day-events"></div>
+          </li>
+          <li class="week-day">
+            <h3 data-i18n="Wednesday">Wednesday</h3>
+            <div class="day-events"></div>
+          </li>
+          <li class="week-day">
+            <h3 data-i18n="Thursday">Thursday</h3>
+            <div class="day-events"></div>
+          </li>
+          <li class="week-day">
+            <h3 data-i18n="Friday">Friday</h3>
+            <div class="day-events"></div>
+          </li>
+          <li class="week-day">
+            <h3 data-i18n="Saturday">Saturday</h3>
+            <div class="day-events"></div>
+          </li>
+          <li class="week-day">
+            <h3 data-i18n="Sunday">Sunday</h3>
+            <div class="day-events"></div>
+          </li>
+        </ol>
+      </section>
     </div>
+    <dialog class="game-setup" id="game-setup-dialog" aria-labelledby="game-setup-title" aria-describedby="game-setup-description">
+      <form id="game-setup-form">
+        <h2 id="game-setup-title" data-i18n="Start Game">Start Game</h2>
+        <p id="game-setup-description">Choose an event and establishment, or leave them blank.</p>
+        <label for="game-setup-event">Event (optional)</label>
+        <select id="game-setup-event" name="event">
+          <option value="">No event</option>
+        </select>
+        <label for="game-setup-establishment">Establishment (optional)</label>
+        <select id="game-setup-establishment" name="establishment">
+          <option value="">No establishment</option>
+        </select>
+        <p class="game-setup-note">When logged in, Next Shot saves your progress automatically. An event is optional.</p>
+        <div class="game-setup-actions">
+          <button type="button" id="cancel-game-setup" autofocus data-i18n="Cancel">Cancel</button>
+          <button type="submit" data-i18n="Start Game">Start Game</button>
+        </div>
+      </form>
+    </dialog>
     <script type="module" src="/js/index.js"></script>
   </body>
 </html>

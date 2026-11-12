@@ -479,3 +479,16 @@ Ciclopes notes/platform scaffolding do not mean end-to-end inference works.
 | Uncertain shot save | Reload/reconcile before resubmitting; do not blindly duplicate writes. |
 | Empty statistics | Only complete legal games count; Stats UI is still a placeholder. |
 | jsdom navigation messages in tests | The simulated browser does not navigate; inspect the test results separately. |
+
+### Interface language
+
+Choose Language in the sidebar or Account Settings. English, Spanish, French,
+German, and Simplified Chinese are available. The choice is saved on this device
+and applies to translated navigation, form labels, and page controls.
+User-entered names and records keep their original text. Some generated messages
+and server errors currently remain in English.
+
+The frontend includes ball comparison, event archives, game details, a statistics
+page, and the home page weekly event schedule. Run the frontend with your usual
+development command. The updated backend must also be deployed for the new
+game-setup and event-location endpoints.

@@ -1,6 +1,7 @@
 /** Implements the site navbar, sidebar, and its authentication controls. */
 import "../css/navbar.css";
 import "./theme.js";
+import { initializeLanguage } from "./language.js";
 import { clearAuthToken, getAuthToken, logOut, setAuthToken } from "./authentication.js";
 import { addPfpToContainer } from "./data_handling.js";
 import { createAuthPopup, openAuthPopup, createLogoutPopup, showLogOutPopup } from "./popups.js";
@@ -27,6 +28,7 @@ export function closeSidebar() {
 
 export function goHome() {window.location.href = "/index.html";}
 export function goToBallArsenal() {window.location.href = "/ball_arsenal.html";}
+export function goToCompareBalls() {window.location.href = "/compare_balls.html";}
 export function goToEstablishments() {window.location.href = "/establishments.html";}
 export function goToEvents() {window.location.href = "/events.html";}
 export function goToSessions() {window.location.href = "/sessions.html";}
@@ -57,15 +59,15 @@ export function loadNavbar() {
 
     const notLoggedInPfpDropdownHTML = `
     <div class="dropdown_area">
-        <div class="dropdown_section" id="login-button">Log In</div>
-        <div class="dropdown_section" id="signup-button">Sign Up</div>
+        <div class="dropdown_section" id="login-button" data-i18n="Log In">Log In</div>
+        <div class="dropdown_section" id="signup-button" data-i18n="Sign Up">Sign Up</div>
     </div>
     `;
 
     const loggedInPfpDropdownHTML = `
     <div class="dropdown_area">
-        <div class="dropdown_section" id="account-settings-button">Account Settings</div>
-        <div class="dropdown_section" id="log-out-button">Log Out</div>
+        <div class="dropdown_section" id="account-settings-button" data-i18n="Account Settings">Account Settings</div>
+        <div class="dropdown_section" id="log-out-button" data-i18n="Log Out">Log Out</div>
     </div>
     `;
 
@@ -86,19 +88,22 @@ export function loadNavbar() {
             </div>
 
             <div class="sidebar_section">
-                <button class="home_button sidebar_button" id="home-button">Home</button>
+                <button class="home_button sidebar_button" id="home-button" data-i18n="Home">Home</button>
             </div>
             <div class="sidebar_section">
-                <button class="ball_arsenal_button sidebar_button" id="ball-arsenal-button">Ball Arsenal</button>
+                <button class="ball_arsenal_button sidebar_button" id="ball-arsenal-button" data-i18n="Ball Arsenal">Ball Arsenal</button>
             </div>
             <div class="sidebar_section">
-                <button class="establishments_button sidebar_button" id="establishments-button">Establishments</button>
+                <button class="compare_balls_button sidebar_button" id="compare-balls-button" data-i18n="Compare Balls">Compare Balls</button>
             </div>
             <div class="sidebar_section">
-                <button class="events_button sidebar_button" id="events-button">Events</button>
+                <button class="establishments_button sidebar_button" id="establishments-button" data-i18n="Establishments">Establishments</button>
             </div>
             <div class="sidebar_section">
-                <button class="sessions_button sidebar_button" id="sessions-button">Sessions</button>
+                <button class="events_button sidebar_button" id="events-button" data-i18n="Events">Events</button>
+            </div>
+            <div class="sidebar_section">
+                <button class="sessions_button sidebar_button" id="sessions-button" data-i18n="Sessions">Sessions</button>
             </div>
             <div class="sidebar_section">
                 <button class="sidebar_button ciclops_button" id="ciclops-button">Ciclops</button>
@@ -107,7 +112,7 @@ export function loadNavbar() {
                 <button class="sidebar_button smart_dot_button" id="smart-button">Smart Dot</button>
             </div>
             <div class="sidebar_section">
-                <button class="sidebar_button stats_button" id="stats-button">Stats</button>
+                <button class="sidebar_button stats_button" id="stats-button" data-i18n="Stats">Stats</button>
             </div>
             <div class="sidebar_section">
                 <button class="sidebar_button smart_watch_button" id="smart-watch-button">Smart Watch</button>
@@ -115,9 +120,13 @@ export function loadNavbar() {
 
 
 
+            <div class="sidebar_section language-preference">
+                <label for="sidebar-language" data-i18n="Language">Language</label>
+                <select id="sidebar-language" data-language-picker></select>
+            </div>
             <div class="sidebar_auth" id="sidebar-auth">
-                <button class="sidebar_login_button" id="sidebar-login-button">Log In</button>
-                <button class="sidebar_logout_button" id="sidebar-logout-button">Log Out</button>
+                <button class="sidebar_login_button" id="sidebar-login-button" data-i18n="Log In">Log In</button>
+                <button class="sidebar_logout_button" id="sidebar-logout-button" data-i18n="Log Out">Log Out</button>
             </div>
         </div>
 
@@ -167,6 +176,9 @@ export function loadNavbar() {
     document
         .getElementById("ball-arsenal-button")
         .addEventListener("click", goToBallArsenal);
+    document
+        .getElementById("compare-balls-button")
+        .addEventListener("click", goToCompareBalls);
     document
         .getElementById("establishments-button")
         .addEventListener("click", goToEstablishments);
@@ -242,4 +254,6 @@ export function loadNavbar() {
 
 
     logOutButton?.addEventListener("click", showLogOutPopup);
+    initializeLanguage();
+
 }

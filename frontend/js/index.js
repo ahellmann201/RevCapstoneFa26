@@ -1,5 +1,7 @@
 /** Initializes the home page navbar and personalized welcome message. */
 import { loadNavbar } from "./navbar.js";
+import { listAll } from "./game_persistence.js";
+import { loadWeeklyEvents } from "./weekly_events.js";
 import Event from "./objects/event.js"
 import { getAuthToken } from "./authentication.js";
 import { getDisplayName } from "./requests.js";
@@ -57,6 +59,7 @@ function pickRandomWelcomeMessage(name) {
 
 function pageLoad() {
     loadWelcomeMessage();
+    loadWeeklyEvents();
 }
 
 function checkForUpcomingEvent() {
@@ -77,6 +80,51 @@ document.getElementById("start-game-button").addEventListener("click", startGame
 export function scheduleEvent() {
     window.location.href = "/events.html"
 }
-export function startGame() {
-    window.location.href = "/game.html"
+export async function startGame() {
+    if (!getAuthToken()) {
+        sessionStorage.removeItem("pendingGameSetup");
+        window.location.href = "/game.html";
+        return;
+    }
+    const dialog = document.getElementById("game-setup-dialog");
+    document.getElementById("game-setup-form").reset();
+    dialog.showModal();
+    const eventSelect = document.getElementById("game-setup-event");
+    const establishmentSelect = document.getElementById("game-setup-establishment");
+    eventSelect.replaceChildren(new Option("No event", ""));
+    establishmentSelect.replaceChildren(new Option("No establishment", ""));
+    const message = document.querySelector(".game-setup-note");
+    message.textContent = "When logged in, Next Shot saves your progress automatically. An event is optional.";
+    if (!getAuthToken()) return;
+    const submit = document.querySelector('#game-setup-form button[type="submit"]');
+    submit.disabled = true;
+    try {
+        const [events, establishments] = await Promise.all([listAll("/events"), listAll("/establishments")]);
+        for (const event of events) {
+            if (event.enabled === false || event.enabled === 0 || event.event_type === "SystemUnassigned") continue;
+            eventSelect.append(new Option(event.event_name, event.event_id));
+        }
+        for (const establishment of establishments) {
+            if (establishment.enabled === false || establishment.enabled === 0) continue;
+            establishmentSelect.append(new Option(establishment.establishment_name, establishment.establishment_id));
+        }
+    } catch {
+        message.textContent = "Could not load your choices. You can continue without an event or establishment.";
+    } finally {
+        submit.disabled = false;
+    }
 }
+
+document.getElementById("cancel-game-setup").addEventListener("click", () => {
+    document.getElementById("game-setup-dialog").close();
+});
+document.getElementById("game-setup-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const data = new FormData(document.getElementById("game-setup-form"));
+    sessionStorage.setItem("pendingGameSetup", JSON.stringify({
+        eventId: data.get("event") ? Number(data.get("event")) : null,
+        establishmentId: data.get("establishment") ? Number(data.get("establishment")) : null,
+    }));
+    document.getElementById("game-setup-dialog").close();
+    window.location.href = "/game.html";
+});

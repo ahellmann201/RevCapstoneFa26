@@ -4,7 +4,10 @@ from typing import Annotated, Literal
 from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from Database.database.connection import DB_TYPE
 from Database.api.resource_routes import Resource, add_resource_routes
+from Database.api.resource_routes import UserDependency, ResourceId, database_cursor, require_record
+
 
 
 router = APIRouter()
@@ -55,6 +58,13 @@ class EventInput(InputModel):
     start_time: str | None = None
     games_per_session: PositiveNumber = 3
     enabled: bool = True
+
+    @field_validator("event_type")
+    @classmethod
+    def reserve_system_type(cls, value):
+        if value and value.strip().lower() == "systemunassigned":
+            raise ValueError("This event type is reserved")
+        return value
 
     @field_validator("start_time")
     @classmethod
@@ -144,6 +154,54 @@ establishments = Resource(
     direct_owner=True,
     references=(("location_id", locations),),
 )
+
+
+@router.post("/establishments/{item_id}/location")
+def establishment_location(item_id: ResourceId, user: UserDependency):
+    with database_cursor(write=True) as cursor:
+        require_record(cursor, establishments, item_id, user)
+        cursor.execute(
+            "SELECT location_id, establishment_name, lane_count, address "
+            "FROM user_establishments WHERE establishment_id = ? AND user_id = ?",
+            (item_id, user.user_id),
+        )
+        location_id, name, lanes, address = cursor.fetchone()
+        if location_id is None:
+            sql = (
+                "INSERT INTO master_locations (location_name, lane_count, address) VALUES (?, ?, ?) RETURNING location_id"
+                if DB_TYPE == "sqlite" else
+                "INSERT INTO master_locations (location_name, lane_count, address) OUTPUT INSERTED.location_id VALUES (?, ?, ?)"
+            )
+            cursor.execute(sql, (name, lanes, address))
+            location_id = cursor.fetchone()[0]
+            cursor.execute(
+                "UPDATE user_establishments SET location_id = ? WHERE establishment_id = ? AND user_id = ?",
+                (location_id, item_id, user.user_id),
+            )
+    return {"location_id": location_id}
+
+@router.post("/game-setup/unassigned-event")
+def unassigned_event(user: UserDependency):
+    with database_cursor(write=True) as cursor:
+        # Serialize creation per account, including across SQL Server workers.
+        lock = "" if DB_TYPE == "sqlite" else " WITH (UPDLOCK, HOLDLOCK)"
+        cursor.execute(f"SELECT user_id FROM users{lock} WHERE user_id = ?", (user.user_id,))
+        cursor.fetchone()
+        cursor.execute(
+            "SELECT event_id FROM events WHERE user_id = ? AND event_type = ? ORDER BY event_id",
+            (user.user_id, "SystemUnassigned"),
+        )
+        row = cursor.fetchone()
+        if row:
+            return {"event_id": row[0]}
+        sql = (
+            "INSERT INTO events (user_id, event_name, event_type, enabled) VALUES (?, ?, ?, ?) RETURNING event_id"
+            if DB_TYPE == "sqlite" else
+            "INSERT INTO events (user_id, event_name, event_type, enabled) OUTPUT INSERTED.event_id VALUES (?, ?, ?, ?)"
+        )
+        cursor.execute(sql, (user.user_id, "Unassigned Games", "SystemUnassigned", False))
+        return {"event_id": cursor.fetchone()[0]}
+
 
 events = Resource(
     table="events",

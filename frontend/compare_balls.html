@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Revmetrix | Compare Balls</title>
+    <link rel="icon" type="image/svg+xml" href="/icons/revmetrix_logo.png">
+    <link rel="stylesheet" href="/css/compare_balls.css">
+</head>
+<body>
+    <navbar></navbar>
+    <main class="compare-page">
+        <header class="compare-heading">
+            <p class="compare-eyebrow">BALL ARSENAL</p>
+            <h1 data-i18n="Compare Balls">Compare Balls</h1>
+            <p class="compare-intro">Select any number of balls to compare their weight and core type.</p>
+        </header>
+
+        <section class="comparison" aria-label="Ball comparison">
+            <fieldset class="ball-picker">
+                <legend>Select balls to compare</legend>
+                <div class="ball-list" id="ball-list"></div>
+            </fieldset>
+            <p class="compare-status" id="compare-status" role="status" aria-live="polite">Loading your balls…</p>
+            <div class="comparison-results" id="comparison-results" hidden tabindex="0" aria-label="Ball comparison table">
+                <table>
+                    <thead id="comparison-head"></thead>
+                    <tbody id="comparison-body"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+    <script type="module" src="/js/compare_balls.js"></script>
+</body>
+</html>

@@ -1,7 +1,7 @@
-import { loadNavbar } from "./navbar.js";
+﻿import { loadNavbar } from "./navbar.js";
 import { getAuthToken } from "./authentication.js";
 import { openAuthPopup } from "./popups.js";
-import { createSavedGame, saveConfirmedShots, readSavedGame } from "./game_persistence.js";
+import { createSavedGame, saveConfirmedShots, readSavedGame, updateShotComment } from "./game_persistence.js";
 import {
     setPinLeave,
     getPinLeave,
@@ -31,6 +31,7 @@ const gameId = requestedDatabaseId
     ? activeMatchesDatabase ? activeId : rememberedId && getGameState(rememberedId) ? rememberedId : `database-${requestedDatabaseId}`
     : getActiveGameId() ?? crypto.randomUUID();
 const gameState = getGameState(gameId) ?? { createdAt: new Date().toISOString() };
+const shotComments = gameState.shotComments ??= {};
 setActiveGameId(gameId);
 let currentFrame = gameState.currentFrame ?? 1;
 let currentShot = gameState.currentShot ?? 1;
@@ -50,35 +51,34 @@ const gutterButton = document.getElementById("gutter_button");
 const spareButton = document.getElementById("spare_button");
 const strikeButton = document.getElementById("strike_button");
 const finishPopup = document.getElementById("finish_game_popup");
-const saveButton = document.createElement("button");
-saveButton.id = "save_shot";
-saveButton.type = "button";
-saveButton.className = "next_button";
-saveButton.textContent = "Save shot";
-nextButton.before(saveButton);
-
-const databasePanel = document.createElement("section");
-databasePanel.className = "lane_panel";
 const databaseStatus = document.createElement("p");
+databaseStatus.className = "game_status";
 databaseStatus.setAttribute("role", "status");
-const startButton = document.createElement("button");
-startButton.type = "button";
-startButton.className = "next_button";
-startButton.textContent = "Start saved game";
-databasePanel.append(databaseStatus, startButton);
-document.querySelector(".game_heading").after(databasePanel);
+document.querySelector(".game_footer").append(databaseStatus);
 
 const database = gameState.database ??= { frameIds: {}, shotIds: {} };
+const pendingSetup = sessionStorage.getItem("pendingGameSetup");
+if (pendingSetup) {
+    try {
+        const setup = JSON.parse(pendingSetup);
+        if (!database.game && !database.eventId && !requestedDatabaseId) {
+            database.selectedEventId = setup.eventId;
+            database.selectedEstablishmentId = setup.establishmentId;
+        }
+    } catch { /* Ignore invalid setup data. */ }
+    sessionStorage.removeItem("pendingGameSetup");
+}
 let busy = false;
 let loading = Boolean(requestedDatabaseId || database.game);
 let databaseMessage = "";
 let viewingFrame = null;
+let viewingShot = 1;
 let loadFailed = false;
 
 function confirmedFrames() {
     return frames.map((frame) => ({ ...frame, shots: getFrameShots(frame.id)
         .map((id, index) => ({ id, number: index + 1,
-            result: getShotResult(id), leave: getPinLeave(id),
+            result: getShotResult(id), leave: getPinLeave(id), comment: shotComments[id] ?? "",
         }))
         .filter((shot) => shot.result !== null)
         .map((shot) => ({ ...shot,
@@ -90,17 +90,14 @@ function confirmedFrames() {
 function updateDatabaseControls() {
     const shots = confirmedFrames().flatMap((frame) => frame.shots);
     const pending = shots.filter((shot) => !database.shotIds[shot.id]);
-    saveButton.disabled = busy || loading || database.blocked || !pending.length;
-    saveButton.textContent = busy ? "Saving…" : "Save shot";
-    startButton.disabled = busy || loading || database.blocked;
-    startButton.hidden = Boolean(database.game);
+
     databaseStatus.textContent = databaseMessage || database.error || (database.game
         ? `Game #${database.game.game_id}. ${pending.length} confirmed shot(s) awaiting upload.`
-        : "Play locally with Next Shot. Start a saved game or use Save Shot to connect.");
+        : "Next Shot saves your progress automatically when you are logged in.");
 
 }
 
-async function saveToDatabase(upload) {
+async function saveToDatabase() {
     if (busy || loading || database.blocked) return;
     if (getAuthToken() === null) {
         databaseMessage = "Log in or sign up before saving to the database. Your local game is kept.";
@@ -114,15 +111,14 @@ async function saveToDatabase(upload) {
     try {
         await createSavedGame(database, cacheGameProgress);
         sessionStorage.setItem(`savedGame:${database.game.game_id}:cache`, gameId);
-        if (upload) await saveConfirmedShots(database, confirmedFrames(), cacheGameProgress);
-        databaseMessage = upload ? "All confirmed shots saved to the database." : "Saved game connected. Next Shot still saves locally.";
+        await saveConfirmedShots(database, confirmedFrames(), cacheGameProgress);
+        databaseMessage = "All confirmed shots saved.";
         if (typeof window.history?.replaceState === "function") {
             // Keep the local cache key until a reload; the URL enables database recovery.
             const url = new URL(window.location.href);
             url.searchParams.set("game_id", database.game.game_id);
             window.history.replaceState(null, "", url);
         }
-        document.querySelector(".game_badge").textContent = `Game ${database.game.game_number}`;
     } catch (error) {
         database.blocked = true;
         databaseMessage = database.game
@@ -136,15 +132,13 @@ async function saveToDatabase(upload) {
     }
 }
 
-saveButton.addEventListener("click", () => saveToDatabase(true));
-startButton.addEventListener("click", () => saveToDatabase(false));
 
 function cacheGameProgress() {
     Object.assign(gameState, { currentFrame, currentShot, gameFinished, currentFoul });
     setGameState(gameId, gameState);
 }
 
-function finishGame() {
+async function finishGame() {
     if (getAuthToken() === null) {
         finishPopup.showModal();
         return;
@@ -152,7 +146,8 @@ function finishGame() {
 
     if (busy || loading) return;
     if (confirmedFrames().some((frame) => frame.shots.some((shot) => !database.shotIds[shot.id]))) {
-        databaseMessage = "Use Save Shot to upload your confirmed shots before finishing. Your local game is kept.";
+        await saveToDatabase();
+        if (!database.blocked) return finishGame();
         updateDatabaseControls();
         return;
     }
@@ -244,14 +239,26 @@ for (let frame = 1; frame <= FRAME_COUNT; frame++) {
             ${"<span>-</span>".repeat(rolls)}
         </div>
 
-        <span class="frame_total">—</span>
+        <span class="frame_total">&mdash;</span>
     `;
 
     frameStrip.appendChild(card);
     card.addEventListener("click", () => {
         if (busy || loading || loadFailed || frame > currentFrame) return;
-        viewingFrame = frame === currentFrame ? null : frame;
+        viewingFrame = frame;
+        viewingShot = 1;
         updateFrame();
+    });
+    card.querySelectorAll(".frame_rolls span").forEach((cell, index) => {
+        cell.addEventListener("click", (event) => {
+            event.stopPropagation();
+            if (busy || loading || loadFailed || frame > currentFrame) return;
+            const shot = getFrameShots(frameId)[index];
+            if (!shot || (frame === currentFrame && index + 1 > currentShot)) return;
+            viewingFrame = frame;
+            viewingShot = index + 1;
+            updateFrame();
+        });
     });
 }
 // Pin positions: back row to front row.
@@ -306,15 +313,15 @@ pinLayout.forEach(({ number, row, column }) => {
 function updateFrame() {
     const displayedFrame = viewingFrame ?? currentFrame;
     const displayedShots = getFrameShots(frames[displayedFrame - 1].id);
-    const displayedShot = viewingFrame === null ? currentShot : displayedShots.length;
+    const displayedShot = viewingFrame === null ? currentShot : viewingShot;
     const startingPins = getStartingPins(displayedFrame, displayedShot);
     const leave = getPinLeave(displayedShots[displayedShot - 1]) ?? startingPins;
 
-    frameTitle.textContent = `Frame ${displayedFrame} · Shot ${displayedShot}`;
+    frameTitle.textContent = `Frame ${displayedFrame} \u00b7 Shot ${displayedShot}`;
 
     gameStatus.textContent = gameFinished
         ? "Game complete"
-        : `Frame ${currentFrame} of ${FRAME_COUNT} · Shot ${currentShot}`;
+        : `Frame ${currentFrame} of ${FRAME_COUNT} \u00b7 Shot ${currentShot}`;
 
     pinRack.querySelectorAll(".pin").forEach((pin) => {
         const number = Number(pin.dataset.pin);
@@ -350,11 +357,12 @@ function updateFrame() {
     nextButton.textContent = viewingFrame !== null ? "Return to current frame" : gameFinished
         ? "Finish"
         : 'Next Shot';
-    nextButton.disabled = busy || loading || loadFailed;
+    nextButton.disabled = busy || loading || loadFailed || Boolean(database.blocked);
 
     updateShortcutButtons();
     cacheGameProgress();
     updateDatabaseControls();
+    document.getElementById("comment_button").disabled = busy || loading || loadFailed;
 }
 
 function startNextShot() {
@@ -372,8 +380,8 @@ function startNextShot() {
     }
 }
 
-nextButton.addEventListener("click", () => {
-    if (busy || loading || loadFailed) return;
+nextButton.addEventListener("click", async () => {
+    if (busy || loading || loadFailed || database.blocked) return;
     if (viewingFrame !== null) {
         viewingFrame = null;
         updateFrame();
@@ -419,6 +427,7 @@ nextButton.addEventListener("click", () => {
 
     currentFoul = false;
     updateFrame();
+    if (getAuthToken() !== null) await saveToDatabase();
 });
 
 // Touch devices use native horizontal scrolling.
@@ -510,7 +519,7 @@ function renderScorecard() {
         card.querySelectorAll(".frame_rolls span").forEach((cell, index) => {
             const shotNumber = index + 1;
             const shotId = shots[index];
-            const active = viewingFrame === null && isCurrent && shotNumber === currentShot;
+            const active = isCurrent && shotNumber === (viewingFrame === null ? currentShot : viewingShot);
 
             cell.classList.toggle("is_current_shot", active && !gameFinished);
             cell.textContent = "";
@@ -522,7 +531,7 @@ function renderScorecard() {
             const leave = getPinLeave(shotId);
 
             // Preview the active shot before Next confirms it.
-            if (!result && active && leave !== null) {
+            if (!result && active && viewingFrame === null && leave !== null) {
                 const startingPins = getStartingPins(frameNumber, shotNumber);
 
                 result = {
@@ -535,12 +544,12 @@ function renderScorecard() {
 
             cell.textContent = getShotSymbol(frameNumber, shotNumber, result);
             cell.title = result.foul
-                ? "Foul — 0 pins credited"
+                ? "Foul \u2014 0 pins credited"
                 : `${result.pins} pins knocked down`;
         });
 
         card.querySelector(".frame_total").textContent =
-            totals[frameNumber - 1] ?? "—";
+            totals[frameNumber - 1] ?? "\u2014";
     });
 }
 
@@ -686,6 +695,7 @@ async function restoreDatabaseProgress() {
                 setPinLeave(shotId, shot.pin_leave);
                 setShotResult(shotId, shot.result);
                 database.shotIds[shotId] = shot.shot_id;
+                shotComments[shotId] = shot.comment ?? "";
             }
         }
         // Resume at the first unconfirmed shot, retaining local shots not uploaded yet.
@@ -714,7 +724,6 @@ async function restoreDatabaseProgress() {
         database.blocked = false;
         delete database.error;
         databaseMessage = "Database progress loaded.";
-        document.querySelector(".game_badge").textContent = `Game ${saved.game.game_number}`;
     } catch (error) {
         database.blocked = true;
         loadFailed = true;
@@ -724,6 +733,70 @@ async function restoreDatabaseProgress() {
         updateFrame();
     }
 }
+
+const commentDialog = document.getElementById("shot-comment-dialog");
+const commentShot = document.getElementById("comment-shot");
+const commentText = document.getElementById("shot-comment");
+const commentStatus = document.getElementById("comment-status");
+const commentSave = document.getElementById("save-comment");
+const commentCancel = document.getElementById("cancel-comment");
+let commentSaving = false;
+const commentDrafts = new Map();
+function showShotComment() {
+    commentText.value = commentDrafts.get(commentShot.value) ?? shotComments[commentShot.value] ?? "";
+    document.getElementById("comment-count").textContent = `${commentText.value.length} / 1000`;
+}
+document.getElementById("comment_button").addEventListener("click", () => {
+    if (busy || loading || loadFailed || database.blocked) return;
+    const frameNumber = viewingFrame ?? currentFrame;
+    const shots = getFrameShots(frames[frameNumber - 1].id);
+    commentShot.replaceChildren();
+    commentDrafts.clear();
+    shots.forEach((id, index) => {
+        const option = document.createElement("option");
+        option.value = id;
+        option.textContent = `Frame ${frameNumber} \u00b7 Shot ${index + 1}`;
+        commentShot.append(option);
+    });
+    if (!shots.length) return;
+    commentShot.value = shots[Math.min((viewingFrame === null ? currentShot : viewingShot) - 1, shots.length - 1)];
+    commentStatus.textContent = "";
+    showShotComment();
+    commentDialog.showModal();
+    commentText.focus();
+});
+commentShot.addEventListener("change", showShotComment);
+commentText.addEventListener("input", () => {
+    commentDrafts.set(commentShot.value, commentText.value);
+    document.getElementById("comment-count").textContent = `${commentText.value.length} / 1000`;
+});
+commentCancel.addEventListener("click", () => { if (!commentSaving) commentDialog.close(); });
+commentDialog.addEventListener("cancel", (event) => { if (commentSaving) event.preventDefault(); });
+document.getElementById("shot-comment-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (commentSaving || !commentShot.value) return;
+    commentDrafts.set(commentShot.value, commentText.value);
+    if ([...commentDrafts.values()].some((text) => text.length > 1000)) {
+        commentStatus.textContent = "Comments must be 1,000 characters or fewer.";
+        return;
+    }
+    commentSaving = true;
+    commentSave.disabled = commentCancel.disabled = commentShot.disabled = commentText.disabled = true;
+    commentStatus.textContent = "";
+    try {
+        for (const [id, text] of commentDrafts) {
+            if (database.shotIds[id]) await updateShotComment(database.shotIds[id], text);
+            shotComments[id] = text;
+            cacheGameProgress();
+        }
+        commentDialog.close();
+    } catch (error) {
+        commentStatus.textContent = error.message;
+    } finally {
+        commentSaving = false;
+        commentSave.disabled = commentCancel.disabled = commentShot.disabled = commentText.disabled = false;
+    }
+});
 
 updateFrame();
 restoreDatabaseProgress();

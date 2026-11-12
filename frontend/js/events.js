@@ -5,6 +5,7 @@ import { getAuthToken } from "./authentication.js";
 loadNavbar();
 const events = [];
 const locations = new Map();
+const establishments = new Map();
 const list = document.getElementById("event-list");
 const empty = document.getElementById("events-empty");
 const dialog = document.getElementById("event-dialog");
@@ -47,6 +48,19 @@ function openEditor(record = null) {
             if (input.type === "checkbox") input.checked = Boolean(value);
             else input.value = value ?? "";
         }
+        const select = document.getElementById("event-location");
+        const match = [...establishments.values()].find((entry) => entry.location_id === record.location_id && record.location_id != null);
+        if (match) select.value = `establishment:${match.establishment_id}`;
+        else if (record.location_id != null) {
+            const value = `location:${record.location_id}`;
+            if (![...select.options].some((option) => option.value === value)) {
+                const option = document.createElement("option");
+                option.value = value;
+                option.textContent = locations.get(record.location_id) || "Current location";
+                select.append(option);
+            }
+            select.value = value;
+        }
     }
     document.getElementById("event-dialog-title").textContent = record ? "Edit Event" : "Add Event";
     apply.textContent = record ? "Apply changes" : "Add";
@@ -66,7 +80,7 @@ function displayTime(value) {
     return `${Number(hour) % 12 || 12}:${minute} ${Number(hour) >= 12 ? "PM" : "AM"}`;
 }
 function render() {
-    const activeEvents = events.filter((record) => record.enabled !== false && record.enabled !== 0);
+    const activeEvents = events.filter((record) => record.event_type !== "SystemUnassigned" && record.enabled !== false && record.enabled !== 0);
     empty.hidden = activeEvents.length > 0;
     list.replaceChildren();
     for (const record of activeEvents) {
@@ -122,7 +136,8 @@ form.addEventListener("submit", async (event) => {
     const data = new FormData(form);
     const payload = Object.fromEntries(["event_name", "nickname", "event_type", "week_day", "start_time"]
         .map((key) => [key, String(data.get(key) ?? "").trim() || null]));
-    payload.location_id = data.get("location_id") ? Number(data.get("location_id")) : null;
+    const locationChoice = String(data.get("location_id") || "");
+    payload.location_id = locationChoice.startsWith("location:") ? Number(locationChoice.split(":")[1]) : null;
     payload.games_per_session = data.get("games_per_session") ? Number(data.get("games_per_session")) : 3;
     payload.enabled = true;
     const id = editingId;
@@ -131,6 +146,15 @@ form.addEventListener("submit", async (event) => {
     disableButton.disabled = true;
     formStatus.textContent = "";
     try {
+        if (locationChoice.startsWith("establishment:")) {
+            const establishment = establishments.get(Number(locationChoice.split(":")[1]));
+            if (!establishment.location_id) {
+                const linked = await request(`/establishments/${establishment.establishment_id}/location`, { method: "POST" });
+                establishment.location_id = linked.location_id;
+            }
+            payload.location_id = establishment.location_id;
+            locations.set(establishment.location_id, establishment.establishment_name);
+        }
         const record = await request(id ? `/events/${id}` : "/events", {
             method: id ? "PUT" : "POST", body: JSON.stringify(payload),
         });
@@ -200,19 +224,25 @@ render();
 if (getAuthToken()) {
     add.disabled = true;
     try {
-        const [savedEvents, savedLocations] = await Promise.all([loadAll("/events"), loadAll("/locations")]);
+        const [savedEvents, savedLocations, savedEstablishments] = await Promise.all([
+            loadAll("/events"), loadAll("/locations"), loadAll("/establishments"),
+        ]);
         const select = document.getElementById("event-location");
         for (const location of savedLocations) {
             locations.set(location.location_id, location.location_name);
+        }
+        for (const establishment of savedEstablishments) {
+            if (establishment.enabled === false || establishment.enabled === 0) continue;
+            establishments.set(establishment.establishment_id, establishment);
             const option = document.createElement("option");
-            option.value = location.location_id;
-            option.textContent = location.location_name;
+            option.value = `establishment:${establishment.establishment_id}`;
+            option.textContent = establishment.establishment_name;
             select.append(option);
         }
         events.push(...savedEvents);
         render();
     } catch (error) {
-        status.textContent = error.message;
+        status.textContent = getAuthToken() ? error.message : "";
     } finally {
         add.disabled = false;
     }
