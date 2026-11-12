@@ -85,3 +85,19 @@ it("offers the user's establishments and saves their linked master location ID",
     document.querySelector(".establishment-card").click();
     expect(select.value).toBe("establishment:12");
 });
+
+
+it("shows newly created events before older events regardless of API order", async () => {
+    getAuthToken.mockReturnValue("token");
+    request.mockImplementation(async path => path.startsWith("/events?") ? [
+        { event_id: 2, event_name: "Older league", enabled: true },
+        { event_id: 12, event_name: "Newest league", enabled: true },
+        { event_id: 6, event_name: "Middle league", enabled: true },
+    ] : []);
+    await import("../events.js");
+    await vi.waitFor(() => expect(document.querySelectorAll(".establishment-card")).toHaveLength(3));
+    const cards = [...document.querySelectorAll(".establishment-card")];
+    expect(cards[0].textContent).toContain("Newest league");
+    expect(cards[1].textContent).toContain("Middle league");
+    expect(cards[2].textContent).toContain("Older league");
+});
