@@ -407,3 +407,7 @@ body .account_field .display_name_field, body .account_field select { background
 .appearance-preference select { min-height: 44px; min-width: 130px; padding: 8px 12px; border-radius: 12px; font: inherit; }
 .appearance-preference small { flex-basis: 100%; color: var(--settings-muted); }
 .account_field .mainhand_selector, .account_field .cancel_display_name { background: var(--appearance-raised, #254e57); color: var(--app-text); }
+
+.home-customize-entry { width: min(100% - 32px, 720px); margin: 24px auto; }
+.home-customize-entry a { display: inline-flex; align-items: center; min-height: 48px; padding: 10px 20px; border-radius: 12px; background: var(--button-color-1); color: #132c33; font: bold 1.1rem var(--standard-font-family); text-decoration: none; }
+.home-customize-entry a:focus-visible { outline: 2px solid var(--button-color-2); outline-offset: 4px; }

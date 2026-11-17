@@ -7,6 +7,7 @@
     <title>Revmetrix | Home</title>
     <link rel="stylesheet" href="css/index.css">
     <link rel="stylesheet" href="/css/gameSetup.css">
+    <link rel="stylesheet" href="/css/homeLayout.css">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://gstatic.com" crossorigin>
@@ -86,6 +87,12 @@
         <button type="button" id="continue-game-choice" autofocus>Continue Game</button>
       </div>
       <div class="game-setup-actions"><button type="button" id="cancel-resume-game">Cancel</button></div>
+    </dialog>
+    <dialog class="game-setup" id="home-module-picker" aria-labelledby="home-module-title">
+      <h2 id="home-module-title">Choose a module</h2>
+      <div id="home-module-options"></div>
+      <p id="home-module-message" role="status"></p>
+      <div class="game-setup-actions"><button type="button" id="close-module-picker">Cancel</button></div>
     </dialog>
     <script type="module" src="/js/index.js"></script>
   </body>

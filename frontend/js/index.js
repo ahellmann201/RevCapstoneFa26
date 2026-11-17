@@ -1,5 +1,6 @@
 /** Initializes the home page navbar and personalized welcome message. */
 import { loadNavbar } from "./navbar.js";
+import { initHomeLayout } from "./home_layout.js";
 import { getActiveGameId, getGameState } from "./cache.js";
 import { listAll } from "./game_persistence.js";
 import { loadWeeklyEvents } from "./weekly_events.js";
@@ -8,6 +9,7 @@ import { getAuthToken } from "./authentication.js";
 import { getCachedDisplayName } from "./database.js";
 import { parseDisplayName } from "./data_handling.js"
 loadNavbar();
+initHomeLayout();
 
 async function loadWelcomeMessage(name = "Guest") {
     const welcomeMessageElement = document.getElementById("welcome-message");
