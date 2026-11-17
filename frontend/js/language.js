@@ -1,6 +1,6 @@
 /** Device-local interface language, shared by guests and signed-in users. */
 import { translations } from "./translations.js";
-import { request } from "./api_client.js";
+import * as Database from "./database.js";
 
 const storageKey = "revmetrix.language";
 export const languages = [
@@ -162,10 +162,7 @@ export async function saveLanguage(code) {
     for (const picker of document.querySelectorAll("[data-language-picker]")) picker.disabled = true;
     showLanguageStatus("Saving language…");
     try {
-        const user = await request("/auth/me/language", {
-            method: "PUT",
-            body: JSON.stringify({ main_language: code }),
-        });
+        const user = await Database.setLanguage(code);
         if (sessionStorage.getItem("authentication_token") !== token) return false;
         setLanguage(user.main_language);
         showLanguageStatus("");
@@ -185,7 +182,7 @@ export async function syncAccountLanguage() {
     if (!token || token === "null") return;
     const startedAt = revision;
     try {
-        const user = await request("/auth/me");
+        const user = await Database.request("/auth/me");
         if (startedAt === revision && sessionStorage.getItem("authentication_token") === token) {
             setLanguage(user.main_language ?? "en");
         }

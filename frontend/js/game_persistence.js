@@ -1,4 +1,4 @@
-import { request } from "./api_client.js";
+import { request } from "./database.js";
 
 export async function listAll(path) {
     const rows = [];

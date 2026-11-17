@@ -1,6 +1,6 @@
 /** Loads and filters the authenticated user's completed game statistics. */
 import { loadNavbar } from "./navbar.js";
-import { request } from "./api_client.js";
+import { request } from "./database.js";
 
 loadNavbar();
 

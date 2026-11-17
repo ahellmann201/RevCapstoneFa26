@@ -3,7 +3,7 @@ import { loadNavbar } from "./navbar.js";
 import { getAuthToken } from "./authentication.js";
 import { listAll } from "./game_persistence.js";
 import { getActiveGameId, getGameState } from "./cache.js";
-import { request } from "./api_client.js";
+import { request } from "./database.js";
 import { removeGame } from "./cache.js";
 import { translate } from "./language.js";
 import { getLanguage } from "./language.js";

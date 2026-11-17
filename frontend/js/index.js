@@ -4,14 +4,14 @@ import { listAll } from "./game_persistence.js";
 import { loadWeeklyEvents } from "./weekly_events.js";
 import Event from "./objects/event.js"
 import { getAuthToken } from "./authentication.js";
-import { getDisplayName } from "./requests.js";
+import { getCachedDisplayName } from "./database.js";
 import { parseDisplayName } from "./data_handling.js"
 loadNavbar();
 
 async function loadWelcomeMessage(name = "Guest") {
     const welcomeMessageElement = document.getElementById("welcome-message");
     if (getAuthToken() != null) {
-        name = parseDisplayName(await getDisplayName());
+        name = parseDisplayName(await getCachedDisplayName());
     }
     welcomeMessageElement.textContent = pickRandomWelcomeMessage(name);
 }

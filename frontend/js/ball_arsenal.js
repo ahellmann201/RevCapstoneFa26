@@ -1,6 +1,10 @@
 /** Initializes the ball arsenal page and shared site navigation. */
 import { loadNavbar } from "./navbar.js";
-import { createBall, deleteBall as deleteBallRequest, getBalls } from "./requests.js";
+import {
+    createBallForCurrentUser as createBall,
+    deleteBallForCurrentUser as deleteBallRequest,
+    getCachedBalls as getBalls,
+} from "./database.js";
 import {
     createBallFilterPopup,
     createBallPopup,

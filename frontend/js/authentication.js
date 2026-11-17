@@ -1,5 +1,5 @@
 import * as Cache from "./cache.js";
-import * as API from "./api_client.js";
+import * as Database from "./database.js";
 import { getLanguage, setLanguage } from "./language.js";
 
 export function clearAuthToken() {
@@ -36,7 +36,7 @@ export async function checkAuthToken(forceInvalid = false) {
     }
 
     try {
-        await API.getUser();
+        await Database.getUser();
         return true;
     } catch {
         return false;
@@ -44,7 +44,7 @@ export async function checkAuthToken(forceInvalid = false) {
 }
 
 async function completeLogin(username, password) {
-    const result = await API.login(username, password);
+    const result = await Database.login(username, password);
 
     if (!result.access_token) {
         throw new Error("The API did not return an access token.");
@@ -61,7 +61,7 @@ async function completeLogin(username, password) {
     );
 
     try {
-        const user = await API.getUser();
+        const user = await Database.getUser();
 
         Cache.setUserID(user.User_ID);
         Cache.setUsername(user.Username);
@@ -121,7 +121,7 @@ export async function submitAuth(type = "login") {
                 );
             }
 
-            await API.createAccount(
+            await Database.createAccount(
                 username,
                 email,
                 password,
