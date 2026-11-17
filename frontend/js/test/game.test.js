@@ -98,10 +98,26 @@ describe("cached game and Finish flow", () => {
         expect(document.getElementById("frame_title").textContent).toBe("Frame 1 \u00b7 Shot 1");
         expect(document.querySelector('.pin[data-pin="1"]').getAttribute("aria-pressed")).toBe("true");
         expect(document.querySelector('.pin[data-pin="2"]').getAttribute("aria-pressed")).toBe("false");
-        expect(document.querySelector('.pin[data-pin="2"]').disabled).toBe(true);
+        expect(document.querySelector('.pin[data-pin="2"]').disabled).toBe(false);
         expect(document.getElementById("next_frame").textContent).toBe("Return to current frame");
         click("next_frame");
         expect(document.getElementById("frame_title").textContent).toBe("Frame 2 \u00b7 Shot 1");
+    });
+
+    it("persists edits to an earlier saved shot without creating duplicate rows", async () => {
+        sessionStorage.setItem("authentication_token", "token");
+        await loadGame();
+        await nextSavedShot();
+        await nextSavedShot();
+        const shotIds = server.rows["/shots"].map(shot => shot.shot_id);
+        document.querySelector('[data-frame="1"] .frame_number').click();
+        document.querySelector('.pin[data-pin="1"]').click();
+        click("next_frame");
+        await vi.waitFor(() => expect(document.getElementById("next_frame").disabled).toBe(false));
+        expect(server.rows["/shots"].map(shot => shot.shot_id)).toEqual(shotIds);
+        expect(server.rows["/shots"][0].pin_leave).not.toContain(1);
+        expect(server.rows["/shots"][1].pin_leave).not.toContain(1);
+        expect(document.getElementById("frame_title").textContent).toContain("Frame 2");
     });
 
     it("keeps guest games local and scores a perfect game", async () => {
@@ -220,7 +236,7 @@ describe("cached game and Finish flow", () => {
         expect(Cache.getFrameShots(frame).filter(shot => Cache.getShotResult(shot))).toHaveLength(1);
         swipe(100, 230);
         expect(document.getElementById("frame_title").textContent).toContain("Shot 1");
-        expect(document.querySelector(".pin").disabled).toBe(true);
+        expect(document.querySelector(".pin").disabled).toBe(false);
         swipe(230, 100);
         expect(document.getElementById("frame_title").textContent).toContain("Shot 2");
         expect(Cache.getFrameShots(frame).filter(shot => Cache.getShotResult(shot))).toHaveLength(1);

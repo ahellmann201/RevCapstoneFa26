@@ -8,8 +8,8 @@ export const DB_UNAVAILABLE = Symbol("Database Unavailable");
 
 // Keep API access behind this module. Page code uses these database functions,
 // while api_client.js owns HTTP details and response handling.
-export function request(path, options = {}, authenticated = true) {
-    return API.request(path, options, authenticated);
+export function request(...args) {
+    return API.request(...args);
 }
 
 export function checkResponse(response) {

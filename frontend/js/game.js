@@ -200,7 +200,7 @@ function updateShortcutButtons() {
     const displayedFrame = viewingFrame ?? currentFrame;
     const displayedShot = viewingFrame === null ? currentShot : viewingShot;
     const strikeAllowed = isStrikeOpportunity(displayedFrame, displayedShot);
-    const locked = gameFinished || busy || loading || loadFailed || database.blocked || viewingFrame !== null;
+    const locked = gameFinished || busy || loading || loadFailed || database.blocked;
 
     foulButton.disabled = locked;
     gutterButton.disabled = locked;
@@ -213,10 +213,13 @@ function updateShortcutButtons() {
         ? currentFoul
         : Boolean(getShotResult(displayedShotId)?.foul);
     foulButton.setAttribute("aria-pressed", String(displayedFoul));
+    gutterButton.setAttribute("aria-pressed", String(selectedShortcut === "gutter"));
+    strikeButton.setAttribute("aria-pressed", String(selectedShortcut === "strike"));
 }
 
 function applyShortcut(type) {
-    if (gameFinished || busy || loading || loadFailed) return;
+    if (gameFinished || busy || loading || loadFailed || database.blocked) return;
+    selectedShortcut = type;
 
     const displayedFrame = viewingFrame ?? currentFrame;
     const displayedShot = viewingFrame === null ? currentShot : viewingShot;
@@ -362,6 +365,7 @@ pinLayout.forEach(({ number, row, column }) => {
     pin.addEventListener("click", () => {
     if (gameFinished || busy || loading || pin.disabled) return;
 
+    selectedShortcut = null;
     if (viewingFrame === null) currentFoul = false;
 
     const knockedDown = pin.getAttribute("aria-pressed") === "true";
