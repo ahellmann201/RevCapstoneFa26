@@ -1,4 +1,5 @@
 /** Device-local interface language, shared by guests and signed-in users. */
+import { translateInterface } from "./ui_translation.js";
 import { translations } from "./translations.js";
 import * as Database from "./database.js";
 
@@ -32,11 +33,60 @@ export function getLanguage() {
     return currentLanguage;
 }
 
-export function translate(key) {
-    return translations[currentLanguage][key] ?? translations.en[key] ?? key;
+export function translate(key, values = {}) {
+    const text = translations[currentLanguage][key] ?? translations.en[key] ?? key;
+    return text.replace(/\{(\w+)\}/g, (match, name) => String(values[name] ?? match));
+}
+
+// Match shared labels independent of capitalization; preserve template values.
+const textCache = new Map();
+const normalizedKeys = new Map(Object.keys(translations.en).map(key => [key.toLowerCase(), key]));
+const templates = Object.keys(translations.en).filter(key => key.includes("{"))
+    .sort((a, b) => b.replace(/\{\w+\}/g, "").length - a.replace(/\{\w+\}/g, "").length);
+export function translateText(text) {
+    const cacheKey = `${currentLanguage}:${text}`;
+    if (textCache.has(cacheKey)) return textCache.get(cacheKey);
+    const translated = translateKnownText(text);
+    if (textCache.size > 2000) textCache.clear();
+    textCache.set(cacheKey, translated);
+    return translated;
+}
+function translateKnownText(text) {
+    if (Object.hasOwn(translations.en, text)) return translate(text);
+    const suffix = /[:?]$/.test(text) ? text.slice(-1) : "";
+    const plain = suffix ? text.slice(0, -1) : text;
+    const key = normalizedKeys.get(plain.toLowerCase());
+    if (key) return translate(key) + suffix;
+    const branded = text.match(/^RevMetrix \| (.+)$/i);
+    if (branded) return `RevMetrix | ${translateText(branded[1])}`;
+    if (text.includes(" — ")) return text.split(" — ").map(translateText).join(" — ");
+    for (const template of templates) {
+        const names = [];
+        const pattern = template.split(/(\{\w+\})/).map(part => {
+            if (/^\{\w+\}$/.test(part)) { names.push(part.slice(1, -1)); return "(.+?)"; }
+            return part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        }).join("");
+        const match = text.match(new RegExp(`^${pattern}$`));
+        if (match) return translate(template, Object.fromEntries(names.map((name, i) => [name, name === "shortcut" ? translateText(match[i + 1]) : match[i + 1]])));
+    }
+    return text;
+}
+
+const observerKey = Symbol.for("revmetrix.translationObserver");
+window[observerKey]?.disconnect();
+const observer = new MutationObserver(() => {
+    if (typeof document !== "undefined") translatePage();
+});
+window[observerKey] = observer;
+function observeInterface() {
+    if (document.body) observer.observe(document.body, {
+        subtree: true, childList: true, characterData: true, attributes: true,
+        attributeFilter: ["placeholder", "title", "aria-label", "alt"],
+    });
 }
 
 export function translatePage(root = document) {
+    observer.disconnect();
     document.documentElement.lang = currentLanguage;
     for (const element of root.querySelectorAll("[data-i18n]")) {
         element.textContent = translate(element.dataset.i18n);
@@ -49,6 +99,8 @@ export function translatePage(root = document) {
         picker.setAttribute("aria-label", translate("Language"));
         syncSidebarLanguagePicker(picker);
     }
+    translateInterface(root, translateText);
+    observeInterface();
 }
 
 function syncSidebarLanguagePicker(picker) {

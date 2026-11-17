@@ -140,3 +140,65 @@ it("translates the real appearance controls in every language without changing t
     }
     setTheme("dark");
 });
+
+
+it("automatically translates unmarked interface text, nested buttons, and accessible labels", async () => {
+    const language = await import("../language.js");
+    document.body.innerHTML = '<button title="Open navigation" aria-label="Open navigation"><svg></svg><span>Save</span></button><input placeholder="Find a game" value="Save"><p>Frame 3 · Shot 2</p><span translate="no">Save</span>';
+    const button = document.querySelector("button");
+    const click = vi.fn();
+    button.addEventListener("click", click);
+    language.setLanguage("es");
+    expect(button.querySelector("span").textContent).toBe("Guardar");
+    expect(button.querySelector("svg")).not.toBeNull();
+    expect(button.title).toBe("Abrir menú");
+    expect(button.getAttribute("aria-label")).toBe("Abrir menú");
+    expect(document.querySelector("input").placeholder).toBe("Buscar partida");
+    expect(document.querySelector("input").value).toBe("Save");
+    expect(document.querySelector("p").textContent).toBe("Cuadro 3 · Lanzamiento 2");
+    expect(document.querySelector('[translate="no"]').textContent).toBe("Save");
+    button.click();
+    expect(click).toHaveBeenCalledOnce();
+    language.setLanguage("fr");
+    expect(button.querySelector("span").textContent).toBe("Enregistrer");
+    language.setLanguage("en");
+    expect(button.querySelector("span").textContent).toBe("Save");
+    expect(document.querySelector("p").textContent).toBe("Frame 3 · Shot 2");
+});
+
+it("translates new content and changing status text without marking individual boxes", async () => {
+    const language = await import("../language.js");
+    language.setLanguage("es");
+    const status = document.createElement("p");
+    status.textContent = "Loading…";
+    document.body.append(status);
+    await vi.waitFor(() => expect(status.textContent).toBe("Cargando…"));
+    status.textContent = "All confirmed shots saved.";
+    await vi.waitFor(() => expect(status.textContent).toBe("Todos los lanzamientos guardados."));
+    language.setLanguage("en");
+    expect(status.textContent).toBe("All confirmed shots saved.");
+    status.textContent = "Unknown new wording";
+    language.setLanguage("de");
+    expect(status.textContent).toBe("Unknown new wording");
+});
+
+it("preserves template values and does not interpret them as markup", async () => {
+    const language = await import("../language.js");
+    const text = document.createElement("p");
+    text.textContent = "Edit <img src=x>";
+    document.body.append(text);
+    language.setLanguage("es");
+    expect(text.textContent).toBe("Editar <img src=x>");
+    expect(text.querySelector("img")).toBeNull();
+    language.setLanguage("en");
+    expect(text.textContent).toBe("Edit <img src=x>");
+});
+
+
+it("uses the most specific dynamic message and preserves its numeric values", async () => {
+    const language = await import("../language.js");
+    language.setLanguage("es");
+    expect(language.translateText("Frame 2 of 10 · Shot 1")).toBe("Cuadro 2 de 10 · Lanzamiento 1");
+    language.setLanguage("fr");
+    expect(language.translateText("Frame 2 of 10 · Shot 1")).toBe("Frame 2 sur 10 · Lancer 1");
+});

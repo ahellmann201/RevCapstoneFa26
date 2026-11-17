@@ -41,6 +41,7 @@ function render() {
         const title = document.createElement("h2");
         title.textContent = `Game #${game.game_id}`;
         const context = document.createElement("p");
+        context.setAttribute("translate", "no");
         context.textContent = `${name} · Game ${game.game_number}`;
         const played = document.createElement("time");
         played.textContent = date;

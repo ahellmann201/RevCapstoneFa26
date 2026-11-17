@@ -33,6 +33,7 @@ export async function loadWeeklyEvents(onSelectEvent = () => {}) {
                     time.textContent = `${Number(hours) % 12 || 12}:${minutes} ${Number(hours) >= 12 ? "PM" : "AM"}`;
                 } else time.textContent = "Time not set";
                 const name = document.createElement("h4");
+                name.setAttribute("translate", "no");
                 name.textContent = event.event_name;
                 card.append(time, name);
                 container.append(card);

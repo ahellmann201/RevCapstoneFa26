@@ -50,8 +50,11 @@ export async function loadAccountInfoToFields() {
 
     const username = await Database.getCachedUsername();
     const usernameField = document.getElementById("username-field");
-    let usernameValue = usernameField.innerHTML;
-    usernameField.innerHTML = usernameValue + username;
+    usernameField.setAttribute("translate", "no");
+    usernameField.replaceChildren();
+    const at = document.createElement("span");
+    at.textContent = "@";
+    usernameField.append(at, document.createTextNode(username ?? ""));
 
     const displayNameField = document.getElementById("display-name-field");
     const displayName = await Database.getCachedDisplayNameBlank();

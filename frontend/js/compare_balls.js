@@ -59,6 +59,7 @@ function renderBallChoices() {
         choice.className = "ball-choice";
         choice.dataset.ballId = String(ball.ball_id);
         choice.setAttribute("aria-pressed", "false");
+        choice.setAttribute("translate", "no");
         choice.textContent = ball.ball_name;
         choice.id = `compare-ball-${index}`;
         fragment.append(choice);
@@ -113,6 +114,7 @@ function createCell(tagName, text, className = "") {
     const cell = document.createElement(tagName);
     cell.textContent = text;
     if (className) cell.className = className;
+    if (className === "row-header") cell.setAttribute("translate", "no");
     return cell;
 }
 

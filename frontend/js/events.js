@@ -95,6 +95,7 @@ function render() {
         heading.className = "establishment-card-title";
         const name = document.createElement("span");
         name.className = "establishment-name";
+        name.setAttribute("translate", "no");
         name.textContent = record.event_name;
         const edit = document.createElement("span");
         edit.className = "establishment-edit";
@@ -108,7 +109,12 @@ function render() {
         ]) {
             const detail = document.createElement("span");
             detail.className = "establishment-detail";
-            detail.textContent = `${label}: ${value || "—"}`;
+            const caption = document.createElement("span");
+            caption.textContent = `${label}: `;
+            const content = document.createElement("span");
+            if (!["Day", "Type"].includes(label)) content.setAttribute("translate", "no");
+            content.textContent = String(value || "—");
+            detail.append(caption, content);
             card.append(detail);
         }
         if (record.enabled === false) {

@@ -32,6 +32,7 @@
     "test:frontend": "node scripts/commands/test.mjs js",
     "test:backend": "node scripts/commands/test.mjs python",
     "test:watch": "vitest",
+    "check:translations": "node scripts/check-translations.mjs",
     "dev:python": "node scripts/commands/api.mjs --db=real"
   },
   "devDependencies": {

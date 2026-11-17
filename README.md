@@ -528,3 +528,24 @@ a search field. Selecting a game opens its saved scorecard for viewing or
 continuing. Start Game opens the home page's event/establishment setup and starts
 a fresh game. The menu omits the placeholder Sessions, Ciclops, Smart Dot, and
 Smart Watch destinations.
+
+
+### Interface translations
+
+The shared language layer translates page text, buttons, titles, placeholders,
+and accessibility labels automatically, including content added after loading.
+It preserves the original English text when switching languages and leaves form
+values, native language names, and elements marked `translate="no"` untouched.
+No interface text or user records are sent to a translation service.
+
+When adding or changing wording, add its English key and all five language values
+in `frontend/js/translations.js`. Existing wording needs no per-element attributes.
+Use `{name}` or `{count}` placeholders for changing messages; preserve placeholder
+names in every language. Mark user-supplied names and other record values with
+`translate="no"`, even if they happen to match interface words such as “Save”.
+Existing `data-i18n` attributes remain supported.
+
+Run `npm run check:translations` (Windows: `npm.cmd run check:translations`) to
+find static page wording without dictionary coverage. Dynamic messages need
+matching dictionary entries and regression tests. Unknown wording remains in
+English until its translations are provided; it is not machine-translated.

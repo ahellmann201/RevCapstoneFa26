@@ -63,7 +63,7 @@
 }
 
 .navbar > h1 {
-    color: white;
+    color: var(--app-text);
     position: absolute;
     font-size: 4rem;
     font-family: 'Jaldi', sans-serif;
@@ -136,7 +136,7 @@
     width: 100%;
     height: var(--hamburger-line-height);
 
-    background-color: white;
+    background-color: var(--app-text);
 }
 
 .sidebar {

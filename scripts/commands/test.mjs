@@ -62,6 +62,9 @@ function runProcess(command, args, name) {
 }
 
 async function runJavaScriptTests() {
+    const coverage = await runProcess(process.execPath, ["scripts/check-translations.mjs"], "Interface translation coverage");
+    if (coverage !== 0) return coverage;
+
     if (!existsSync(vitestCli)) {
         console.error(
             "Vitest was not found. Run `npm run setup` first.",
