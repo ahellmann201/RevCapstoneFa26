@@ -31,3 +31,12 @@ body { color: var(--app-text); }
 .delete-game { position: absolute; right: 12px; bottom: 12px; display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--appearance-outline, #31505a); border-radius: 10px; background: var(--appearance-surface, #092b35); color: var(--appearance-muted, #a6bdc3); cursor: pointer; }
 .delete-game:hover { color: #e56b6b; border-color: currentColor; }
 .delete-game:disabled { opacity: .5; cursor: wait; }
+
+.rename-game { position: absolute; left: 12px; bottom: 12px; display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--appearance-outline, #31505a); border-radius: 10px; background: var(--appearance-surface, #092b35); color: var(--app-text); cursor: pointer; }
+.rename-game:hover { border-color: var(--button-color-2); }
+.rename-game-dialog { width: min(440px, calc(100vw - 24px)); margin: auto; padding: 24px; border: 1px solid var(--appearance-outline, #31505a); border-radius: 18px; background: var(--appearance-surface, #092b35); color: var(--app-text); }
+.rename-game-dialog::backdrop { background: rgb(0 0 0 / 55%); }
+.rename-game-dialog form { display: grid; gap: 14px; }
+.rename-game-dialog input { width: 100%; min-height: 44px; padding: 10px; border: 1px solid var(--appearance-outline-strong, #52717b); border-radius: 10px; background: var(--bg-color); color: var(--app-text); font: inherit; }
+.rename-game-actions { display: flex; gap: 12px; }
+.rename-game-actions button { flex: 1; min-height: 44px; border: 0; border-radius: 10px; background: var(--button-color-2); color: #132c33; font: inherit; cursor: pointer; }

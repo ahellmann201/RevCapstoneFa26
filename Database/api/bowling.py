@@ -97,6 +97,7 @@ class SessionInput(InputModel):
 
 
 class GameInput(InputModel):
+    nickname: str | None = Field(default=None, max_length=100)
     session_id: Id
     game_number: PositiveNumber
     lane_number: PositiveNumber | None = None
@@ -327,3 +328,15 @@ for resource in (
     shots,
 ):
     add_resource_routes(router, resource)
+
+
+class GameNicknameInput(InputModel):
+    nickname: str | None = Field(default=None, max_length=100)
+
+@router.put("/games/{item_id}/nickname", tags=["Games"])
+def rename_game(item_id: ResourceId, data: GameNicknameInput, user: UserDependency):
+    nickname = data.nickname.strip() or None if data.nickname is not None else None
+    with database_cursor(write=True) as cursor:
+        require_record(cursor, games, item_id, user)
+        cursor.execute("UPDATE games SET nickname = ? WHERE game_id = ?", (nickname, item_id))
+    return {"game_id": item_id, "nickname": nickname}

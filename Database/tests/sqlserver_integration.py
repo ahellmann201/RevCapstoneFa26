@@ -39,6 +39,8 @@ def main():
             cursor.execute("SELECT TOP (0) nickname, [type], phone, home_house, enabled FROM dbo.user_establishments")
             cursor.execute("SELECT TOP (0) token_hash FROM dbo.password_resets")
             cursor.execute("SELECT TOP (0) foul FROM dbo.shots")
+            cursor.execute("SELECT TOP (0) nickname FROM dbo.games")
+            cursor.execute("SELECT TOP (0) user_id, layout_version, layout_json, updated_at FROM dbo.user_home_layouts")
     try:
         run_scenario(usernames)
     finally:

@@ -14,6 +14,8 @@ beforeEach(() => {
     vi.resetAllMocks();
     sessionStorage.clear();
     document.body.innerHTML = readFileSync("frontend/games.html", "utf8");
+    document.getElementById("rename-game-dialog").showModal = vi.fn();
+    document.getElementById("rename-game-dialog").close = vi.fn();
 });
 it("offers guest play without requesting another account's games", async () => {
     getAuthToken.mockReturnValue(null);
@@ -75,4 +77,45 @@ it("keeps the game and allows retrying when deletion fails", async () => {
     expect(document.querySelectorAll(".saved-game-card")).toHaveLength(1);
     expect(button.disabled).toBe(false);
     vi.restoreAllMocks();
+});
+
+
+it("saves a trimmed game nickname, displays it safely, and includes it in search", async () => {
+    await loadDeletableGame();
+    document.querySelector(".rename-game").click();
+    expect(document.getElementById("rename-game-dialog").showModal).toHaveBeenCalledOnce();
+    document.getElementById("game-nickname").value = "  Friday <practice>  ";
+    request.mockResolvedValueOnce({ game_id: 7, nickname: "Friday <practice>" });
+    document.getElementById("rename-game-form").dispatchEvent(new Event("submit", { cancelable: true }));
+    await vi.waitFor(() => expect(document.querySelector(".saved-game-link h2").textContent).toBe("Friday <practice>"));
+    expect(request).toHaveBeenCalledWith("/games/7/nickname", { method: "PUT", body: JSON.stringify({ nickname: "Friday <practice>" }) });
+    expect(document.querySelector(".saved-game-link h2").getAttribute("translate")).toBe("no");
+    expect(document.querySelector("practice")).toBeNull();
+    const search = document.getElementById("game-search");
+    search.value = "Friday"; search.dispatchEvent(new Event("input"));
+    expect(document.querySelectorAll(".saved-game-card")).toHaveLength(1);
+});
+
+it("retains the previous game name and leaves the dialog open on save failure", async () => {
+    await loadDeletableGame();
+    document.querySelector(".rename-game").click();
+    document.getElementById("game-nickname").value = "League";
+    request.mockRejectedValueOnce(new Error("Offline"));
+    document.getElementById("rename-game-form").dispatchEvent(new Event("submit", { cancelable: true }));
+    await vi.waitFor(() => expect(document.getElementById("rename-game-status").textContent).toContain("Could not save"));
+    expect(document.querySelector(".saved-game-link h2").textContent).toBe("Game #7");
+    expect(document.getElementById("rename-game-dialog").close).not.toHaveBeenCalled();
+    expect(document.getElementById("save-game-nickname").disabled).toBe(false);
+});
+
+
+it("clears a nickname back to the game-number fallback", async () => {
+    await loadDeletableGame();
+    document.querySelector(".rename-game").click();
+    document.getElementById("game-nickname").value = "  ";
+    request.mockResolvedValueOnce({ game_id: 7, nickname: null });
+    document.getElementById("rename-game-form").dispatchEvent(new Event("submit", { cancelable: true }));
+    await vi.waitFor(() => expect(document.getElementById("rename-game-dialog").close).toHaveBeenCalledOnce());
+    expect(request).toHaveBeenCalledWith("/games/7/nickname", { method: "PUT", body: JSON.stringify({ nickname: null }) });
+    expect(document.querySelector(".saved-game-link h2").textContent).toBe("Game #7");
 });

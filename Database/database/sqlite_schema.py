@@ -15,6 +15,13 @@ CREATE TABLE IF NOT EXISTS users (
         CHECK (main_language IN ('en', 'es', 'fr', 'de', 'zh-CN'))
 );
 
+CREATE TABLE IF NOT EXISTS user_home_layouts (
+    user_id INTEGER PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE,
+    layout_version INTEGER NOT NULL DEFAULT 1 CHECK (layout_version = 1),
+    layout_json TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS clients (
     device TEXT NOT NULL,
     token TEXT NOT NULL,
@@ -78,6 +85,7 @@ CREATE TABLE IF NOT EXISTS games (
     game_id INTEGER PRIMARY KEY AUTOINCREMENT,
     session_id INTEGER NOT NULL,
     game_number INTEGER NOT NULL,
+    nickname TEXT,
     lane_number INTEGER,
     game_score INTEGER,
     game_result INTEGER,
@@ -111,6 +119,8 @@ CREATE TABLE IF NOT EXISTS shots (
 
 def initialize_schema(connection):
     connection.executescript(SCHEMA + SQLITE_RESET_SCHEMA)
+    if not any(row[1] == "nickname" for row in connection.execute("PRAGMA table_info(games)")):
+        connection.execute("ALTER TABLE games ADD COLUMN nickname TEXT")
     migrate_user_language(connection)
     migrate_establishments(connection)
     migrate_events(connection)

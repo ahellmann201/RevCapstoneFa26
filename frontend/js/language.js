@@ -67,7 +67,7 @@ function translateKnownText(text) {
             return part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         }).join("");
         const match = text.match(new RegExp(`^${pattern}$`));
-        if (match) return translate(template, Object.fromEntries(names.map((name, i) => [name, name === "shortcut" ? translateText(match[i + 1]) : match[i + 1]])));
+        if (match) return translate(template, Object.fromEntries(names.map((name, i) => [name, ["shortcut", "module"].includes(name) ? translateText(match[i + 1]) : match[i + 1]])));
     }
     return text;
 }

@@ -1,7 +1,10 @@
 import { readFileSync } from "node:fs";
 import { beforeEach, afterEach, expect, it, vi } from "vitest";
+vi.mock("../database.js", () => ({ request: vi.fn() }));
+import { request } from "../database.js";
 import { initHomeLayout, validHomeLayout, moduleCells } from "../home_layout.js";
 beforeEach(() => {
+    vi.resetAllMocks();
     localStorage.clear(); sessionStorage.clear();
     document.body.innerHTML = readFileSync("frontend/index.html", "utf8");
     vi.stubGlobal("window", { location: { search: "?edit_home=1", href: "http://localhost/index.html?edit_home=1" }, history: { replaceState: vi.fn() } });
@@ -54,4 +57,35 @@ it("adds an optional page shortcut and persists it without changing defaults", (
     expect(link.hidden).toBe(false);
     expect(document.querySelector('.home-shortcut[href="/stats.html"]').hidden).toBe(true);
     expect(JSON.parse(localStorage.getItem("revmetrix:home-layout:v1:guest"))).toHaveLength(4);
+});
+
+
+it("loads the account layout from the server even on a different browser", async () => {
+    sessionStorage.setItem("userID", "42"); sessionStorage.setItem("authentication_token", "token");
+    request.mockResolvedValueOnce({ layout_version: 1, layout_json: [{ id: "stats", slot: 0 }], updated_at: "2026-11-17T12:00:00Z" });
+    initHomeLayout();
+    await vi.waitFor(() => expect(document.querySelector('[data-action="save"]').disabled).toBe(false));
+    expect(document.querySelectorAll(".home-edit-module")).toHaveLength(1);
+    expect(document.querySelector('.home-shortcut[href="/stats.html"]').hidden).toBe(false);
+    expect(document.getElementById("start-game-button").hidden).toBe(true);
+    expect(request).toHaveBeenCalledWith("/auth/me/home-layout");
+});
+
+it("keeps failed account saves open and only caches after a successful retry", async () => {
+    sessionStorage.setItem("userID", "42"); sessionStorage.setItem("authentication_token", "token");
+    request.mockResolvedValueOnce({ layout_version: 1, layout_json: [], updated_at: null });
+    initHomeLayout();
+    await vi.waitFor(() => expect(document.querySelector('[data-action="save"]').disabled).toBe(false));
+    document.querySelector(".home-edit-module").click();
+    [...document.querySelectorAll("#home-module-options button")].find(button => button.textContent === "Remove module").click();
+    request.mockRejectedValueOnce(new Error("Offline"));
+    document.querySelector('[data-action="save"]').click();
+    await vi.waitFor(() => expect(document.querySelector(".home-layout-status").textContent).toContain("Could not save"));
+    expect(localStorage.getItem("revmetrix:home-layout:v1:42")).toBeNull();
+    expect(document.querySelector(".home-editor").hidden).toBe(false);
+    request.mockResolvedValueOnce({ layout_version: 1 });
+    document.querySelector('[data-action="save"]').click();
+    await vi.waitFor(() => expect(document.querySelector(".home-editor").hidden).toBe(true));
+    expect(JSON.parse(localStorage.getItem("revmetrix:home-layout:v1:42")).map(entry => entry.id)).toEqual(["game", "week"]);
+    expect(request).toHaveBeenLastCalledWith("/auth/me/home-layout", { method: "PUT", body: JSON.stringify({ layout_version: 1, layout_json: [{ id: "game", slot: 1 }, { id: "week", slot: 2 }] }) });
 });

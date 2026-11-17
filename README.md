@@ -549,3 +549,38 @@ Run `npm run check:translations` (Windows: `npm.cmd run check:translations`) to
 find static page wording without dictionary coverage. Dynamic messages need
 matching dictionary entries and regression tests. Unknown wording remains in
 English until its translations are provided; it is not machine-translated.
+
+
+### Game nicknames and home-page layouts
+
+On **Games**, use the pencil button to name a saved game (up to 100 characters).
+Clear the nickname to restore its game-number label. Nicknames appear in the
+saved-game list and game details and are included in game searches. Only the
+owning account may rename a game; nicknames do not affect scores or statistics.
+
+In **Account Settings → Edit Home Page**, choose modules and save the layout.
+Signed-in users save through `GET/PUT /auth/me/home-layout`, so their layout loads
+on other devices. Guests use browser storage. Failed server saves leave the
+editor open for retry; they are not reported as saved. Layouts are validated for
+known modules, duplicates, grid bounds and overlapping cells.
+
+SQL Server requires `Database/scripts/migrate_game_nicknames_home_layouts.sql`
+**before deploying the updated API**. Back up the target database, then run this
+idempotent migration using an authorized database administrator. It adds:
+
+| Table | Field | SQL Server type / purpose |
+| --- | --- | --- |
+| games | nickname | NVARCHAR(100), nullable |
+| user_home_layouts | user_id | INT, primary key and foreign key to users |
+| user_home_layouts | layout_version | INT, currently 1 |
+| user_home_layouts | layout_json | NVARCHAR(MAX), validated JSON module positions |
+| user_home_layouts | updated_at | DATETIME2, server-generated UTC time |
+
+The separate preferences table stores one layout per user; `users.user_id` is
+unchanged. The API sends `layout_json` as a JSON array, while SQL Server stores
+its serialized text. Layout rows cascade when a user is deleted.
+
+For an existing local SQLite test database, `npm run db:test:init` (Windows:
+`npm.cmd run db:test:init`) applies the additive schema updates without resetting
+records. Restart the local API afterward. Remote SQL Server tests now require
+this migration as well; regular `npm test` uses isolated local/mocked databases.

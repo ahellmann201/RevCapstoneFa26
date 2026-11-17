@@ -134,7 +134,9 @@ function renderDetail(entry, sessionsById) {
     backLink.href = "/stats.html";
     backLink.textContent = "← Back to Stats";
     heading.append(backLink);
-    heading.append(createText("h2", "", `Game #${game.game_number}`));
+    const gameTitle = createText("h2", "", game.nickname || `Game #${game.game_number}`);
+    if (game.nickname) gameTitle.setAttribute("translate", "no");
+    heading.append(gameTitle);
     heading.append(createText("p", "", `Game ID ${game.game_id} · ${formatDate(session?.date_time)}`));
     const score = document.createElement("div");
     score.className = "detail-score";

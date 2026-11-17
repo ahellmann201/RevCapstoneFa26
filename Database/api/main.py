@@ -100,6 +100,9 @@ from Database.api.statistics import router as statistics_router
 
 from Database.api.password_reset import router as password_reset_router
 
+from Database.api.home_layout import router as home_layout_router
+
+app.include_router(home_layout_router)
 app.include_router(password_reset_router)
 app.include_router(auth_router)
 app.include_router(balls_router)

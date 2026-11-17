@@ -275,6 +275,8 @@ def add_resource_routes(router: APIRouter, resource: Resource):
         user: UserDependency,
     ):
         values = database_values(payload)
+        if resource.table == "games" and "nickname" not in payload.model_fields_set:
+            values.pop("nickname", None)
 
         with database_cursor(write=True) as cursor:
             require_record(cursor, resource, item_id, user)

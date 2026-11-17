@@ -1,6 +1,7 @@
 """Database-level checks for the SQLite schema used by the app's test mode."""
 
 import sqlite3
+from contextlib import closing
 import tempfile
 import unittest
 from pathlib import Path
@@ -10,6 +11,7 @@ from Database.database.sqlite_schema import initialize_schema
 
 EXPECTED_TABLES = {
     "users",
+    "user_home_layouts",
     "clients",
     "master_locations",
     "user_establishments",
@@ -56,6 +58,14 @@ class SQLiteDatabaseTests(unittest.TestCase):
         }
 
         self.assertEqual(tables, EXPECTED_TABLES)
+
+    def test_nickname_migration_preserves_existing_game_rows(self):
+        with closing(sqlite3.connect(":memory:")) as legacy:
+            legacy.execute("CREATE TABLE games (game_id INTEGER PRIMARY KEY, session_id INTEGER NOT NULL, game_number INTEGER NOT NULL, lane_number INTEGER, game_score INTEGER, game_result INTEGER)")
+            legacy.execute("INSERT INTO games (game_id, session_id, game_number, game_score) VALUES (42, 1, 1, 180)")
+            initialize_schema(legacy)
+            initialize_schema(legacy)
+            self.assertEqual(legacy.execute("SELECT game_score, nickname FROM games WHERE game_id = 42").fetchone(), (180, None))
 
     def test_bowling_records_round_trip_and_game_delete_cascades(self):
         user_id = self.create_user()

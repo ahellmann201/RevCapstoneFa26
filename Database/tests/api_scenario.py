@@ -55,6 +55,35 @@ def run_scenario(usernames):
         session = post("/sessions", {"event_id": event["event_id"], "date_time": "2026-10-29T12:00:00Z",
             "establishment_id": establishment["establishment_id"]})
         game = post("/games", {"session_id": session["session_id"], "game_number": 1})
+        nickname_url = f"/games/{game['game_id']}/nickname"
+        assert client.put(nickname_url, headers=other, json={"nickname": "Not mine"}).status_code == 404
+        assert client.put(nickname_url, headers=owner, json={"nickname": "x" * 101}).status_code == 422
+        renamed = client.put(nickname_url, headers=owner, json={"nickname": "  Friday practice  "})
+        assert renamed.status_code == 200, renamed.text
+        assert listing("/games")[0]["nickname"] == "Friday practice"
+        # A legacy full-game update must not erase a nickname it did not supply.
+        response = client.put(f"/games/{game['game_id']}", headers=owner,
+            json={"session_id": session["session_id"], "game_number": 1})
+        assert response.status_code == 200, response.text
+        assert response.json()["nickname"] == "Friday practice"
+        assert client.put(nickname_url, headers=owner, json={"nickname": "  "}).json()["nickname"] is None
+        layout_url = "/auth/me/home-layout"
+        assert client.get(layout_url).status_code == 401
+        assert client.get(layout_url, headers=owner).json()["updated_at"] is None
+        preference = {"layout_version": 1, "layout_json": [{"id": "stats", "slot": 0}, {"id": "week", "slot": 2}]}
+        response = client.put(layout_url, headers=owner, json=preference)
+        assert response.status_code == 200, response.text
+        assert response.json()["updated_at"] is not None
+        assert client.get(layout_url, headers=owner).json()["layout_json"] == preference["layout_json"]
+        assert client.get(layout_url, headers=other).json()["updated_at"] is None
+        preference["layout_json"] = []
+        assert client.put(layout_url, headers=owner, json=preference).status_code == 200
+        assert client.get(layout_url, headers=owner).json()["layout_json"] == []
+        assert client.put(layout_url, headers=owner, json={**preference, "user_id": 999}).status_code == 422
+        assert client.put(layout_url, headers=owner, json={"layout_version": 2, "layout_json": []}).status_code == 422
+        for entries in [[{"id": "week", "slot": 11}], [{"id": "unknown", "slot": 0}],
+                        [{"id": "week", "slot": 0}, {"id": "game", "slot": 1}]]:
+            assert client.put(layout_url, headers=owner, json={"layout_json": entries}).status_code == 422
         # A complete perfect game exercises retrieval, pin masks, and scoring.
         first_frame = first_shot = None
         for number in range(1, 11):

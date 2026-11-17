@@ -23,6 +23,19 @@
         <p id="games-status" role="status">Loading your games…</p>
         <ul id="games-list" class="games-list"></ul>
     </main>
+    <dialog id="rename-game-dialog" class="rename-game-dialog" aria-labelledby="rename-game-title">
+        <form id="rename-game-form">
+            <h2 id="rename-game-title">Name your game</h2>
+            <label for="game-nickname">Game nickname</label>
+            <input id="game-nickname" name="nickname" maxlength="100" autocomplete="off" aria-describedby="game-nickname-help">
+            <p id="game-nickname-help">Leave blank to use the game number.</p>
+            <p id="rename-game-status" role="status"></p>
+            <div class="rename-game-actions">
+                <button type="button" id="cancel-rename-game">Cancel</button>
+                <button type="submit" id="save-game-nickname">Save</button>
+            </div>
+        </form>
+    </dialog>
     <script type="module" src="/js/games.js"></script>
 </body>
 </html>

@@ -1,4 +1,5 @@
-﻿const ITEMS = {
+import { request } from "./database.js";
+const ITEMS = {
     events: { label: "Schedule Event", selector: "#schedule-event-button", width: 1, height: 1 },
     game: { label: "Start Game", selector: "#start-game-button", width: 1, height: 1 },
     week: { label: "Weekly Events", selector: ".week-schedule", width: 2, height: 2 },
@@ -38,6 +39,10 @@ export function initHomeLayout() {
     const landing = document.querySelector(".landing");
     const picker = document.getElementById("home-module-picker");
     if (!landing || !picker) return;
+    const token = sessionStorage.getItem("authentication_token");
+    const signedIn = Boolean(token && token !== "null");
+    let hydrating = signedIn;
+    let saving = false;
     const key = `revmetrix:home-layout:v1:${sessionStorage.getItem("userID") || "guest"}`;
     let layout = structuredClone(DEFAULT);
     try {
@@ -70,6 +75,8 @@ export function initHomeLayout() {
         node.style.gridRow = `${Math.floor(entry.slot / 2) + 1} / span ${item.height}`;
     }
     function render() {
+        for (const button of editor.querySelectorAll(".home-editor-actions button")) button.disabled = hydrating || saving;
+        editGrid.inert = hydrating || saving;
         editor.hidden = !editing;
         grid.inert = editing;
         for (const node of Object.values(nodes)) { node.hidden = true; grid.append(node); }
@@ -133,11 +140,40 @@ export function initHomeLayout() {
             const url = new URL(window.location.href); url.searchParams.delete("edit_home"); window.history.replaceState(null, "", url);
         }
     }
-    editor.querySelector('[data-action="save"]').addEventListener("click", () => {
-        try { localStorage.setItem(key, JSON.stringify(draft)); layout = structuredClone(draft); finish(); }
-        catch { status.textContent = "Could not save this layout. Device storage may be unavailable."; }
+    editor.querySelector('[data-action="save"]').addEventListener("click", async () => {
+        if (hydrating || saving) return;
+        if (sessionStorage.getItem("authentication_token") !== token) {
+            status.textContent = "Your account changed. Refresh before saving.";
+            return;
+        }
+        saving = true; status.textContent = "Saving layout…"; render();
+        try {
+            const selected = structuredClone(draft);
+            if (signedIn) await request("/auth/me/home-layout", {
+                method: "PUT", body: JSON.stringify({ layout_version: 1, layout_json: selected }),
+            });
+            if (sessionStorage.getItem("authentication_token") !== token) return;
+            // The database is authoritative; cache failures must not undo a successful server save.
+            try { localStorage.setItem(key, JSON.stringify(selected)); }
+            catch (error) { if (!signedIn) throw error; }
+            layout = selected; finish();
+        } catch { status.textContent = "Could not save this layout. Please try again."; }
+        finally { saving = false; render(); }
     });
     editor.querySelector('[data-action="cancel"]').addEventListener("click", () => { draft = structuredClone(layout); finish(); });
     editor.querySelector('[data-action="reset"]').addEventListener("click", () => { draft = structuredClone(DEFAULT); moving = null; status.textContent = "Default layout restored. Save to keep it."; render(); });
     render();
+    if (signedIn) void (async () => {
+        try {
+            const saved = await request("/auth/me/home-layout");
+            if (sessionStorage.getItem("authentication_token") !== token) return;
+            if (saved.layout_version !== 1 || !validHomeLayout(saved.layout_json)) throw new Error("Invalid saved layout");
+            if (saved.updated_at !== null) {
+                layout = structuredClone(saved.layout_json);
+                draft = structuredClone(layout);
+                try { localStorage.setItem(key, JSON.stringify(layout)); } catch { /* Server preference still applies. */ }
+            }
+        } catch { status.textContent = "Could not load your saved layout. Using this device's layout."; }
+        finally { hydrating = false; render(); }
+    })();
 }

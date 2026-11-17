@@ -22,6 +22,7 @@ def check_migrations(connection):
         try:
             cursor.execute("BEGIN TRANSACTION")
             cursor.execute(legacy_schema)
+            cursor.execute("DROP TABLE dbo.user_home_layouts; ALTER TABLE dbo.games DROP COLUMN nickname;")
             cursor.execute("INSERT INTO users (display_name, username, password_hash, email) OUTPUT INSERTED.user_id VALUES (?, ?, ?, ?)",
                            ("Migration test", "migration_fixture", b"fixture-only", "migration@example.com"))
             user_id = cursor.fetchone()[0]
@@ -35,6 +36,10 @@ def check_migrations(connection):
             shot_id = cursor.fetchone()[0]
             for _ in range(2):
                 cursor.execute(foul_migration)
+                cursor.execute((Path(__file__).resolve().parents[1] / "scripts" / "migrate_game_nicknames_home_layouts.sql").read_text(encoding="utf-8"))
+                cursor.execute("SELECT nickname FROM dbo.games WHERE game_id = ?", (game_id,))
+                assert cursor.fetchone()[0] is None
+                cursor.execute("SELECT TOP (0) user_id, layout_version, layout_json, updated_at FROM dbo.user_home_layouts")
                 cursor.execute(SQLSERVER_RESET_SCHEMA)
                 cursor.execute("SELECT frame_id, shot_number, pin_leave, foul FROM shots WHERE shot_id = ?", (shot_id,))
                 assert tuple(cursor.fetchone()) == (frame_id, 1, 1023, False)

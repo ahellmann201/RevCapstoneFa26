@@ -2,7 +2,7 @@
 import { loadNavbar } from "./navbar.js";
 import { getAuthToken } from "./authentication.js";
 import { listAll } from "./game_persistence.js";
-import { getActiveGameId, getGameState } from "./cache.js";
+import { getActiveGameId, getGameState, setGameState } from "./cache.js";
 import { request } from "./database.js";
 import { removeGame } from "./cache.js";
 import { translate } from "./language.js";
@@ -18,6 +18,37 @@ document.getElementById("resume-local-game").hidden = !active || active.gameFini
 let games = [];
 const sessions = new Map();
 const events = new Map();
+const renameDialog = document.getElementById("rename-game-dialog");
+const renameInput = document.getElementById("game-nickname");
+const renameStatus = document.getElementById("rename-game-status");
+const renameSave = document.getElementById("save-game-nickname");
+const renameCancel = document.getElementById("cancel-rename-game");
+let renaming = null;
+let renameBusy = false;
+renameCancel.addEventListener("click", () => renameDialog.close());
+renameDialog.addEventListener("cancel", event => { if (renameBusy) event.preventDefault(); });
+document.getElementById("rename-game-form").addEventListener("submit", async event => {
+    event.preventDefault();
+    if (!renaming || renameBusy) return;
+    const game = renaming;
+    renameBusy = true; renameSave.disabled = renameCancel.disabled = true;
+    renameStatus.textContent = "";
+    try {
+        const saved = await request(`/games/${game.game_id}/nickname`, {
+            method: "PUT", body: JSON.stringify({ nickname: renameInput.value.trim() || null }),
+        });
+        game.nickname = saved.nickname;
+        const cachedId = sessionStorage.getItem(`savedGame:${game.game_id}:cache`) ?? activeId;
+        const cached = cachedId && getGameState(cachedId);
+        if (String(cached?.database?.game?.game_id) === String(game.game_id)) {
+            cached.database.game.nickname = saved.nickname;
+            setGameState(cachedId, cached);
+        }
+        renameDialog.close(); render();
+        list.querySelector(`[data-rename-game="${game.game_id}"]`)?.focus();
+    } catch { renameStatus.textContent = "Could not save the game nickname. Please try again."; }
+    finally { renameBusy = false; renameSave.disabled = renameCancel.disabled = false; }
+});
 
 function dateLabel(value) {
     const date = new Date(value);
@@ -33,13 +64,14 @@ function render() {
         const event = events.get(session?.event_id);
         const name = event?.event_name || "Unassigned game";
         const date = dateLabel(session?.date_time);
-        if (!`Game #${game.game_id} ${game.game_number} ${name} ${date}`.toLocaleLowerCase().includes(query)) continue;
+        if (!`Game #${game.game_id} ${game.game_number} ${game.nickname ?? ""} ${name} ${date}`.toLocaleLowerCase().includes(query)) continue;
         const item = document.createElement("li");
         const link = document.createElement("a");
         link.className = "saved-game-link";
         link.href = `/game.html?game_id=${encodeURIComponent(game.game_id)}`;
         const title = document.createElement("h2");
-        title.textContent = `Game #${game.game_id}`;
+        title.textContent = game.nickname || `Game #${game.game_id}`;
+        if (game.nickname) title.setAttribute("translate", "no");
         const context = document.createElement("p");
         context.setAttribute("translate", "no");
         context.textContent = `${name} · Game ${game.game_number}`;
@@ -74,7 +106,16 @@ function render() {
                 remove.disabled = false;
             }
         });
-        item.append(link, remove);
+        const rename = document.createElement("button");
+        rename.type = "button"; rename.className = "rename-game";
+        rename.dataset.renameGame = String(game.game_id);
+        rename.ariaLabel = `${translate("Rename game")} #${game.game_id}`;
+        rename.innerHTML = '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 5 5-12 12H4v-5ZM14 5l5 5"/></svg>';
+        rename.addEventListener("click", () => {
+            renaming = game; renameInput.value = game.nickname || ""; renameStatus.textContent = "";
+            renameDialog.showModal(); renameInput.focus();
+        });
+        item.append(link, rename, remove);
         list.append(item);
     }
     status.textContent = list.children.length ? "" : games.length ? "No games match your search." : "No saved games yet. Start a game to get going.";

@@ -147,6 +147,16 @@ BEGIN
 END;
 
 
+IF OBJECT_ID('dbo.user_home_layouts', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.user_home_layouts (
+        user_id INT PRIMARY KEY REFERENCES dbo.users(user_id) ON DELETE CASCADE,
+        layout_version INT NOT NULL DEFAULT 1 CHECK (layout_version = 1),
+        layout_json NVARCHAR(MAX) NOT NULL CHECK (ISJSON(layout_json) = 1),
+        updated_at DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+    );
+END;
+
 -- ---------- Games ----------
 
 IF OBJECT_ID('games', 'U') IS NULL
@@ -155,6 +165,7 @@ BEGIN
         game_id     INT IDENTITY(1,1) PRIMARY KEY,
         session_id  INT NOT NULL,
         game_number INT NOT NULL,
+        nickname NVARCHAR(100) NULL,
         lane_number INT,
         game_score  INT,
         game_result INT,
