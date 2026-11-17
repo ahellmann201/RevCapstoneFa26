@@ -71,6 +71,14 @@
         <select id="game-setup-establishment" name="establishment">
           <option value="">No establishment</option>
         </select>
+        <fieldset class="game-session-choice" id="game-session-choice" hidden>
+          <legend>Session</legend>
+          <p id="game-session-summary"></p>
+          <label class="new-session-option" for="start-new-session">
+            <input type="checkbox" id="start-new-session" name="newSession">
+            Start a new session instead
+          </label>
+        </fieldset>
         <p class="game-setup-note">When logged in, Next Shot saves your progress automatically. An event is optional.</p>
         <div class="game-setup-actions">
           <button type="button" id="cancel-game-setup" autofocus data-i18n="Cancel">Cancel</button>

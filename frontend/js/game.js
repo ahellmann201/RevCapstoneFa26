@@ -73,6 +73,9 @@ if (pendingSetup) {
         if (!database.game && !database.eventId && !requestedDatabaseId) {
             database.selectedEventId = setup.eventId;
             database.selectedEstablishmentId = setup.establishmentId;
+            database.selectedSessionId = setup.sessionId ?? null;
+            database.selectedSessionEventId = setup.sessionEventId ?? null;
+            database.selectedGameNumber = setup.gameNumber ?? 1;
         }
     } catch { /* Ignore invalid setup data. */ }
     sessionStorage.removeItem("pendingGameSetup");

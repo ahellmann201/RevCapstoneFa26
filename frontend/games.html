@@ -18,6 +18,11 @@
             <a class="start-game-link" href="/index.html?start_game=1" data-i18n="Start Game">Start Game</a>
         </header>
         <a id="resume-local-game" class="local-game-link" href="/game.html" hidden>Continue your current game on this device</a>
+        <label class="session-filter-label" for="session-game-filter">Show games in the same session as</label>
+        <select id="session-game-filter" aria-describedby="session-filter-help">
+            <option value="">All games</option>
+        </select>
+        <p id="session-filter-help" class="session-filter-help">Choose a saved game to show every game from its session.</p>
         <label class="game-search-label" for="game-search">Find a game</label>
         <input type="search" id="game-search" placeholder="Search by game number, event, or date">
         <p id="games-status" role="status">Loading your games…</p>

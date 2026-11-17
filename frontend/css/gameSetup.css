@@ -26,6 +26,11 @@
     color: var(--appearance-text, #f5f7f7);
     font: inherit;
 }
+.game-session-choice { margin: 20px 0 0; padding: 0; border: 0; }
+.game-session-choice legend { color: var(--appearance-text-soft, #d6e2e5); font-size: .9rem; font-weight: bold; }
+.game-session-choice p { margin: 8px 0 0; }
+.game-setup .game-session-choice .new-session-option { display: flex; align-items: center; gap: 10px; margin: 12px 0 0; font-weight: normal; cursor: pointer; }
+.new-session-option input { width: 18px; height: 18px; accent-color: var(--button-color-2); }
 .game-setup .game-setup-note { font-size: .85rem; }
 .game-setup-actions { display: flex; gap: 10px; margin-top: 24px; }
 .game-setup-actions button { flex: 1; min-height: 48px; padding: 10px; border: 1px solid var(--appearance-outline, #31505a); border-radius: 12px; background: transparent; color: var(--appearance-text-soft, #d6e2e5); font: bold 1rem var(--standard-font-family); cursor: pointer; }
