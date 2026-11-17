@@ -1,4 +1,4 @@
-import { request } from "./api_client.js";
+import { request } from "./database.js";
 
 export async function listAll(path) {
     const rows = [];
@@ -74,6 +74,21 @@ export async function updateShotComment(id, comment) {
     const shot = await request(`/shots/${id}`);
     const { shot_id, ...payload } = shot;
     return request(`/shots/${id}`, { method: "PUT", body: JSON.stringify({ ...payload, comment: comment || null }) });
+}
+
+export async function updateSavedShot(id, shot) {
+    const savedShot = await request(`/shots/${id}`);
+    const { shot_id, ...payload } = savedShot;
+    return request(`/shots/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+            ...payload,
+            throw_type: shot.symbol === "X" ? "strike" : shot.symbol === "/" ? "spare" : null,
+            pin_leave: shot.leave,
+            foul: shot.result.foul,
+            comment: shot.comment || null,
+        }),
+    });
 }
 
 export async function readSavedGame(id) {

@@ -1,6 +1,6 @@
 /** Shows saved games, calculated scores, and shot-by-shot details. */
 import { loadNavbar } from "./navbar.js";
-import { request } from "./api_client.js";
+import { request } from "./database.js";
 
 loadNavbar();
 

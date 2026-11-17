@@ -25,3 +25,9 @@ body { color: var(--app-text); }
     .games-heading { align-items: stretch; flex-direction: column; }
     .start-game-link { align-self: flex-start; }
 }
+
+.saved-game-card { position: relative; min-width: 0; }
+.saved-game-card .saved-game-link { padding-bottom: 64px; }
+.delete-game { position: absolute; right: 12px; bottom: 12px; display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--appearance-outline, #31505a); border-radius: 10px; background: var(--appearance-surface, #092b35); color: var(--appearance-muted, #a6bdc3); cursor: pointer; }
+.delete-game:hover { color: #e56b6b; border-color: currentColor; }
+.delete-game:disabled { opacity: .5; cursor: wait; }

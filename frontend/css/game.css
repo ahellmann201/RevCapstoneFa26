@@ -511,6 +511,20 @@ body {
 .lane_panel { touch-action: pan-y pinch-zoom; }
 .swipe_hint { margin-bottom: 12px; color: var(--text-muted); font-size: 0.85rem; line-height: 1.4; }
 .secondary_actions { flex-wrap: wrap; }
+@keyframes swipe-next-feedback {
+    35% { transform: translateX(-18px); opacity: 0.72; }
+    100% { transform: translateX(0); opacity: 1; }
+}
+@keyframes swipe-previous-feedback {
+    35% { transform: translateX(18px); opacity: 0.72; }
+    100% { transform: translateX(0); opacity: 1; }
+}
+.lane_panel.swipe-next { animation: swipe-next-feedback 260ms ease-out; }
+.lane_panel.swipe-previous { animation: swipe-previous-feedback 260ms ease-out; }
+@media (prefers-reduced-motion: reduce) {
+    .lane_panel.swipe-next,
+    .lane_panel.swipe-previous { animation-duration: 1ms; }
+}
 @media (hover: hover) and (pointer: fine) {
     .swipe_hint { display: none; }
 }

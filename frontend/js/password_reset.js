@@ -1,4 +1,4 @@
-import { request } from "./api_client.js";
+import { request } from "./database.js";
 
 let token = new URLSearchParams(window.location.hash.slice(1)).get("token");
 if (window.location.hash) {

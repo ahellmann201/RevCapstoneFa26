@@ -1,6 +1,6 @@
 /** Loads the shared navigation and compares selected balls from the arsenal. */
 import { loadNavbar } from "./navbar.js";
-import { getBalls } from "./requests.js";
+import { getCachedBalls as getBalls } from "./database.js";
 
 loadNavbar();
 

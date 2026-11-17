@@ -1,5 +1,5 @@
 import { loadNavbar } from "./navbar.js";
-import { request } from "./api_client.js";
+import { request } from "./database.js";
 import { getAuthToken } from "./authentication.js";
 
 loadNavbar();
