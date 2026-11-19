@@ -1,11 +1,13 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/icons/revmetrix_logo.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Revmetrix | Home</title>
     <link rel="stylesheet" href="css/index.css">
+    <link rel="stylesheet" href="/css/gameSetup.css">
+    <link rel="stylesheet" href="/css/homeLayout.css">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://gstatic.com" crossorigin>
@@ -18,11 +20,62 @@
         <h1 class="welcome_message" id="welcome-message"></h1>
       </div>
       <div class="quick_links_container">
-        <button class="button_1" id="schedule-event-button">Schedule Event</button>
-        <button class="button_2" id="start-game-button">Start Game</button>
+        <button class="button_1" id="schedule-event-button" data-i18n="Schedule Event">Schedule Event</button>
+        <button class="button_2" id="start-game-button" data-i18n="Start Game">Start Game</button>
       </div>
-      <p><a href="/onnx-demo.html">Open Android ONNX lane test</a></p>
+      <section class="week-schedule" aria-labelledby="week-title">
+        <header class="week-heading">
+          <h2 id="week-title" data-i18n="This Week">This Week</h2>
+          <span id="week-status" role="status"></span>
+        </header>
+        <ol class="week-days" tabindex="0" aria-label="Weekly events, scroll horizontally to see all seven days">
+          <li class="week-day">
+            <h3 data-i18n="Monday">Monday</h3>
+            <div class="day-events"></div>
+          </li>
+          <li class="week-day">
+            <h3 data-i18n="Tuesday">Tuesday</h3>
+            <div class="day-events"></div>
+          </li>
+          <li class="week-day">
+            <h3 data-i18n="Wednesday">Wednesday</h3>
+            <div class="day-events"></div>
+          </li>
+          <li class="week-day">
+            <h3 data-i18n="Thursday">Thursday</h3>
+            <div class="day-events"></div>
+          </li>
+          <li class="week-day">
+            <h3 data-i18n="Friday">Friday</h3>
+            <div class="day-events"></div>
+          </li>
+          <li class="week-day">
+            <h3 data-i18n="Saturday">Saturday</h3>
+            <div class="day-events"></div>
+          </li>
+          <li class="week-day">
+            <h3 data-i18n="Sunday">Sunday</h3>
+            <div class="day-events"></div>
+          </li>
+        </ol>
+      </section>
     </div>
+    <game-setup-dialog></game-setup-dialog>
+    <dialog class="game-setup" id="resume-game-dialog" aria-labelledby="resume-game-title" aria-describedby="resume-game-description">
+      <h2 id="resume-game-title">Continue your game?</h2>
+      <p id="resume-game-description">You have an unfinished game on this device. Continue it or start a new game.</p>
+      <div class="game-setup-actions">
+        <button type="button" id="new-game-choice">Start New Game</button>
+        <button type="button" id="continue-game-choice" autofocus>Continue Game</button>
+      </div>
+      <div class="game-setup-actions"><button type="button" id="cancel-resume-game">Cancel</button></div>
+    </dialog>
+    <dialog class="game-setup" id="home-module-picker" aria-labelledby="home-module-title">
+      <h2 id="home-module-title">Choose a module</h2>
+      <div id="home-module-options"></div>
+      <p id="home-module-message" role="status"></p>
+      <div class="game-setup-actions"><button type="button" id="close-module-picker">Cancel</button></div>
+    </dialog>
     <script type="module" src="/js/index.js"></script>
   </body>
 </html>

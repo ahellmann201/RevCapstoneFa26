@@ -1,5 +1,22 @@
 @import "/css/theme.css";
 
+.popup_content button.password_visibility {
+    align-self: flex-end;
+    width: auto;
+    min-height: 44px;
+    margin: 0;
+    padding: 4px 8px;
+    border: 0;
+    background: transparent;
+    color: var(--bg-color);
+    font: inherit;
+    cursor: pointer;
+}
+.popup_content button.password_visibility:focus-visible {
+    outline: 2px solid var(--button-color-1);
+    outline-offset: 2px;
+}
+
 :root {
     --navbar-height: 5rem;
     --navabr-bg-color: rgba(0,0,0, 0.5);
@@ -8,7 +25,7 @@
     --hamburger-button-size: 48px;
     --hamburger-line-height: 8px;
     --hamburger-left-margin: 5dvw;
-    
+
     --pfp-right-margin: 5dvw;
 
     --pfp-dropdown-right-margin-mod: 5.0;
@@ -29,6 +46,10 @@
     --log-out-overlay-opacity: 0.7;
 }
 
+.hidden {
+    display: none;
+}
+
 .navbar {
     display: flex;
     flex-direction: row;
@@ -42,7 +63,7 @@
 }
 
 .navbar > h1 {
-    color: white;
+    color: var(--app-text);
     position: absolute;
     font-size: 4rem;
     font-family: 'Jaldi', sans-serif;
@@ -59,7 +80,7 @@
     background-color: var(--navabr-bg-color);
     backdrop-filter: blur(var(--navbar-blur));
     -webkit-backdrop-filter: blur(var(--navbar-blur));
-    
+
     z-index: 1;
 
     display: flex;
@@ -84,10 +105,10 @@
     z-index: 2;
     overflow: hidden;
     margin-right: var(--pfp-right-margin);
-    
-    -webkit-box-shadow: 0px 5px 15px 0px rgba(0,0,0,0.5); 
+
+    -webkit-box-shadow: 0px 5px 15px 0px rgba(0,0,0,0.5);
     box-shadow: 0px 5px 15px 0px rgba(0,0,0,0.5);
-    
+
     background-color: white;
     filter: sepia(var(--pfp-sepia)) saturate(var(--pfp-saturate)) hue-rotate(var(--pfp-hue)) brightness(var(--pfp-bg-brightness));
 }
@@ -115,14 +136,16 @@
     width: 100%;
     height: var(--hamburger-line-height);
 
-    background-color: white;
+    background-color: var(--app-text);
 }
 
 .sidebar {
     position: absolute;
     background-color: var(--field-color);
-    width: 50dvw;
+    width: auto;
     height: 100dvh;
+    padding: 0 1rem;
+    overflow-y: auto;
 
     display: flex;
     flex-direction: column;
@@ -165,6 +188,7 @@
 .sidebar_section {
     width: 100%;
     height: var(--sidebar-section-height);
+    margin-bottom: 1rem;
 }
 .sidebar_section > button {
     font-family: 'Jaldi', sans-serif;
@@ -197,18 +221,23 @@
     color: white;
     font-weight: bold;
 }
+.sidebar_logout_button {
+    background-color: var(--button-color-1);
+    color: white;
+    font-weight: bold;
+}
 
-.home_button {
+.sidebar_button {
     width: 100%;
     height: 100%;
     background-color: var(--sidebar-color);
     border: none;
     border-radius: 0;
 }
-.home_button:hover {
+.sidebar_button:hover {
     background-color: var(--field-entry-color-1);
 }
-.home_button:active {
+.sidebar_button:active {
     background-color: var(--field-entry-color-1);
 }
 
@@ -217,11 +246,16 @@
     height: 7rem;
     aspect-ratio: 3/2;
     right: 0;
-    top: var(--navbar-height);
+    top: 100%;
     margin-right: calc(var(--pfp-right-margin) / 2);
+    z-index: 3;
+    color: black;
 }
 .pfp_dropdown_inactive {
     display: none;
+}
+.pfp_dropdown_active {
+    display: block;
 }
 
 .dropdown_arrow_container {
@@ -287,11 +321,11 @@ navbar {
     padding: 0;
     border: none;
     border-radius: 28px 28px 0 0;
-    background: #f0f0f0;
+    background: var(--field-color);
     color: var(--bg-color);
     font-family: "Jaldi", sans-serif;
     overflow: hidden;
-    box-shadow: 0 -8px 35px rgb(0 0 0 / 20%);
+    box-shadow: var(--popup-shadow);
     transition: transform 0.2s ease;
 }
 
@@ -306,7 +340,7 @@ navbar {
 }
 
 .auth_popup::backdrop {
-    background: rgb(0 0 0 / 55%);
+    background: var(--popup-backdrop-color);
 }
 
 .auth_popup.is_dragging {
@@ -333,7 +367,7 @@ navbar {
     width: 42px;
     height: 5px;
     border-radius: 999px;
-    background: #b8bec0;
+    background: var(--popup-handle-color);
     pointer-events: none;
 }
 
@@ -354,7 +388,7 @@ navbar {
 .popup_description {
     margin: -0.5rem 0 1.5rem;
     text-align: center;
-    color: #535d60;
+    color: var(--field-default-entry-color);
 }
 
 .popup_content label {
@@ -427,13 +461,14 @@ body:has(.auth_popup[open]) {
     }
 }
 
-.log_out_popup {    
+.log_out_popup {
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 80dvw;
+    width: min(480px, calc(100vw - 32px));
     height: auto;
+    color: #102332;
     background-color: var(--menu-bg-color);
     border-radius: 20px;
     padding: 1rem;
@@ -460,9 +495,21 @@ body:has(.auth_popup[open]) {
     text-align: center;
 }
 
-.log_out_popup_header_container > h3 {
-    font-weight: lighter;
+.log_out_popup_header_container > h1 {
+    color: #102332;
+    font-size: 2rem;
+    line-height: 1.2;
+    margin-bottom: 12px;
 }
+.log_out_popup_header_container > h3 {
+    color: #425466;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.6;
+}
+.log_out_popup_button { min-height: 44px; flex: 1; color: #102332; cursor: pointer; }
+.log_out_popup_buttons_container { gap: 12px; }
+.log_out_popup_button:focus-visible { outline: 2px solid #102332; outline-offset: 3px; }
 
 .log_out_popup_buttons_container {
     width: calc(100% - 1rem);
@@ -536,3 +583,34 @@ body:has(.auth_popup[open]) {
     left: 50%;
     transform: translate(-50%, 0);
 }
+
+/* Language controls share the app font and stay usable on small screens. */
+.language-preference {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem;
+}
+.language-preference select {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    font: inherit;
+    color: #102332;
+    background: #f5f7fa;
+}
+
+.sidebar > .sidebar_section { flex-shrink: 0; }
+.sidebar .language-preference { height: auto; }
+@media (max-width: 640px) {
+    .navbar > h1 { font-size: clamp(1.3rem, 6vw, 2.4rem); }
+    .sidebar { position: fixed; top: 0; bottom: 0; max-width: calc(100vw - 24px); overscroll-behavior-y: contain; }
+    .sidebar_section > button { white-space: normal; text-align: left; font-size: 1.5rem; }
+    .sidebar_section { height: auto; min-height: 48px; }
+    .profile_picture_container { height: 52px; }
+}
+
+/* Keep the brand above the navbar's frosted background. */
+.navbar > h1 { z-index: 2; pointer-events: none; }

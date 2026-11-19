@@ -1,6 +1,5 @@
 /** Controls account settings, including profile picture and handedness preferences. */
 import { loadNavbar } from "./navbar.js";
-import * as Requests from "./requests.js";
 import * as Cache from "./cache.js";
 import * as Database from "./database.js";
 import * as Popups from "./popups.js";
@@ -21,7 +20,7 @@ const rightHandUnderlay = document.getElementById("right-hand");
 const selection = document.getElementById("mainhand-selection");
 
 
-var mainhand = Requests.getMainhand();
+var mainhand = Database.getCachedMainhand();
 
 leftHandOverlay.addEventListener("click", () => {setMainhandSelection("left");})
 bothHandsOverlay.addEventListener("click", () => {setMainhandSelection("both");})
@@ -49,14 +48,18 @@ export async function loadAccountInfoToFields() {
     const pfpFieldPictureContainer = document.getElementById("pfp-field-picture-container");
     addPfpToContainer("pfp-field-picture-container", "/icons/default_pfp.png");
 
-    const username = await Requests.getUsername();
+    const username = await Database.getCachedUsername();
     const usernameField = document.getElementById("username-field");
-    let usernameValue = usernameField.innerHTML;
-    usernameField.innerHTML = usernameValue + username;
+    usernameField.setAttribute("translate", "no");
+    usernameField.replaceChildren();
+    const at = document.createElement("span");
+    at.textContent = "@";
+    usernameField.append(at, document.createTextNode(username ?? ""));
 
     const displayNameField = document.getElementById("display-name-field");
-    const displayName = await Requests.getDisplayNameBlank();
+    const displayName = await Database.getCachedDisplayNameBlank();
     if (displayName != null) displayNameField.value = displayName;
+    initialDisplayName = displayNameField.value;
 
     await setMainhandSelection(mainhand);
 }
@@ -112,7 +115,7 @@ export async function saveDisplayName() {
 
 export async function cancelDisplayName() {
     const field = document.getElementById("display-name-field");
-    const displayName = await Requests.getDisplayNameBlank();
+    const displayName = await Database.getCachedDisplayNameBlank();
     field.value = displayName
     saveDisplayNameButton.disabled = true;
 }

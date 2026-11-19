@@ -1,17 +1,17 @@
+import hmac
 import os
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Annotated, Literal
 
 import jwt
-import pyodbc
 from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt.exceptions import InvalidTokenError
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, SecretStr
 from pwdlib import PasswordHash
 
-from Database.database.connection import get_connection
+from Database.database.connection import DB_TYPE, DatabaseError, IntegrityError, get_connection
 
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -25,6 +25,9 @@ DUMMY_HASH = password_hasher.hash("not-a-real-account-password")
 TOKEN_MINUTES = 30
 TOKEN_ISSUER = "revmetrix-api"
 TOKEN_AUDIENCE = "revmetrix-client"
+
+
+Language = Literal["en", "es", "fr", "de", "zh-CN"]
 
 
 class RegisterRequest(BaseModel):
@@ -43,6 +46,7 @@ class RegisterRequest(BaseModel):
     email: EmailStr = Field(max_length=255)
     password: SecretStr = Field(min_length=8, max_length=128)
     main_hand: Literal["L", "R"] | None = None
+    main_language: Language = "en"
 
 
 class LoginRequest(BaseModel):
@@ -58,6 +62,7 @@ class UserResponse(BaseModel):
     username: str
     email: str
     main_hand: Literal["L", "R"] | None
+    main_language: Language = "en"
 
 
 class TokenResponse(BaseModel):
@@ -76,6 +81,10 @@ def signing_secret() -> str:
         )
 
     return secret
+
+
+def password_stamp(secret: str, encoded_hash: bytes) -> str:
+    return hmac.digest(secret.encode(), b"password-version:" + encoded_hash, "sha256").hex()
 
 
 def unauthorized() -> HTTPException:
@@ -97,7 +106,7 @@ def database():
         finally:
             connection.close()
 
-    except (pyodbc.Error, KeyError):
+    except (DatabaseError, KeyError):
         # Do not expose raw database errors or configuration values.
         raise HTTPException(
             status_code=503,
@@ -112,6 +121,16 @@ def user_response(row) -> UserResponse:
         username=row[2],
         email=row[3],
         main_hand=row[4],
+        main_language=row[5] if len(row) > 5 else "en",
+    )
+
+
+def inserted_columns() -> str:
+    columns = "user_id, display_name, username, email, main_hand, main_language"
+    if DB_TYPE == "sqlite":
+        return f"RETURNING {columns}"
+    return "OUTPUT " + ", ".join(
+        f"INSERTED.{column}" for column in columns.split(", ")
     )
 
 
@@ -133,36 +152,49 @@ def register(data: RegisterRequest) -> UserResponse:
 
         try:
             try:
-                cursor.execute(
+                insert_sql = (
                     """
                     INSERT INTO users (
                         display_name,
                         username,
                         password_hash,
                         email,
-                        main_hand
+                        main_hand,
+                        main_language
                     )
-                    OUTPUT
-                        INSERTED.user_id,
-                        INSERTED.display_name,
-                        INSERTED.username,
-                        INSERTED.email,
-                        INSERTED.main_hand
-                    VALUES (?, ?, ?, ?, ?)
-                    """,
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    RETURNING user_id, display_name, username, email, main_hand, main_language
+                    """
+                    if DB_TYPE == "sqlite"
+                    else f"""
+                    INSERT INTO users (
+                        display_name,
+                        username,
+                        password_hash,
+                        email,
+                        main_hand,
+                        main_language
+                    )
+                    {inserted_columns()}
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """
+                )
+                cursor.execute(
+                    insert_sql,
                     (
                         data.display_name.strip(),
                         data.username,
                         encoded_hash,
                         str(data.email),
                         data.main_hand,
+                        data.main_language,
                     ),
                 )
 
                 result = user_response(cursor.fetchone())
                 connection.commit()
 
-            except pyodbc.IntegrityError:
+            except IntegrityError:
                 connection.rollback()
 
                 raise HTTPException(
@@ -222,6 +254,7 @@ def login(data: LoginRequest, response: Response) -> TokenResponse:
     token = jwt.encode(
         {
             "sub": str(row[0]),
+            "pwd": password_stamp(secret, bytes(row[1])),
             "iat": now,
             "exp": now + timedelta(minutes=TOKEN_MINUTES),
             "iss": TOKEN_ISSUER,
@@ -256,7 +289,7 @@ def current_user(
             issuer=TOKEN_ISSUER,
             audience=TOKEN_AUDIENCE,
             options={
-                "require": ["sub", "iat", "exp", "iss", "aud"],
+                "require": ["sub", "iat", "exp", "iss", "aud", "pwd"],
             },
         )
 
@@ -287,7 +320,9 @@ def current_user(
                     display_name,
                     username,
                     email,
-                    main_hand
+                    main_hand,
+                    password_hash,
+                    main_language
                 FROM users
                 WHERE user_id = ?
                 """,
@@ -298,10 +333,13 @@ def current_user(
         finally:
             cursor.close()
 
-    if row is None:
+    stamp = claims["pwd"]
+    if row is None or not isinstance(stamp, str) or not stamp.isascii() or not hmac.compare_digest(
+        stamp, password_stamp(secret, bytes(row[5]))
+    ):
         raise unauthorized()
 
-    return user_response(row)
+    return user_response((*row[:5], row[6] if len(row) > 6 else "en"))
 
 
 @router.get("/me", response_model=UserResponse)
@@ -309,3 +347,39 @@ def me(
     user: Annotated[UserResponse, Depends(current_user)],
 ) -> UserResponse:
     return user
+
+
+class LanguageRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    main_language: Language
+
+
+@router.put("/me/language", response_model=UserResponse)
+def update_language(
+    data: LanguageRequest,
+    user: Annotated[UserResponse, Depends(current_user)],
+) -> UserResponse:
+    with database() as connection:
+        cursor = connection.cursor()
+        try:
+            try:
+                cursor.execute(
+                    "UPDATE users SET main_language = ? WHERE user_id = ?",
+                    (data.main_language, user.user_id),
+                )
+                cursor.execute(
+                    "SELECT user_id, display_name, username, email, main_hand, main_language "
+                    "FROM users WHERE user_id = ?",
+                    (user.user_id,),
+                )
+                row = cursor.fetchone()
+                if row is None:
+                    raise HTTPException(status_code=404, detail="Account not found")
+                result = user_response(row)
+                connection.commit()
+            except Exception:
+                connection.rollback()
+                raise
+        finally:
+            cursor.close()
+    return result

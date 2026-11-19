@@ -98,6 +98,12 @@ android/local.properties
 android/captures/
 android/.cxx/
 android/.externalNativeBuild/
+android/.idea/
+android/**/*.iml
+
+# Packaged Android builds (including copies outside android/)
+*.apk
+*.aab
 
 # ==========================================
 # iOS
@@ -143,3 +149,6 @@ Desktop.ini
 
 logs/
 *.log
+# Generated native plugin caches and reports
+**/.gradle/
+Ciclopes-API/mobile/capacitor-plugin/android/build/

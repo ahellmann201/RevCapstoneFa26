@@ -1,5 +1,6 @@
 import * as Cache from "./cache.js";
-import * as API from "./api_client.js";
+import * as Database from "./database.js";
+import { getLanguage, setLanguage } from "./language.js";
 
 export function clearAuthToken() {
     Cache.clearCache();
@@ -35,7 +36,7 @@ export async function checkAuthToken(forceInvalid = false) {
     }
 
     try {
-        await API.getUser();
+        await Database.getUser();
         return true;
     } catch {
         return false;
@@ -43,14 +44,16 @@ export async function checkAuthToken(forceInvalid = false) {
 }
 
 async function completeLogin(username, password) {
-    const result = await API.login(username, password);
+    const result = await Database.login(username, password);
 
     if (!result.access_token) {
         throw new Error("The API did not return an access token.");
     }
 
-    // Clear any account data left by a previous session.
+    const guestGame = Cache.snapshotGuestGame();
+    // Clear account data while retaining the guest game being signed in to save.
     Cache.clearCache();
+    Cache.restoreGuestGame(guestGame);
 
     sessionStorage.setItem(
         "authentication_token",
@@ -58,17 +61,19 @@ async function completeLogin(username, password) {
     );
 
     try {
-        const user = await API.getUser();
+        const user = await Database.getUser();
 
         Cache.setUserID(user.User_ID);
         Cache.setUsername(user.Username);
         Cache.setDisplayName(user.Display_Name);
         Cache.setEmail(user.Email);
         Cache.setMainhand(user.Main_Hand);
+        setLanguage(user.Main_Language ?? "en");
 
         sessionStorage.setItem("canReachDatabase", "true");
     } catch (error) {
         Cache.clearCache();
+        Cache.restoreGuestGame(guestGame);
         throw error;
     }
 
@@ -112,15 +117,16 @@ export async function submitAuth(type = "login") {
 
             if (password.length < 8 || password.length > 128) {
                 throw new Error(
-                    "Use a password between 15 and 128 characters.",
+                    "Use a password between 8 and 128 characters.",
                 );
             }
 
-            await API.createAccount(
+            await Database.createAccount(
                 username,
                 email,
                 password,
                 displayName,
+                getLanguage(),
             );
 
             accountCreated = true;

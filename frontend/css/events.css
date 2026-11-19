@@ -1,0 +1,41 @@
+@import "/css/establishments.css";
+
+.event-archives-link {
+    display: grid;
+    place-items: center;
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    border: 1px solid var(--establishment-border);
+    border-radius: 12px;
+    background: var(--establishment-surface);
+    color: var(--establishment-accent);
+    text-decoration: none;
+}
+.event-archives-link:hover { border-color: var(--establishment-accent); }
+
+.establishment-field:has([name="event_name"]) { grid-column: 1 / -1; }
+.establishment-field select {
+    width: 100%;
+    min-height: 48px;
+    padding: 10px 12px;
+    border: 1px solid var(--establishment-border);
+    border-radius: 12px;
+    background: var(--establishment-surface);
+    color: var(--appearance-text, #f5f7f7);
+    font: 400 1rem var(--standard-font-family);
+}
+.games-stepper { display: grid; grid-template-columns: minmax(0, 1fr) 48px 48px; gap: 8px; }
+.games-stepper button {
+    border: 1px solid var(--establishment-border);
+    border-radius: 12px;
+    background: var(--establishment-surface);
+    color: var(--establishment-accent);
+    font: bold 1.4rem var(--standard-font-family);
+    cursor: pointer;
+}
+.games-stepper button:disabled { opacity: .4; cursor: default; }
+.dialog-actions button:disabled { opacity: .6; cursor: wait; }
+.disable-confirmation { width: min(440px, calc(100% - 32px)); }
+.disable-confirmation h2 { font-size: 1.6rem; line-height: 1.2; }
+.disable-confirmation > p { margin-top: 12px; color: var(--establishment-muted); line-height: 1.6; overflow-wrap: anywhere; }

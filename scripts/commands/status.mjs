@@ -30,20 +30,10 @@ const paths = {
     vitest: resolve(projectRoot, "node_modules", "vitest"),
     typescript: resolve(projectRoot, "node_modules", "typescript"),
     api: resolve(projectRoot, "Database", "api", "main.py"),
-    testDatabase: resolve(
-        projectRoot,
-        "legacy", "test_database",
-        "capstone_test.db",
-    ),
+    testDatabase: resolve(projectRoot, "test_database", "revmetrix_test.db"),
     databaseSchema: resolve(
         projectRoot,
-        "legacy", "test_database",
-        "schema.sql",
-    ),
-    databaseSeed: resolve(
-        projectRoot,
-        "legacy", "test_database",
-        "seed.sql",
+        "Database", "database", "sqlite_schema.py",
     ),
 };
 
@@ -202,7 +192,7 @@ function checkPython() {
         printStatus(
             "Project Python environment",
             "warning",
-            "Run `npm run cap -- setup` to create or repair it",
+            "Run `npm run setup` to create or repair it",
         );
     }
 
@@ -251,8 +241,7 @@ function checkNpmDependencies(packageJson) {
 }
 
 function checkDatabase() {
-    checkFile("Database schema", paths.databaseSchema);
-    checkFile("Database seed file", paths.databaseSeed);
+    checkFile("Test database schema", paths.databaseSchema);
 
     const databaseExists = existsSync(paths.testDatabase);
 
@@ -261,7 +250,7 @@ function checkDatabase() {
         databaseExists ? "ok" : "warning",
         databaseExists
             ? "Database file exists"
-            : "Run `npm run cap -- db init` to create it",
+            : "Run `npm run db:test:init` to create it",
     );
 }
 

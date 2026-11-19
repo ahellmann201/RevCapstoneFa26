@@ -2,12 +2,16 @@ from contextlib import contextmanager, suppress
 from dataclasses import dataclass
 from typing import Annotated, Any
 
-import pyodbc
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response
 from pydantic import BaseModel, create_model
 
 from Database.api.auth import UserResponse, current_user
-from Database.database.connection import get_connection
+from Database.database.connection import (
+    DB_TYPE,
+    DatabaseError,
+    IntegrityError,
+    get_connection,
+)
 
 
 UserDependency = Annotated[UserResponse, Depends(current_user)]
@@ -35,7 +39,9 @@ def database_cursor(write=False):
         connection = get_connection()
         cursor = connection.cursor()
 
-        if write:
+        if write and DB_TYPE == "sqlite":
+            connection.execute("BEGIN IMMEDIATE")
+        elif write:
             # Keep ownership/reference checks valid through the write.
             cursor.execute(
                 "SET TRANSACTION ISOLATION LEVEL SERIALIZABLE"
@@ -46,13 +52,13 @@ def database_cursor(write=False):
         if write:
             connection.commit()
 
-    except pyodbc.IntegrityError:
+    except IntegrityError:
         raise HTTPException(
             status_code=409,
             detail="Operation conflicts with existing or linked records",
         ) from None
 
-    except (pyodbc.Error, KeyError):
+    except (DatabaseError, KeyError):
         raise HTTPException(
             status_code=503,
             detail="Database operation unavailable",
@@ -61,15 +67,15 @@ def database_cursor(write=False):
     finally:
         if connection is not None:
             # Rolls back failed/uncommitted work. Harmless after commit.
-            with suppress(pyodbc.Error):
+            with suppress(DatabaseError):
                 connection.rollback()
 
         if cursor is not None:
-            with suppress(pyodbc.Error):
+            with suppress(DatabaseError):
                 cursor.close()
 
         if connection is not None:
-            with suppress(pyodbc.Error):
+            with suppress(DatabaseError):
                 connection.close()
 
 
@@ -116,6 +122,9 @@ def database_values(payload):
 
 
 def add_resource_routes(router: APIRouter, resource: Resource):
+    visible_scope = resource.scope
+    if resource.table == "events":
+        visible_scope = f"({resource.scope}) AND (r.event_type IS NULL OR r.event_type <> 'SystemUnassigned')"
     body_model = resource.model
     input_columns = list(body_model.model_fields)
 
@@ -150,9 +159,15 @@ def add_resource_routes(router: APIRouter, resource: Resource):
                 if mask & (1 << (pin - 1))
             ]
 
+        if "enabled" in values:
+            values["enabled"] = bool(values["enabled"])
+        if "foul" in values:
+            values["foul"] = bool(values["foul"])
         return response_model(**values)
 
     def selected_columns(alias):
+        if DB_TYPE == "sqlite":
+            return ", ".join(f"[{column}]" for column in columns)
         return ", ".join(
             f"{alias}.[{column}]"
             for column in columns
@@ -167,16 +182,25 @@ def add_resource_routes(router: APIRouter, resource: Resource):
         ] = 0,
     ):
         with database_cursor() as cursor:
+            pagination = (
+                "LIMIT ? OFFSET ?"
+                if DB_TYPE == "sqlite"
+                else "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
+            )
+            pagination_values = (
+                (limit, offset)
+                if DB_TYPE == "sqlite"
+                else (offset, limit)
+            )
             cursor.execute(
                 f"""
                 SELECT {selected_columns("r")}
                 FROM [{resource.table}] AS r
-                WHERE {resource.scope}
+                WHERE {visible_scope}
                 ORDER BY r.[{resource.key}]
-                OFFSET ? ROWS
-                FETCH NEXT ? ROWS ONLY
+                {pagination}
                 """,
-                (*scope_parameters(resource, user), offset, limit),
+                (*scope_parameters(resource, user), *pagination_values),
             )
 
             result = [
@@ -193,7 +217,7 @@ def add_resource_routes(router: APIRouter, resource: Resource):
                 SELECT {selected_columns("r")}
                 FROM [{resource.table}] AS r
                 WHERE r.[{resource.key}] = ?
-                  AND ({resource.scope})
+                  AND ({visible_scope})
                 """,
                 (item_id, *scope_parameters(resource, user)),
             )
@@ -223,12 +247,21 @@ def add_resource_routes(router: APIRouter, resource: Resource):
             names = ", ".join(f"[{name}]" for name in values)
             placeholders = ", ".join("?" for _ in values)
 
-            cursor.execute(
+            insert_sql = (
                 f"""
                 INSERT INTO [{resource.table}] ({names})
-                OUTPUT {selected_columns("INSERTED")}
                 VALUES ({placeholders})
-                """,
+                RETURNING {selected_columns('INSERTED')}
+                """
+                if DB_TYPE == "sqlite"
+                else f"""
+                INSERT INTO [{resource.table}] ({names})
+                OUTPUT {selected_columns('INSERTED')}
+                VALUES ({placeholders})
+                """
+            )
+            cursor.execute(
+                insert_sql,
                 tuple(values.values()),
             )
 
@@ -242,9 +275,15 @@ def add_resource_routes(router: APIRouter, resource: Resource):
         user: UserDependency,
     ):
         values = database_values(payload)
+        if resource.table == "games" and "nickname" not in payload.model_fields_set:
+            values.pop("nickname", None)
 
         with database_cursor(write=True) as cursor:
             require_record(cursor, resource, item_id, user)
+            if resource.table == "events":
+                cursor.execute("SELECT event_type FROM events WHERE event_id = ?", (item_id,))
+                if cursor.fetchone()[0] == "SystemUnassigned":
+                    raise HTTPException(status_code=403, detail="System events cannot be modified")
             validate_references(cursor, resource, values, user)
 
             assignments = ", ".join(
@@ -252,15 +291,25 @@ def add_resource_routes(router: APIRouter, resource: Resource):
                 for name in values
             )
 
+            if DB_TYPE == "sqlite":
+                update_sql = f"""
+                    UPDATE [{resource.table}] AS r
+                    SET {assignments}
+                    WHERE r.[{resource.key}] = ?
+                      AND ({resource.scope})
+                    RETURNING {selected_columns("INSERTED")}
+                """
+            else:
+                update_sql = f"""
+                    UPDATE r
+                    SET {assignments}
+                    OUTPUT {selected_columns("INSERTED")}
+                    FROM [{resource.table}] AS r
+                    WHERE r.[{resource.key}] = ?
+                      AND ({resource.scope})
+                """
             cursor.execute(
-                f"""
-                UPDATE r
-                SET {assignments}
-                OUTPUT {selected_columns("INSERTED")}
-                FROM [{resource.table}] AS r
-                WHERE r.[{resource.key}] = ?
-                  AND ({resource.scope})
-                """,
+                update_sql,
                 (
                     *values.values(),
                     item_id,
@@ -282,14 +331,29 @@ def add_resource_routes(router: APIRouter, resource: Resource):
 
     def delete_item(item_id: ResourceId, user: UserDependency):
         with database_cursor(write=True) as cursor:
-            cursor.execute(
+            if resource.table == "events":
+                require_record(cursor, resource, item_id, user)
+                cursor.execute("SELECT event_type FROM events WHERE event_id = ?", (item_id,))
+                if cursor.fetchone()[0] == "SystemUnassigned":
+                    raise HTTPException(status_code=403, detail="System events cannot be deleted")
+            delete_sql = (
                 f"""
+                DELETE FROM [{resource.table}] AS r
+                WHERE r.[{resource.key}] = ?
+                  AND ({resource.scope})
+                RETURNING [{resource.key}]
+                """
+                if DB_TYPE == "sqlite"
+                else f"""
                 DELETE r
                 OUTPUT DELETED.[{resource.key}]
                 FROM [{resource.table}] AS r
                 WHERE r.[{resource.key}] = ?
                   AND ({resource.scope})
-                """,
+                """
+            )
+            cursor.execute(
+                delete_sql,
                 (item_id, *scope_parameters(resource, user)),
             )
 

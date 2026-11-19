@@ -1,0 +1,164 @@
+"""SQLite equivalent of the SQL Server schema used by the current API."""
+
+from Database.database.password_reset_schema import SQLITE_RESET_SCHEMA
+
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS users (
+    user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    display_name TEXT NOT NULL,
+    username TEXT NOT NULL UNIQUE,
+    password_hash BLOB NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    main_hand TEXT CHECK (main_hand IN ('L', 'R')),
+    main_language TEXT NOT NULL DEFAULT 'en'
+        CHECK (main_language IN ('en', 'es', 'fr', 'de', 'zh-CN'))
+);
+
+CREATE TABLE IF NOT EXISTS user_home_layouts (
+    user_id INTEGER PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE,
+    layout_version INTEGER NOT NULL DEFAULT 1 CHECK (layout_version = 1),
+    layout_json TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS clients (
+    device TEXT NOT NULL,
+    token TEXT NOT NULL,
+    incorrect_passwords INTEGER NOT NULL DEFAULT 0,
+    user_id INTEGER NOT NULL,
+    PRIMARY KEY (user_id, device),
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS master_locations (
+    location_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    location_name TEXT NOT NULL,
+    lane_count INTEGER,
+    address TEXT
+);
+
+CREATE TABLE IF NOT EXISTS user_establishments (
+    establishment_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    establishment_name TEXT NOT NULL,
+    lane_count INTEGER,
+    address TEXT,
+    user_id INTEGER NOT NULL,
+    location_id INTEGER,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (location_id) REFERENCES master_locations(location_id)
+);
+
+CREATE TABLE IF NOT EXISTS balls (
+    ball_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    ball_name TEXT NOT NULL,
+    weight INTEGER,
+    color TEXT,
+    core_type TEXT,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS events (
+    event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    event_name TEXT NOT NULL,
+    event_type TEXT,
+    location_id INTEGER,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (location_id) REFERENCES master_locations(location_id)
+);
+
+CREATE TABLE IF NOT EXISTS sessions (
+    session_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_id INTEGER,
+    establishment_id INTEGER,
+    date_time TEXT,
+    opponent TEXT,
+    score INTEGER,
+    record INTEGER,
+    FOREIGN KEY (event_id) REFERENCES events(event_id),
+    FOREIGN KEY (establishment_id) REFERENCES user_establishments(establishment_id)
+);
+
+CREATE TABLE IF NOT EXISTS games (
+    game_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id INTEGER NOT NULL,
+    game_number INTEGER NOT NULL,
+    nickname TEXT,
+    lane_number INTEGER,
+    game_score INTEGER,
+    game_result INTEGER,
+    FOREIGN KEY (session_id) REFERENCES sessions(session_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS frames (
+    frame_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    game_id INTEGER NOT NULL,
+    frame_number INTEGER NOT NULL CHECK (frame_number BETWEEN 1 AND 10),
+    frame_result INTEGER,
+    FOREIGN KEY (game_id) REFERENCES games(game_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS shots (
+    shot_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    frame_id INTEGER NOT NULL,
+    shot_number INTEGER NOT NULL,
+    throw_type TEXT,
+    foul INTEGER NOT NULL DEFAULT 0 CHECK (foul IN (0, 1)),
+    pin_leave INTEGER NOT NULL DEFAULT 0 CHECK (pin_leave BETWEEN 0 AND 1023),
+    side TEXT,
+    position TEXT,
+    comment TEXT,
+    ball_id INTEGER,
+    FOREIGN KEY (frame_id) REFERENCES frames(frame_id) ON DELETE CASCADE,
+    FOREIGN KEY (ball_id) REFERENCES balls(ball_id)
+);
+"""
+
+
+def initialize_schema(connection):
+    connection.executescript(SCHEMA + SQLITE_RESET_SCHEMA)
+    if not any(row[1] == "nickname" for row in connection.execute("PRAGMA table_info(games)")):
+        connection.execute("ALTER TABLE games ADD COLUMN nickname TEXT")
+    migrate_user_language(connection)
+    migrate_establishments(connection)
+    migrate_events(connection)
+    if not any(row[1] == "foul" for row in connection.execute("PRAGMA table_info(shots)")):
+        connection.execute("ALTER TABLE shots ADD COLUMN foul INTEGER NOT NULL DEFAULT 0 CHECK (foul IN (0, 1))")
+    connection.commit()
+
+
+def migrate_establishments(connection):
+    columns = {row[1] for row in connection.execute("PRAGMA table_info(user_establishments)")}
+    for name, definition in {
+        "nickname": "TEXT",
+        "type": "TEXT",
+        "phone": "TEXT",
+        "home_house": "INTEGER NOT NULL DEFAULT 0",
+        "enabled": "INTEGER NOT NULL DEFAULT 1",
+    }.items():
+        if name not in columns:
+            connection.execute(f"ALTER TABLE user_establishments ADD COLUMN {name} {definition}")
+
+
+def migrate_events(connection):
+    columns = {row[1] for row in connection.execute("PRAGMA table_info(events)")}
+    for name, definition in {
+        "nickname": "TEXT",
+        "week_day": "TEXT",
+        "start_time": "TEXT",
+        "games_per_session": "INTEGER NOT NULL DEFAULT 3",
+        "enabled": "INTEGER NOT NULL DEFAULT 1",
+    }.items():
+        if name not in columns:
+            connection.execute(f"ALTER TABLE events ADD COLUMN {name} {definition}")
+
+
+def migrate_user_language(connection):
+    columns = {row[1] for row in connection.execute("PRAGMA table_info(users)")}
+    if "main_language" not in columns:
+        connection.execute(
+            "ALTER TABLE users ADD COLUMN main_language TEXT NOT NULL DEFAULT 'en' "
+            "CHECK (main_language IN ('en', 'es', 'fr', 'de', 'zh-CN'))"
+        )

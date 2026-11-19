@@ -1,0 +1,172 @@
+/** Lists the caller's saved games, including games still in progress. */
+import { loadNavbar } from "./navbar.js";
+import { getAuthToken } from "./authentication.js";
+import { listAll } from "./game_persistence.js";
+import { getActiveGameId, getGameState, setGameState } from "./cache.js";
+import { request } from "./database.js";
+import { removeGame } from "./cache.js";
+import { translate } from "./language.js";
+import { getLanguage } from "./language.js";
+
+loadNavbar();
+const list = document.getElementById("games-list");
+const status = document.getElementById("games-status");
+const search = document.getElementById("game-search");
+const sessionFilter = document.getElementById("session-game-filter");
+const activeId = getActiveGameId();
+const active = activeId && getGameState(activeId);
+document.getElementById("resume-local-game").hidden = !active || active.gameFinished;
+let games = [];
+const sessions = new Map();
+const events = new Map();
+const renameDialog = document.getElementById("rename-game-dialog");
+const renameInput = document.getElementById("game-nickname");
+const renameStatus = document.getElementById("rename-game-status");
+const renameSave = document.getElementById("save-game-nickname");
+const renameCancel = document.getElementById("cancel-rename-game");
+let renaming = null;
+let renameBusy = false;
+renameCancel.addEventListener("click", () => renameDialog.close());
+renameDialog.addEventListener("cancel", event => { if (renameBusy) event.preventDefault(); });
+document.getElementById("rename-game-form").addEventListener("submit", async event => {
+    event.preventDefault();
+    if (!renaming || renameBusy) return;
+    const game = renaming;
+    renameBusy = true; renameSave.disabled = renameCancel.disabled = true;
+    renameStatus.textContent = "";
+    try {
+        const saved = await request(`/games/${game.game_id}/nickname`, {
+            method: "PUT", body: JSON.stringify({ nickname: renameInput.value.trim() || null }),
+        });
+        game.nickname = saved.nickname;
+        const cachedId = sessionStorage.getItem(`savedGame:${game.game_id}:cache`) ?? activeId;
+        const cached = cachedId && getGameState(cachedId);
+        if (String(cached?.database?.game?.game_id) === String(game.game_id)) {
+            cached.database.game.nickname = saved.nickname;
+            setGameState(cachedId, cached);
+        }
+        renameDialog.close(); render();
+        list.querySelector(`[data-rename-game="${game.game_id}"]`)?.focus();
+    } catch { renameStatus.textContent = "Could not save the game nickname. Please try again."; }
+    finally { renameBusy = false; renameSave.disabled = renameCancel.disabled = false; }
+});
+
+function dateLabel(value) {
+    const date = new Date(value);
+    if (!value || Number.isNaN(date.getTime())) return "Date unavailable";
+    return new Intl.DateTimeFormat(getLanguage(), { dateStyle: "medium", timeZone: "UTC" }).format(date);
+}
+
+function updateSessionFilterOptions() {
+    const selectedGameId = sessionFilter.value;
+    sessionFilter.replaceChildren(new Option("All games", ""));
+    for (const game of games) {
+        const session = sessions.get(game.session_id);
+        const event = events.get(session?.event_id);
+        const name = event?.event_name || "Unassigned game";
+        const date = dateLabel(session?.date_time);
+        const option = new Option(
+            `Game #${game.game_id} · Game ${game.game_number} · ${name} · ${date}`,
+            String(game.game_id),
+        );
+        sessionFilter.append(option);
+    }
+    sessionFilter.value = games.some((game) => String(game.game_id) === selectedGameId) ? selectedGameId : "";
+}
+
+function render() {
+    const query = search.value.trim().toLocaleLowerCase();
+    const referenceGame = games.find((game) => String(game.game_id) === sessionFilter.value);
+    const sessionGames = referenceGame
+        ? games.filter((game) => String(game.session_id) === String(referenceGame.session_id))
+        : games;
+    list.replaceChildren();
+    for (const game of sessionGames) {
+        const session = sessions.get(game.session_id);
+        const event = events.get(session?.event_id);
+        const name = event?.event_name || "Unassigned game";
+        const date = dateLabel(session?.date_time);
+        if (!`Game #${game.game_id} ${game.game_number} ${game.nickname ?? ""} ${name} ${date}`.toLocaleLowerCase().includes(query)) continue;
+        const item = document.createElement("li");
+        const link = document.createElement("a");
+        link.className = "saved-game-link";
+        link.href = `/game.html?game_id=${encodeURIComponent(game.game_id)}`;
+        const title = document.createElement("h2");
+        title.textContent = game.nickname || `Game #${game.game_id}`;
+        if (game.nickname) title.setAttribute("translate", "no");
+        const context = document.createElement("p");
+        context.setAttribute("translate", "no");
+        context.textContent = `${name} · Game ${game.game_number}`;
+        const played = document.createElement("time");
+        played.textContent = date;
+        if (session?.date_time) played.dateTime = session.date_time;
+        const action = document.createElement("strong");
+        action.textContent = "View / continue";
+        link.append(title, context, played, action);
+        item.className = "saved-game-card";
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "delete-game";
+        remove.title = remove.ariaLabel = `${translate("Delete game")} #${game.game_id}`;
+        remove.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg>';
+        remove.addEventListener("click", async () => {
+            if (!window.confirm(`${translate("Delete game")} #${game.game_id}? ${translate("This also deletes its frames and shots. This cannot be undone.")}`)) return;
+            remove.disabled = true;
+            try {
+                await request(`/games/${encodeURIComponent(game.game_id)}`, { method: "DELETE" });
+                const cachedId = sessionStorage.getItem(`savedGame:${game.game_id}:cache`);
+                if (cachedId) removeGame(cachedId);
+                if (activeId && String(active?.database?.game?.game_id) === String(game.game_id)) {
+                    removeGame(activeId);
+                    document.getElementById("resume-local-game").hidden = true;
+                }
+                sessionStorage.removeItem(`savedGame:${game.game_id}:cache`);
+                games = games.filter(record => record.game_id !== game.game_id);
+                updateSessionFilterOptions();
+                render();
+            } catch {
+                status.textContent = translate("Could not delete the game. Please try again.");
+                remove.disabled = false;
+            }
+        });
+        const rename = document.createElement("button");
+        rename.type = "button"; rename.className = "rename-game";
+        rename.dataset.renameGame = String(game.game_id);
+        rename.ariaLabel = `${translate("Rename game")} #${game.game_id}`;
+        rename.innerHTML = '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 5 5-12 12H4v-5ZM14 5l5 5"/></svg>';
+        rename.addEventListener("click", () => {
+            renaming = game; renameInput.value = game.nickname || ""; renameStatus.textContent = "";
+            renameDialog.showModal(); renameInput.focus();
+        });
+        item.append(link, rename, remove);
+        list.append(item);
+    }
+    status.textContent = list.children.length
+        ? referenceGame ? `Showing ${list.children.length} ${list.children.length === 1 ? "game" : "games"} from the session of Game #${referenceGame.game_id}.` : ""
+        : games.length ? "No games match your search or session filter." : "No saved games yet. Start a game to get going.";
+}
+search.addEventListener("input", render);
+sessionFilter.addEventListener("change", render);
+window.addEventListener("languagechange", render);
+
+async function loadGames() {
+    if (!getAuthToken()) {
+        status.textContent = "Log in to see your saved games. You can also start a game as a guest.";
+        search.disabled = true;
+        sessionFilter.disabled = true;
+        return;
+    }
+    try {
+        const [savedGames, savedSessions, savedEvents] = await Promise.all([
+            listAll("/games"), listAll("/sessions"), listAll("/events"),
+        ]);
+        games = savedGames.sort((a, b) => b.game_id - a.game_id);
+        for (const session of savedSessions) sessions.set(session.session_id, session);
+        for (const event of savedEvents) events.set(event.event_id, event);
+        updateSessionFilterOptions();
+        render();
+    } catch {
+        status.textContent = "Could not load your games. Refresh to try again.";
+    }
+}
+void loadGames();

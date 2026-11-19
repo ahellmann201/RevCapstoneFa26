@@ -23,6 +23,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        # Capacitor's default local origin for iOS WebViews.
+        "capacitor://localhost",
     ],
     # Local demo frontends on private IPv4 networks, on Vite's fixed port.
     allow_origin_regex=(
@@ -87,13 +89,21 @@ from Database.api.auth import (
     UserResponse,
     current_user,
     database,
+    inserted_columns,
     router as auth_router,
     user_response,
 )
+from Database.database.connection import DB_TYPE
 from Database.api.balls import router as balls_router
 from Database.api.bowling import router as bowling_router
 from Database.api.statistics import router as statistics_router
 
+from Database.api.password_reset import router as password_reset_router
+
+from Database.api.home_layout import router as home_layout_router
+
+app.include_router(home_layout_router)
+app.include_router(password_reset_router)
 app.include_router(auth_router)
 app.include_router(balls_router)
 app.include_router(bowling_router)
@@ -122,18 +132,23 @@ def update_display_name(
         cursor = connection.cursor()
 
         try:
-            cursor.execute(
+            update_sql = (
                 """
                 UPDATE users
                 SET display_name = ?
-                OUTPUT
-                    INSERTED.user_id,
-                    INSERTED.display_name,
-                    INSERTED.username,
-                    INSERTED.email,
-                    INSERTED.main_hand
                 WHERE user_id = ?
-                """,
+                RETURNING user_id, display_name, username, email, main_hand, main_language
+                """
+                if DB_TYPE == "sqlite"
+                else f"""
+                UPDATE users
+                SET display_name = ?
+                {inserted_columns()}
+                WHERE user_id = ?
+                """
+            )
+            cursor.execute(
+                update_sql,
                 (data.value, user.user_id),
             )
 

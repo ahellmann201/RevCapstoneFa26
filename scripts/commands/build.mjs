@@ -65,7 +65,7 @@ async function main() {
     if (!existsSync(typeScriptCli)) {
         fail(
             "TypeScript is not installed.\n" +
-            "Run `npm run cap -- setup` first.",
+            "Run `npm run setup` first.",
         );
         return;
     }
@@ -73,7 +73,7 @@ async function main() {
     if (!existsSync(viteCli)) {
         fail(
             "Vite is not installed.\n" +
-            "Run `npm run cap -- setup` first.",
+            "Run `npm run setup` first.",
         );
         return;
     }

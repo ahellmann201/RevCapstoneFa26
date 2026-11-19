@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta
         name="viewport"
-        content="width=device-width, initial-scale=1.0"
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     >
     <link rel="icon" href="/icons/revmetrix_logo.png">
     <link rel="stylesheet" href="/css/game.css">
@@ -15,14 +15,6 @@
     <navbar></navbar>
 
     <main class="game_page">
-        <header class="game_heading">
-            <div>
-                <p class="game_eyebrow">LET’S BOWL</p>
-            </div>
-
-            <span class="game_badge">Game 01</span>
-        </header>
-
         <section class="score_section" aria-labelledby="score_title">
             <div class="section_heading">
                 <h2 id="score_title">Scorecard</h2>
@@ -52,6 +44,7 @@
             </header>
 
             <p class="pin_hint">Tap the pins you knocked down.</p>
+            <p class="swipe_hint">Swipe left for the next shot. Swipe right to review previous shots.</p>
 
             <div class="lane_controls">
                 <div
@@ -62,24 +55,24 @@
                 ></div>
 
                 <div class="shot_actions" aria-label="Shot shortcuts">
-                    <button type="button" disabled>
+                    <button type="button" id="foul_button" aria-pressed="false">
                         <strong>F</strong>
                         <span>Foul</span>
                     </button>
 
-                    <button type="button" disabled>
-                        <strong>−</strong>
-                        <span>Gutter</span>
+                    <button type="button" id="gutter_button" aria-keyshortcuts="G" title="Gutter (G)" aria-pressed="false">
+                        <strong>-</strong>
+                        <span>Gutter <kbd>G</kbd></span>
                     </button>
 
-                    <button type="button" disabled>
+                    <button type="button" id="spare_button">
                         <strong>/</strong>
                         <span>Spare</span>
                     </button>
 
-                    <button type="button" disabled>
+                    <button type="button" id="strike_button" aria-keyshortcuts="X" title="Strike (X)" aria-pressed="false">
                         <strong>X</strong>
-                        <span>Strike</span>
+                        <span>Strike <kbd>X</kbd></span>
                     </button>
                 </div>
             </div>
@@ -87,12 +80,12 @@
 
         <footer class="game_footer">
             <div class="secondary_actions">
-                <button type="button" disabled>Shot Info</button>
-                <button type="button" disabled>Comment</button>
+                <button type="button" id="previous_shot" disabled>Previous Shot</button>
+                <button type="button" id="comment_button">Comment</button>
             </div>
 
             <button type="button" id="next_frame" class="next_button">
-                Next frame <span aria-hidden="true">→</span>
+                Next Shot
             </button>
 
             <p id="game_status" class="game_status" aria-live="polite">
@@ -101,6 +94,39 @@
         </footer>
     </main>
 
+    <dialog
+        id="finish_game_popup"
+        class="auth_popup"
+        aria-labelledby="finish_game_title"
+        aria-describedby="finish_game_description"
+    >
+        <div class="popup_content">
+            <h2 id="finish_game_title">Finish game?</h2>
+            <p id="finish_game_description" class="popup_description">
+                Your game will not be saved if you stay signed out.
+                Log in or sign up to keep it.
+            </p>
+            <button type="button" id="finish_login" class="popup_primary" data-i18n="Log In">Log In</button>
+            <button type="button" id="finish_signup" class="popup_switch" data-i18n="Sign Up">Sign Up</button>
+            <button type="button" id="stay_signed_out" class="popup_close">Stay Signed Out</button>
+        </div>
+    </dialog>
+
+    <dialog id="shot-comment-dialog" class="shot-comment-dialog" aria-labelledby="shot-comment-title">
+        <form id="shot-comment-form">
+            <h2 id="shot-comment-title">Shot comment</h2>
+            <label for="comment-shot">Shot</label>
+            <select id="comment-shot"></select>
+            <label for="shot-comment">Comment</label>
+            <textarea id="shot-comment" maxlength="1000" rows="6" aria-describedby="comment-count"></textarea>
+            <p id="comment-count">0 / 1000</p>
+            <p id="comment-status" role="status"></p>
+            <div class="comment-actions">
+                <button type="button" id="cancel-comment" data-i18n="Cancel">Cancel</button>
+                <button type="submit" id="save-comment">Save Comment</button>
+            </div>
+        </form>
+    </dialog>
     <script type="module" src="/js/game.js"></script>
 </body>
 </html>

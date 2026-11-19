@@ -1,6 +1,5 @@
 /** Provides shared formatting and DOM helpers for user profile data. */
 import { applyPfpHue, getPfpHue } from "./theme.js";
-import * as Requests from "./requests.js";
 import * as Cache from "./cache.js";
 
 export function parseDisplayName(displayName) {
@@ -18,4 +17,8 @@ export function addPfpToContainer(containerID, pfpURL) {
     const container = document.getElementById(containerID);
 
     container.innerHTML = img;
+}
+
+export function makeBallDetails(ball) {
+
 }

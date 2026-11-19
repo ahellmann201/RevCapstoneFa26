@@ -19,3 +19,4 @@ class Shot:
     comment: str | None = None
     ball_id: int | None = None
     shot_id: int | None = None
+    foul: bool = False

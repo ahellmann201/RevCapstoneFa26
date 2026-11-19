@@ -17,17 +17,19 @@ class GameRepository:
                 game_number,
                 lane_number,
                 game_score,
-                game_result
+                game_result,
+                nickname
             )
             OUTPUT INSERTED.game_id
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
             (
                 game.session_id,
                 game.game_number,
                 game.lane_number,
                 game.game_score,
-                game.game_result
+                game.game_result,
+                game.nickname
             )
         )
 
@@ -47,7 +49,8 @@ class GameRepository:
                 game_number,
                 lane_number,
                 game_score,
-                game_result
+                game_result,
+                nickname
             FROM games
             WHERE game_id = ?
             """,
@@ -65,7 +68,8 @@ class GameRepository:
             game_number=row[2],
             lane_number=row[3],
             game_score=row[4],
-            game_result=row[5]
+            game_result=row[5],
+            nickname=row[6]
         )
 
     def get_by_session(self, session_id: int) -> list[Game]:
@@ -79,7 +83,8 @@ class GameRepository:
                 game_number,
                 lane_number,
                 game_score,
-                game_result
+                game_result,
+                nickname
             FROM games
             WHERE session_id = ?
             ORDER BY game_number
@@ -94,7 +99,8 @@ class GameRepository:
                 game_number=row[2],
                 lane_number=row[3],
                 game_score=row[4],
-                game_result=row[5]
+                game_result=row[5],
+                nickname=row[6]
             )
             for row in cursor.fetchall()
         ]
@@ -106,7 +112,8 @@ class GameRepository:
             SET game_number = ?,
                 lane_number = ?,
                 game_score = ?,
-                game_result = ?
+                game_result = ?,
+                nickname = ?
             WHERE game_id = ?
             """,
             (
@@ -114,6 +121,7 @@ class GameRepository:
                 game.lane_number,
                 game.game_score,
                 game.game_result,
+                game.nickname,
                 game.game_id
             )
         )

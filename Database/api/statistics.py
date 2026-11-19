@@ -32,6 +32,7 @@ class StatisticsResponse(BaseModel):
 def get_statistics(
     user: Annotated[UserResponse, Depends(current_user)],
     recent_limit: Annotated[int, Query(ge=1, le=100)] = 10,
+    recent_offset: Annotated[int, Query(ge=0, le=2147483647)] = 0,
 ):
     # Reuse the same ownership scope as /games, including establishment ownership.
     # Fetch the game hierarchy in one query rather than one query per game.
@@ -39,7 +40,7 @@ def get_statistics(
         cursor.execute(
             f"""
             SELECT r.game_id, session.date_time, f.frame_id, f.frame_number,
-                   shot.shot_number, shot.pin_leave
+                   shot.shot_number, shot.pin_leave, shot.foul
             FROM games AS r
             JOIN sessions AS session ON session.session_id = r.session_id
             LEFT JOIN frames AS f ON f.game_id = r.game_id
@@ -52,7 +53,9 @@ def get_statistics(
         rows = cursor.fetchall()
     records = {}
     frame_ids = {}
-    for game_id, date_time, frame_id, frame_number, shot_number, mask in rows:
+    for game_id, date_time, frame_id, frame_number, shot_number, mask, foul in rows:
+        if isinstance(date_time, str):
+            date_time = datetime.fromisoformat(date_time)
         record = records.setdefault(game_id, RecordedGame(game_id, date_time, {}))
         if frame_id is None:
             continue
@@ -68,5 +71,5 @@ def get_statistics(
                 shots.append(RecordedShot(0, ()))
             else:
                 pins = tuple(pin for pin in range(1, 11) if mask & (1 << (pin - 1)))
-                shots.append(RecordedShot(shot_number, pins))
-    return calculate_statistics(list(records.values()), recent_limit)
+                shots.append(RecordedShot(shot_number, pins, bool(foul)))
+    return calculate_statistics(list(records.values()), recent_limit, recent_offset)

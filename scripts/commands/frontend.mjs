@@ -24,7 +24,7 @@ function main() {
     if (!existsSync(viteCli)) {
         fail(
             "Vite is not installed.\n" +
-            "Run `npm run cap -- setup` to install the project dependencies.",
+            "Run `npm run setup` to install the project dependencies.",
         );
     }
 

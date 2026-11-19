@@ -9,3 +9,4 @@ class Game:
     game_score: int | None = None
     game_result: int | None = None
     game_id: int | None = None
+    nickname: str | None = None

@@ -9,6 +9,7 @@ from collections.abc import Mapping, Sequence
 class RecordedShot:
     shot_number: int
     pin_leave: tuple[int, ...]
+    foul: bool = False
 
 
 @dataclass(frozen=True)
@@ -53,7 +54,7 @@ def score_game(frames: Mapping[int, Sequence[RecordedShot]]) -> int | None:
         for index, shot in enumerate(shots):
             if complete or type(shot.shot_number) is not int or shot.shot_number != index + 1:
                 raise ValueError("Invalid shot order or extra shot")
-            leave = shot.pin_leave
+            leave = tuple(standing) if shot.foul else shot.pin_leave
             if any(type(pin) is not int or not 1 <= pin <= 10 for pin in leave):
                 raise ValueError("Invalid pin number")
             remaining = set(leave)
@@ -85,7 +86,9 @@ def score_game(frames: Mapping[int, Sequence[RecordedShot]]) -> int | None:
     return score + sum(rolls_by_frame[9])
 
 
-def calculate_statistics(games: Sequence[RecordedGame], recent_limit: int = 10) -> StatisticsSummary:
+def calculate_statistics(
+    games: Sequence[RecordedGame], recent_limit: int = 10, recent_offset: int = 0
+) -> StatisticsSummary:
     """All totals use complete shot-derived scores, never editable score fields.
 
     Recent means session date descending, then game ID descending. Undated games
@@ -93,6 +96,8 @@ def calculate_statistics(games: Sequence[RecordedGame], recent_limit: int = 10) 
     """
     if type(recent_limit) is not int or not 1 <= recent_limit <= 100:
         raise ValueError("recent_limit must be between 1 and 100")
+    if type(recent_offset) is not int or recent_offset < 0:
+        raise ValueError("recent_offset must be a non-negative integer")
     if len({game.game_id for game in games}) != len(games):
         raise ValueError("Duplicate game IDs")
     results = []
@@ -113,4 +118,4 @@ def calculate_statistics(games: Sequence[RecordedGame], recent_limit: int = 10) 
             Decimal(len(results))).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
     return StatisticsSummary(len(results), average,
         max((result.score for result in results), default=None),
-        tuple(results[:recent_limit]), invalid)
+        tuple(results[recent_offset:recent_offset + recent_limit]), invalid)

@@ -1,0 +1,103 @@
+import { readFileSync } from "node:fs";
+import { beforeEach, expect, it, vi } from "vitest";
+vi.mock("../navbar.js", () => ({ loadNavbar: vi.fn() }));
+vi.mock("../api_client.js", () => ({ request: vi.fn() }));
+vi.mock("../authentication.js", () => ({ getAuthToken: vi.fn() }));
+import { request } from "../api_client.js";
+import { getAuthToken } from "../authentication.js";
+beforeEach(() => {
+    vi.resetModules();
+    vi.resetAllMocks();
+    document.body.innerHTML = readFileSync("frontend/events.html", "utf8");
+    document.getElementById("event-dialog").showModal = vi.fn();
+    document.getElementById("event-dialog").close = vi.fn();
+    document.getElementById("disable-event-dialog").showModal = vi.fn();
+    document.getElementById("disable-event-dialog").close = vi.fn();
+});
+it("requires login to save", async () => {
+    getAuthToken.mockReturnValue(null);
+    await import("../events.js");
+    document.getElementById("event-form").dispatchEvent(new Event("submit", { cancelable: true }));
+    expect(request).not.toHaveBeenCalled();
+    expect(document.getElementById("event-form-status").textContent).toContain("Please log in");
+});
+it("saves only fields in the provided event schema", async () => {
+    getAuthToken.mockReturnValue("token");
+    request.mockResolvedValue([]);
+    await import("../events.js");
+    await vi.waitFor(() => expect(document.getElementById("add-event").disabled).toBe(false));
+    document.getElementById("add-event").click();
+    const form = document.getElementById("event-form");
+    form.elements.namedItem("event_name").value = "Singles";
+    request.mockResolvedValueOnce({ event_id: 1, event_name: "Singles", event_type: null, location_id: null });
+    form.dispatchEvent(new Event("submit", { cancelable: true }));
+    await vi.waitFor(() => expect(document.querySelector(".establishment-card")).not.toBeNull());
+    expect(JSON.parse(request.mock.calls.at(-1)[1].body)).toEqual({ event_name: "Singles", event_type: null, location_id: null, nickname: null, week_day: null, start_time: null, games_per_session: 3, enabled: true });
+    expect(form.querySelectorAll("[required]")).toHaveLength(1);
+    document.querySelector(".establishment-card").click();
+    expect(document.getElementById("disable-event").hidden).toBe(false);
+});
+
+it("restores details for editing and disables without deleting history", async () => {
+    getAuthToken.mockReturnValue("token");
+    const record = { event_id: 9, event_name: "League", event_type: "League", location_id: null, nickname: "Monday", week_day: "Monday", start_time: "18:00", games_per_session: 4, enabled: true };
+    request.mockImplementation(async (path) => path.startsWith("/locations") ? [] : [record, { ...record, event_id: 10, enabled: false }]);
+    await import("../events.js");
+    await vi.waitFor(() => expect(document.querySelectorAll(".establishment-card")).toHaveLength(1));
+    document.querySelector(".establishment-card").click();
+    const form = document.getElementById("event-form");
+    expect(form.elements.namedItem("start_time").value).toBe("18:00");
+    expect(form.elements.namedItem("games_per_session").value).toBe("4");
+    request.mockResolvedValueOnce({ ...record, enabled: false });
+    const callsBefore = request.mock.calls.length;
+    document.getElementById("disable-event").click();
+    expect(document.getElementById("disable-event-dialog").showModal).toHaveBeenCalledOnce();
+    expect(request.mock.calls).toHaveLength(callsBefore);
+    document.getElementById("cancel-disable-event").click();
+    expect(document.getElementById("disable-event-dialog").close).toHaveBeenCalledOnce();
+    expect(request.mock.calls).toHaveLength(callsBefore);
+    document.getElementById("disable-event").click();
+    document.getElementById("confirm-disable-event").click();
+    await vi.waitFor(() => expect(document.querySelector(".establishment-card")).toBeNull());
+    expect(request).toHaveBeenLastCalledWith("/events/9", { method: "PUT", body: JSON.stringify({ event_name: "League", event_type: "League", location_id: null, nickname: "Monday", week_day: "Monday", start_time: "18:00", games_per_session: 4, enabled: false }) });
+});
+
+it("offers the user's establishments and saves their linked master location ID", async () => {
+    getAuthToken.mockReturnValue("token");
+    request.mockImplementation(async (path, options) => {
+        if (path.startsWith("/establishments?")) return [{ establishment_id: 12, establishment_name: "My House", location_id: null, enabled: true }];
+        if (path === "/establishments/12/location") return { location_id: 42 };
+        if (options?.method === "POST") return { event_id: 3, ...JSON.parse(options.body) };
+        return [];
+    });
+    await import("../events.js");
+    await vi.waitFor(() => expect(document.getElementById("add-event").disabled).toBe(false));
+    document.getElementById("add-event").click();
+    const select = document.getElementById("event-location");
+    expect(select.options[1].textContent).toBe("My House");
+    select.value = "establishment:12";
+    const form = document.getElementById("event-form");
+    form.elements.namedItem("event_name").value = "League";
+    form.dispatchEvent(new Event("submit", { cancelable: true }));
+    await vi.waitFor(() => expect(document.querySelector(".establishment-card")).not.toBeNull());
+    expect(request).toHaveBeenCalledWith("/establishments/12/location", { method: "POST" });
+    expect(JSON.parse(request.mock.calls.at(-1)[1].body).location_id).toBe(42);
+    document.querySelector(".establishment-card").click();
+    expect(select.value).toBe("establishment:12");
+});
+
+
+it("shows newly created events before older events regardless of API order", async () => {
+    getAuthToken.mockReturnValue("token");
+    request.mockImplementation(async path => path.startsWith("/events?") ? [
+        { event_id: 2, event_name: "Older league", enabled: true },
+        { event_id: 12, event_name: "Newest league", enabled: true },
+        { event_id: 6, event_name: "Middle league", enabled: true },
+    ] : []);
+    await import("../events.js");
+    await vi.waitFor(() => expect(document.querySelectorAll(".establishment-card")).toHaveLength(3));
+    const cards = [...document.querySelectorAll(".establishment-card")];
+    expect(cards[0].textContent).toContain("Newest league");
+    expect(cards[1].textContent).toContain("Middle league");
+    expect(cards[2].textContent).toContain("Older league");
+});
