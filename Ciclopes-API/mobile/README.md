@@ -57,3 +57,6 @@ See `mobile/android/bridge-contract.md` for the JavaScript/native interface.
 The exact bridge adapter depends on whether the frontend packages its web app
 with Capacitor, a WebView shell, or another native wrapper. Do not place this
 work in the separate Android watch app.
+
+The reusable browser and API-client pieces for the shared JavaScript frontend
+are documented in [`frontend-integration.md`](frontend-integration.md).

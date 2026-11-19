@@ -27,7 +27,7 @@ class ClientBallCandidate(BaseModel):
     # Normalized [left, top, right, bottom] coordinates.
     box: list[float] = Field(..., min_length=4, max_length=4)
     # Predicted points fill short gaps between ONNX observations.
-    source: Literal["detected", "predicted"] = "detected"
+    source: Literal["detected", "predicted", "manual"] = "detected"
 
 
 class ClientFrameResult(BaseModel):
@@ -55,7 +55,7 @@ class LaneFrameResultsInput(BaseModel):
 class BallPoint(BaseModel):
     x: float
     y: float
-    source: Literal["detected", "predicted"] = "detected"
+    source: Literal["detected", "predicted", "manual"] = "detected"
 
 
 class KinematicsRow(BaseModel):

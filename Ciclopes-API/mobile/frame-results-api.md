@@ -66,19 +66,36 @@ benchmark as a warm-up. All sampled frames remain available for review, and
 skipped samples can receive short interpolated ball estimates. It searches for
 lane geometry every fourth sample until it finds one, then reuses that lane for
 the rest of the fixed-camera clip. After a user draws a reference lane, the
-frontend rechecks lane geometry on analyzed frames and accepts an inferred lane
-only when at least 15% of the reference polygon's area overlaps it. If no lane
-candidate reaches that threshold, the user's polygon is used for that frame.
-Without a moving-camera reference, ball inference crops each analyzed frame to
-the selected lane, masks pixels outside it, and maps detections back to
-full-frame coordinates. With a user reference, lane and ball inference run on
-the full frame so the detected lane can move with the camera; ball detections
-are then filtered against the selected per-frame polygon. On skipped samples it extrapolates a
+frontend compares a small background patch between analyzed frames to estimate
+camera translation. It requires a strong match and at least a 3-pixel shift in
+the 48-pixel-wide comparison before treating the change as significant and
+rerunning lane inference. It accepts a new lane only when at least 15% of the current
+lane polygon overlaps the candidate. If the camera appears stationary, it
+keeps the current lane and runs ball inference on a masked lane crop. If motion
+is detected but no lane candidate matches, it keeps the previous lane until a
+matching candidate is found.
+Ball inference crops each analyzed frame to the current selected lane, masks
+pixels outside it, and maps detections back to full-frame coordinates. When
+camera movement is detected, that sample runs on the full frame for lane
+reacquisition, then ball detections are filtered against the updated lane. On
+skipped samples it extrapolates a
 short constant-velocity ball box from the last two ONNX observations. Those
 boxes carry `source: "predicted"`; measured boxes carry `source: "detected"`.
 Predictions are for the brief gap between detections and are not independent
 measurements. `inference_ran` identifies which samples actually ran ONNX so the
-API confirms floor contact using consecutive detector observations only.
+API can distinguish measured detections from interpolated estimates when
+confirming floor contact.
+
+The review UI also lets the bowler select the first frame where the ball
+touches the lane and draw a normalized starting box. Applying that box seeds
+tracking: subsequent ONNX runs search a padded crop around the predicted ball.
+Lane reacquisition runs only when background motion indicates camera movement;
+missed ball detections widen the ball search without automatically recalculating
+the lane. The
+seed is submitted as a ball box with `source: "manual"`; its bottom-centre must
+lie inside the selected lane. Ciclopes treats that reviewed point as the
+contact start and analyzes later accepted detections and predictions from it.
+Without a manual seed, the consecutive-detection contact rule remains active.
 
 Ciclopes chooses the highest-confidence lane candidate when there is no manual
 correction, filters ball boxes to the selected lane, then chooses the

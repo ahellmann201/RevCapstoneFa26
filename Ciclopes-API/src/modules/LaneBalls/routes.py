@@ -154,7 +154,15 @@ def _analyze_client_frame_results(payload: LaneFrameResultsInput) -> LaneBallRun
     # samples sit between these measurements by design, so they do not reset or
     # satisfy the contact check. Use source timestamps for the time limit.
     inference_indices = [index for index, frame in enumerate(frames) if frame.inference_ran]
-    contact_index = next(
+    # A user may explicitly box the ball on the first frame touching the lane.
+    # That reviewed point is an authoritative contact seed; otherwise require
+    # two consecutive measured ONNX observations on the lane.
+    manual_contact_index = next(
+        (index for index, observation in enumerate(ball_observations)
+         if observation[2] and observation[3] == "manual"),
+        None,
+    )
+    contact_index = manual_contact_index if manual_contact_index is not None else next(
         (
             previous_index
             for previous_index, current_index in zip(inference_indices, inference_indices[1:])

@@ -41,8 +41,14 @@ function makeInput(source) {
     chw[planeSize * 2 + pixel] = rgba[sourceOffset + 2] / 255;
   }
 
+  const tensor = new ort.Tensor("float32", chw, [1, 3, INPUT_SIZE, INPUT_SIZE]);
+  // Each call creates a temporary canvas. Release its backing bitmap once the
+  // input pixels have been copied into the tensor.
+  canvas.width = 0;
+  canvas.height = 0;
+
   return {
-    tensor: new ort.Tensor("float32", chw, [1, 3, INPUT_SIZE, INPUT_SIZE]),
+    tensor,
     scale,
     padX,
     padY,
@@ -238,10 +244,18 @@ export async function analyzeCanvas(canvas, { detectLane = true } = {}) {
   const session = await initializeWebInference();
   const start = performance.now();
   const prepared = makeInput(canvas);
-  const outputs = await session.run({ [session.inputNames[0]]: prepared.tensor });
-  const result = decode(outputs, prepared, canvas.width, canvas.height, detectLane);
-  result.health.inferenceMs = Math.round(performance.now() - start);
-  return result;
+  let outputs;
+  try {
+    outputs = await session.run({ [session.inputNames[0]]: prepared.tensor });
+    const result = decode(outputs, prepared, canvas.width, canvas.height, detectLane);
+    result.health.inferenceMs = Math.round(performance.now() - start);
+    return result;
+  } finally {
+    // The prototype output is several megabytes per frame. ONNX Runtime Web
+    // keeps its WASM allocations until each Tensor is explicitly disposed.
+    prepared.tensor.dispose();
+    for (const output of Object.values(outputs ?? {})) output.dispose();
+  }
 }
 
 function solve(matrix) {

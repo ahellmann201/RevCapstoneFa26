@@ -59,7 +59,7 @@ export interface LaneFrameResult {
   balls: Array<{
     confidence: number;
     box: [number, number, number, number];
-    source?: 'detected' | 'predicted';
+    source?: 'detected' | 'predicted' | 'manual';
   }>;
   health: Record<string, number>;
 }

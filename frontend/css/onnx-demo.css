@@ -137,7 +137,15 @@ body {
 .camera-preview[hidden] { display: none; }
 .video-frame-review { margin-top: 22px; }
 .video-frame-review h3 { margin-top: 0; }
+.ball-seed-controls { margin: 16px 0; padding: 14px; border: 1px solid #31505a; border-radius: 12px; background: #092b35; }
+.ball-seed-controls .panel-copy { margin-bottom: 10px; }
+.ball-seed-controls .status { margin-bottom: 0; }
+.frame-picker { margin-top: 14px; border: 1px solid #31505a; border-radius: 12px; background: #092b35; }
+.frame-picker > summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; color: #f5f7f7; font-weight: 700; cursor: pointer; list-style-position: inside; }
+.frame-picker[open] > summary { border-bottom: 1px solid #31505a; }
+.frame-count { color: #a6bdc3; font-size: .88rem; font-weight: 500; }
 .frame-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(125px, 1fr)); gap: 10px; }
+.frame-picker .frame-list { max-height: 370px; overflow: auto; padding: 12px; }
 .frame-choice { display: flex; flex-direction: column; align-items: stretch; gap: 6px; min-width: 0; padding: 7px; border: 1px solid #31505a; border-radius: 12px; background: #092b35; color: #f5f7f7; text-align: left; }
 .frame-choice.is-selected { border-color: var(--button-color-1, #e79f40); box-shadow: 0 0 0 2px var(--button-color-1, #e79f40); }
 .frame-choice img { display: block; width: 100%; aspect-ratio: 16 / 9; border-radius: 7px; object-fit: cover; }
@@ -165,6 +173,16 @@ body {
 .ciclopes-analysis-result h3 { margin: 0 0 10px; color: #f5f7f7; }
 .analysis-summary p { margin: 8px 0; color: #f5f7f7; line-height: 1.5; }
 .analysis-summary .analysis-note { color: #a6bdc3; font-size: .92rem; }
+.lane-path-card { display: grid; justify-items: center; margin: 18px auto; padding: 16px; border: 1px solid #31505a; border-radius: 12px; background: #06242c; }
+.lane-path-card h4 { margin: 0; color: #f5f7f7; }
+.lane-path-caption { margin: 5px 0 12px; color: #a6bdc3; font-size: .9rem; text-align: center; }
+.lane-path-visual { width: min(100%, 340px); }
+.lane-path-svg { display: block; width: 100%; height: auto; max-height: 620px; }
+.lane-path-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 18px; margin-top: 8px; color: #d6e2e5; font-size: .82rem; }
+.lane-path-legend span { display: inline-flex; align-items: center; gap: 7px; }
+.path-key { display: inline-block; width: 22px; height: 0; border-top: 3px dotted #f26422; }
+.path-key-last { width: 10px; height: 10px; border: 0; border-radius: 50%; background: #ff704f; }
+.lane-path-empty { margin: 0; color: #a6bdc3; font-size: .9rem; text-align: center; }
 .technical-details { margin-top: 13px; color: #a6bdc3; font-size: .9rem; }
 .technical-details summary { width: fit-content; cursor: pointer; }
 .technical-details pre,

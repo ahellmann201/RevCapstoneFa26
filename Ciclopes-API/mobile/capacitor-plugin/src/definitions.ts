@@ -14,7 +14,7 @@ export interface BallCandidate {
   /** normalized [left, top, right, bottom] in upright-frame coordinates */
   box: [number, number, number, number];
   /** ONNX observation or short constant-velocity estimate between observations. */
-  source?: 'detected' | 'predicted';
+  source?: 'detected' | 'predicted' | 'manual';
 }
 
 export interface LaneFrameResult {
