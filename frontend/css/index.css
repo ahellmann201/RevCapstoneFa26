@@ -15,9 +15,35 @@ body {
 }
 
 .welcome_container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
     width: 100%;
     margin: 0;
 }
+
+.home-layout-edit-trigger {
+    display: inline-grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    padding: 7px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--appearance-muted, #a6bdc3);
+    cursor: pointer;
+}
+.home-layout-edit-trigger:hover {
+    border-color: var(--appearance-outline, #31505a);
+    background: var(--appearance-surface, #092b35);
+    color: var(--appearance-text-soft, #d6e2e5);
+}
+.home-layout-edit-trigger svg { width: 17px; height: 17px; }
+.home-layout-edit-trigger:focus-visible { outline: 2px solid var(--button-color-2); outline-offset: 3px; }
+.home-layout-edit-trigger[hidden] { display: none; }
 
 .welcome_message {
     margin: 0;

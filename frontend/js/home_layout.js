@@ -15,6 +15,15 @@
     settings: { label: "Account Settings", href: "/account_settings.html", width: 1, height: 1 },
 };
 const DEFAULT = [{ id: "events", slot: 0 }, { id: "game", slot: 1 }, { id: "week", slot: 2 }];
+const COLOR_PRESETS = {
+    orange: { label: "Button orange", variable: "--button-color-1", foreground: "--off-white" },
+    amber: { label: "Button amber", variable: "--button-color-2", foreground: "--off-black" },
+    deepTeal: { label: "Background", variable: "--bg-color", foreground: "--off-white" },
+    teal: { label: "Lighter background", variable: "--lighter-bg-color", foreground: "--off-white" },
+    slateTeal: { label: "Lightest background", variable: "--lighter-bg-color-2", foreground: "--off-white" },
+    offWhite: { label: "Off-white", variable: "--off-white", foreground: "--off-black" },
+    errorRed: { label: "Error red", variable: "--error-color", foreground: "--off-white" },
+};
 const SLOTS = 12;
 export function moduleCells(id, slot) {
     const item = ITEMS[id];
@@ -27,7 +36,7 @@ export function validHomeLayout(layout) {
     if (!Array.isArray(layout) || layout.length > SLOTS) return false;
     const ids = new Set(), occupied = new Set();
     return layout.every((entry) => {
-        if (!entry || ids.has(entry.id)) return false;
+        if (!entry || ids.has(entry.id) || (entry.color && !COLOR_PRESETS[entry.color])) return false;
         const cells = moduleCells(entry.id, entry.slot);
         if (!cells.length || cells.some((cell) => occupied.has(cell))) return false;
         ids.add(entry.id); cells.forEach((cell) => occupied.add(cell));
@@ -56,7 +65,7 @@ export function initHomeLayout() {
     const grid = document.createElement("div"); grid.className = "home-modules";
     const editor = document.createElement("section"); editor.className = "home-editor";
     editor.setAttribute("aria-label", "Home page layout editor");
-    editor.innerHTML = '<h2>Edit Home Page</h2><p>Tap an empty space to add a module. Buttons use 1 space; Weekly Events uses 4. Tap a module to move or remove it.</p><div class="home-editor-actions"><button type="button" data-action="save">Save Layout</button><button type="button" data-action="cancel">Cancel</button><button type="button" data-action="reset">Reset to Default</button></div><p class="home-layout-status" role="status"></p><div class="home-edit-grid"></div><h3>Preview</h3>';
+    editor.innerHTML = '<h2>Edit Home Page</h2><p>Tap an empty space to add a module. Buttons use 1 space; Weekly Events uses 4. Tap a module to move or remove it.</p><div class="home-editor-actions"><button type="button" data-action="save">Save Layout</button><button type="button" data-action="cancel">Cancel</button><button type="button" data-action="reset">Reset to Default</button></div><p class="home-layout-status" role="status"></p><div class="home-edit-grid"></div>';
     landing.querySelector(".welcome_container").after(editor);
     editor.after(grid);
     const editGrid = editor.querySelector(".home-edit-grid");
@@ -64,36 +73,59 @@ export function initHomeLayout() {
     const options = document.getElementById("home-module-options");
     const message = document.getElementById("home-module-message");
     let editing = new URLSearchParams(window.location.search).get("edit_home") === "1";
-    function position(node, entry) {
-        const item = ITEMS[entry.id];
-        node.style.gridColumn = `${entry.slot % 2 + 1} / span ${item.width}`;
-        node.style.gridRow = `${Math.floor(entry.slot / 2) + 1} / span ${item.height}`;
+    const editTrigger = document.getElementById("edit-home-layout");
+    for (const [id, node] of Object.entries(nodes)) {
+        node.addEventListener("click", (event) => {
+            if (!editing) return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            const entry = draft.find((item) => item.id === id);
+            if (entry) manage(entry);
+        }, true);
     }
     function render() {
         editor.hidden = !editing;
+        if (editTrigger) editTrigger.hidden = editing;
+        grid.hidden = editing;
         grid.inert = editing;
         for (const node of Object.values(nodes)) { node.hidden = true; grid.append(node); }
         landing.querySelector(".quick_links_container")?.remove();
-        for (const entry of editing ? draft : layout) {
+        const visibleLayout = editing ? draft : layout;
+        for (const entry of visibleLayout) {
             nodes[entry.id].hidden = false;
-            position(nodes[entry.id], entry);
+            if (entry.color && COLOR_PRESETS[entry.color]) {
+                const preset = COLOR_PRESETS[entry.color];
+                nodes[entry.id].dataset.homeColor = entry.color;
+                nodes[entry.id].style.setProperty("--home-module-background", `var(${preset.variable})`);
+                nodes[entry.id].style.setProperty("--home-module-foreground", `var(${preset.foreground})`);
+            } else {
+                delete nodes[entry.id].dataset.homeColor;
+                nodes[entry.id].style.removeProperty("--home-module-background");
+                nodes[entry.id].style.removeProperty("--home-module-foreground");
+            }
+        }
+        if (!editing) {
+            for (const entry of [...visibleLayout].sort((a, b) => a.slot - b.slot)) grid.append(nodes[entry.id]);
         }
         editGrid.replaceChildren();
         const occupied = new Set();
+        const entryAtSlot = new Map();
         for (const entry of draft) {
             moduleCells(entry.id, entry.slot).forEach((cell) => occupied.add(cell));
-            const button = document.createElement("button"); button.type = "button"; button.className = "home-edit-module";
-            button.textContent = `${ITEMS[entry.id].label} (${moduleCells(entry.id, entry.slot).length} ${entry.id === "week" ? "spaces" : "space"})`;
-            position(button, entry);
-            button.addEventListener("click", () => manage(entry));
-            editGrid.append(button);
+            entryAtSlot.set(entry.slot, entry);
         }
         for (let slot = 0; slot < SLOTS; slot++) {
+            const entry = entryAtSlot.get(slot);
+            if (entry) {
+                const node = nodes[entry.id];
+                node.hidden = false;
+                if (editing) editGrid.append(node);
+                continue;
+            }
             if (occupied.has(slot)) continue;
             const button = document.createElement("button"); button.type = "button"; button.className = "home-empty-module";
             button.textContent = moving ? "Move here" : "+ Add module";
             button.setAttribute("aria-label", `${button.textContent}, space ${slot + 1}`);
-            button.style.gridColumn = String(slot % 2 + 1); button.style.gridRow = String(Math.floor(slot / 2) + 1);
             button.addEventListener("click", () => {
                 if (!moving) { choose(slot); return; }
                 const candidate = draft.map((entry) => entry.id === moving ? { ...entry, slot } : entry);
@@ -122,11 +154,41 @@ export function initHomeLayout() {
     function manage(entry) {
         options.replaceChildren(); message.textContent = "";
         document.getElementById("home-module-title").textContent = ITEMS[entry.id].label;
+        if (entry.id !== "week") option("Change button color", () => chooseColor(entry.id));
         option("Move module", () => { moving = entry.id; picker.close(); status.textContent = "Tap an empty space to move this module."; render(); });
         option("Remove module", () => { draft = draft.filter((item) => item.id !== entry.id); moving = null; picker.close(); render(); });
         picker.showModal();
     }
+    function chooseColor(id) {
+        options.replaceChildren(); message.textContent = "Choose a color preset from the home page theme.";
+        document.getElementById("home-module-title").textContent = "Button color";
+        option("Theme default", () => {
+            draft = draft.map((entry) => {
+                if (entry.id !== id) return entry;
+                const { color, ...rest } = entry; return rest;
+            });
+            picker.close(); render();
+        });
+        for (const [color, preset] of Object.entries(COLOR_PRESETS)) {
+            const button = document.createElement("button"); button.type = "button"; button.className = "home-color-option";
+            button.textContent = preset.label;
+            button.style.setProperty("--home-preset-background", `var(${preset.variable})`);
+            button.style.setProperty("--home-preset-foreground", `var(${preset.foreground})`);
+            button.setAttribute("aria-pressed", String(draft.find((entry) => entry.id === id)?.color === color));
+            button.addEventListener("click", () => {
+                draft = draft.map((entry) => entry.id === id ? { ...entry, color } : entry);
+                picker.close(); render();
+            });
+            options.append(button);
+        }
+    }
     document.getElementById("close-module-picker").addEventListener("click", () => picker.close());
+    editTrigger?.addEventListener("click", () => {
+        draft = structuredClone(layout); moving = null; editing = true;
+        status.textContent = "";
+        render();
+        editor.querySelector('[data-action="save"]').focus();
+    });
     function finish() {
         editing = false; moving = null; render();
         if (window.history?.replaceState) {
