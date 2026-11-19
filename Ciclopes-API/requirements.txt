@@ -19,13 +19,4 @@ torchvision
 # ── YOLO segmentation ────────────────────────────────────────────────────────
 ultralytics>=8.3.0
 
-# ── SAM 3D Body dependencies ─────────────────────────────────────────────────
-huggingface_hub
-roma
-yacs
-omegaconf
-braceexpand
 pillow
-timm
-einops
-pytorch-lightning

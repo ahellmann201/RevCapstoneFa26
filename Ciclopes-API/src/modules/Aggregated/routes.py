@@ -94,7 +94,6 @@ async def run_aggregate_pipeline(request: Request, payload: AggRunInput):
     # ── Determine frame ranges from sensor data (or use defaults) ─────────
     use_sensor = payload.sd_key != "key" and not settings.force_lane_ball_start_frame
     lb_start_frame = settings.lane_ball_start_frame
-    fourdbody_frames = rgb_frames
 
     if use_sensor:
         from core.VideoUtil.SpacesApiClient import query_json_via_api
@@ -116,33 +115,19 @@ async def run_aggregate_pipeline(request: Request, payload: AggRunInput):
         sensor_info = compute_ball_contact_frame(sensor_data, fps)
         if sensor_info is not None:
             lb_start_frame = sensor_info.ball_contact_frame
-            # fourdbody: from start up to 1 second after ball contact
-            fourdbody_end = sensor_info.ball_contact_frame + int(fps)
-            fourdbody_frames = rgb_frames[:fourdbody_end]
             logger.info(
-                "Sensor-derived frames: laneball_start=%d  fourdbody_end=%d (of %d total)",
-                lb_start_frame,
-                fourdbody_end,
-                len(rgb_frames),
+                "Sensor-derived lane-ball start frame: %d (of %d total)",
+                lb_start_frame, len(rgb_frames),
             )
         else:
             logger.warning("Could not parse sensor data; falling back to defaults")
 
-    # Run both pipelines concurrently — they use separate thread-pool slots.
-    lane_ball_coro = engine.forward_lane_ball(
+    try:
+        lane_ball_output = await engine.forward_lane_ball(
         frames_rgb=rgb_frames,
         fps=fps,
         start_frame=lb_start_frame,
         batch_size=settings.lane_ball_batch_size,
-    )
-    sam3d_coro = engine.forward_sam3d_body(
-        frames_rgb=fourdbody_frames,
-        batch_size=settings.sam3d_body_batch_size,
-    )
-
-    try:
-        lane_ball_output, sam3d_output = await asyncio.gather(
-            lane_ball_coro, sam3d_coro
         )
     except Exception as exc:
         logger.exception("/agg/run pipeline failed")
@@ -174,20 +159,7 @@ async def run_aggregate_pipeline(request: Request, payload: AggRunInput):
         for row in quarters
     ]
 
-    # ── SAM3D Body results ─────────────────────────────────────────────────
-    # sam3d_output: list[list[dict]] — outer=frames, inner=joints per frame
-    skeleton_points = [
-        [
-            SkeletonPoint(
-                joint_id=int(j["joint_id"]),
-                x=float(j["x"]),
-                y=float(j["y"]),
-                z=float(j["z"]),
-            )
-            for j in frame_joints
-        ]
-        for frame_joints in sam3d_output
-    ]
+    skeleton_points = []
 
     output = AggRunOutput(
         ball_points=ball_points,

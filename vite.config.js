@@ -36,6 +36,7 @@ export default defineConfig({
                 eventArchives: rootPath("./frontend/eventArchives.html"),
                 establishments: rootPath("./frontend/establishments.html"),
                 ciclops: rootPath("./frontend/ciclops.html"),
+                onnxDemo: rootPath("./frontend/onnx-demo.html"),
                 smartDot: rootPath("./frontend/smart_dot.html"),
                 stats: rootPath("./frontend/stats.html"),
                 smartWatch: rootPath("./frontend/smart_watch.html"),

@@ -72,8 +72,11 @@ the development ports, then starts the frontend, the local database API, and the
 Ciclopes FastAPI service together. Ctrl+C stops all of them:
 
 ```bash
-npm run dev:ciclopes -- --db=test
+npm run dev:all
 ```
+
+This is the one-command local development option. It uses the test database;
+plain `npm run dev` remains frontend-only.
 
 Initialize the local test database first with `npm run db:test:init`. Ciclopes
 needs its own Python 3.11 environment and `.env` configuration; follow

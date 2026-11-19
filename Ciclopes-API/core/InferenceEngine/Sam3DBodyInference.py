@@ -90,6 +90,26 @@ class Sam3DBodyInference:
                 mhr_path=str(mhr_path),
             )
 
+        # Reuse a complete Hugging Face cache snapshot without contacting the
+        # Hub or requiring a token. This supports machines that downloaded the
+        # gated model previously while keeping its files out of the repository.
+        try:
+            from huggingface_hub import try_to_load_from_cache
+
+            cached_ckpt = try_to_load_from_cache(HF_REPO_ID, "model.ckpt")
+            cached_config = try_to_load_from_cache(HF_REPO_ID, "model_config.yaml")
+            cached_mhr = try_to_load_from_cache(HF_REPO_ID, "assets/mhr_model.pt")
+            if all(isinstance(path, str) and Path(path).exists()
+                   for path in (cached_ckpt, cached_config, cached_mhr)):
+                logger.info("Loading SAM 3D Body from the existing Hugging Face cache")
+                return load_sam_3d_body(
+                    checkpoint_path=cached_ckpt,
+                    device=device,
+                    mhr_path=cached_mhr,
+                )
+        except ImportError:
+            logger.debug("huggingface_hub cache lookup is unavailable; trying Hub download")
+
         # Download from HuggingFace (caches in ~/.cache/huggingface/)
         hf_token = os.getenv("HF_TOKEN") or os.getenv("HUGGING_FACE_HUB_TOKEN")
         logger.info(

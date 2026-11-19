@@ -1,7 +1,7 @@
 import { Capacitor } from "@capacitor/core";
 import { Directory, Filesystem } from "@capacitor/filesystem";
 import { CiclopesLaneAnalysis } from "@revmetrix/ciclopes-lane-analysis";
-import { submitFrameResultsToCiclopes, uploadVideoToCiclopes } from "./ciclopes_api_client.js";
+import { submitFrameResultsToCiclopes } from "./ciclopes_api_client.js";
 import { loadNavbar } from "./navbar.js";
 import { analyzeCanvas, applyWebLaneCorrection, initializeWebInference } from "./web_lane_inference.js";
 
@@ -1570,14 +1570,15 @@ function predictBall(history, sampleIndex, timeSeconds, maxGap) {
 async function uploadVideo(file) {
   const apiBase = ciclopesApiBaseInput.value.trim().replace(/\/$/, "");
   if (!apiBase) {
-    uploadStatus.textContent = "Video is ready for local frame detection. Enter the Ciclopes API URL to upload it and send results.";
+    uploadStatus.textContent = "Video is ready for local frame detection. Enter the Ciclopes API URL to send reviewed results.";
     return null;
   }
 
-  uploadStatus.textContent = `Sending ${file.name} to Ciclopes for storage… Keep the app open until it finishes.`;
-  const videoKey = await uploadVideoToCiclopes(file, apiBase);
-  uploadResult.textContent = JSON.stringify({ file: file.name, videoKey }, null, 2);
-  uploadStatus.textContent = "Video stored by Ciclopes. Sampled frames are being analyzed on this device.";
+  // This demo analyzes frames in the browser and only submits reviewed frame
+  // results. The original clip does not need to be uploaded to cloud storage.
+  const videoKey = `local-${Date.now()}-${crypto.randomUUID?.() ?? Math.random().toString(36).slice(2)}`;
+  uploadResult.textContent = JSON.stringify({ file: file.name, videoKey, storage: "local-only" }, null, 2);
+  uploadStatus.textContent = "The clip stays on this device. Sampled frames are being analyzed locally.";
   return videoKey;
 }
 
@@ -1617,9 +1618,9 @@ async function processVideo(file) {
       sendCiclopesAnalysisButton.disabled = !ciclopesApiBaseInput.value.trim()
         || !videoFrames.some((frame) => !frame.error && frame.result);
       if (ciclopesApiBaseInput.value.trim()) {
-        uploadStatus.textContent = "Video stored and frames detected. Review or correct a lane, then send the results to Ciclopes.";
+        uploadStatus.textContent = "Frames detected locally. Review or correct the lane, then send the results to Ciclopes.";
       } else {
-        uploadStatus.textContent = "Video stored and frames detected. Enter a reachable Ciclopes API URL to enable Ciclopes analysis.";
+        uploadStatus.textContent = "Frames detected locally. Enter a reachable Ciclopes API URL to enable sending results.";
       }
     }
   } catch (error) {

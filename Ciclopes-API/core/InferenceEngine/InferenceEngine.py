@@ -12,7 +12,6 @@ import numpy as np
 import torch
 
 from core.InferenceEngine.LaneBallInference import LaneBallInference
-from core.InferenceEngine.Sam3DBodyInference import Sam3DBodyInference
 from core.LaneBalls.Extrapolation import append_departure_point, diagnose_trim_raw_detections
 from core.LaneBalls.Interprolation import interpolate_ball_positions
 from core.LaneBalls.Kinematics import compute_kinematics_per_quarter
@@ -74,43 +73,28 @@ class InferenceEngine:
     """
     Inference orchestrator.
 
-    Manages the YOLO segmentation model (ball / lane / pins) and
-    SAM 3D Body (skeleton estimation). Supports single-GPU (default) or
-    multi-GPU mode where each model gets its own device.
+    Manages the YOLO segmentation model (ball / lane / pins).
 
     Call `forward()` to run YOLO segmentation on the first RGB frame.
-    Call `forward_sam3d_body()` to run 3D skeleton estimation on a list of frames.
     """
 
     def __init__(self, multi_gpu: bool = False) -> None:
         self.initialized_at = datetime.now(timezone.utc)
         self.multi_gpu = multi_gpu
 
-        if multi_gpu and torch.cuda.is_available() and torch.cuda.device_count() >= 2:
-            self.device_lane_ball = torch.device("cuda:0")
-            self.device_sam3d = torch.device("cuda:1")
-            logger.info(
-                "Multi-GPU mode: LaneBall → %s, SAM3D Body → %s",
-                self.device_lane_ball, self.device_sam3d,
-            )
-        else:
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            self.device_lane_ball = device
-            self.device_sam3d = device
-            if multi_gpu:
-                logger.warning(
-                    "MULTI_GPU=true but only %d GPU(s) detected — falling back to single device %s",
-                    torch.cuda.device_count(), device,
-                )
-            else:
-                logger.info("Single-GPU mode: both models on %s", device)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device_lane_ball = device
+        self.device_sam3d = device  # Retained for status compatibility; pose3D is not initialized.
+        self.sam3d_body = None
+        if multi_gpu and torch.cuda.device_count() < 2:
+            logger.warning("MULTI_GPU=true but fewer than 2 GPUs detected; using %s", device)
+        logger.info("LaneBall device: %s", device)
 
         # For backwards compat (status endpoint, etc.)
         self.device = self.device_lane_ball
 
         # ── Load active models ────────────────────────────────────────────────
         self.lane_ball = LaneBallInference(device=str(self.device_lane_ball))
-        self.sam3d_body = Sam3DBodyInference(device=str(self.device_sam3d))
 
         # Thread pool for running sync model inference in async context.
         # Keep 2 workers so both models can run concurrently.

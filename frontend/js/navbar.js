@@ -99,7 +99,7 @@ export function goToCompareBalls() {window.location.href = "/compare_balls.html"
 export function goToEstablishments() {window.location.href = "/establishments.html";}
 export function goToEvents() {window.location.href = "/events.html";}
 export function goToSessions() {window.location.href = "/sessions.html";}
-export function goToCiclops() {window.location.href = "/ciclops.html";}
+export function goToCiclops() {window.location.href = "/onnx-demo.html";}
 export function goToSmartDot() {window.location.href = "/smart_dot.html";}
 export function goToStats() {window.location.href = "/stats.html";}
 export function goToSmartWatch() {window.location.href = "/smart_watch.html";}
@@ -178,6 +178,9 @@ export function loadNavbar() {
             </div>
             <div class="sidebar_section">
                 <button class="events_button sidebar_button" id="events-button" data-i18n="Events">Events</button>
+            </div>
+            <div class="sidebar_section">
+                <button class="sidebar_button" id="ciclopes-button" data-i18n="Ciclopes">Ciclopes</button>
             </div>
             <div class="sidebar_section">
                 <button class="sidebar_button stats_button" id="stats-button" data-i18n="Stats">Stats</button>
@@ -261,6 +264,9 @@ export function loadNavbar() {
     document
         .getElementById("events-button")
         .addEventListener("click", goToEvents);
+    document
+        .getElementById("ciclopes-button")
+        .addEventListener("click", goToCiclops);
 
 
 
@@ -332,6 +338,7 @@ export function loadNavbar() {
         "compare-balls-button": "compare_balls.html",
         "establishments-button": "establishments.html",
         "events-button": "events.html",
+        "ciclopes-button": "onnx-demo.html",
         "stats-button": "stats.html",
         "sidebar-account-settings-button": "account_settings.html",
     };

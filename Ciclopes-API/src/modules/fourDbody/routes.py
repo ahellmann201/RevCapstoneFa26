@@ -61,6 +61,8 @@ async def run_sam3d_body_pipeline(request: Request, payload: Sam3DBodyRunInput):
 
     This endpoint runs asynchronously, it does not block lane-ball or other concurrent requests because the GPU work is dispatched to a thread-pool executor inside InferenceEngine
     """
+    raise HTTPException(status_code=501, detail="Pose3D inference is disabled in this build.")
+
     fps = 30.0
 
     try:

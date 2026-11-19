@@ -1,5 +1,5 @@
 import { execFileSync, spawn } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -160,21 +160,6 @@ function validateCiclopesEnvironment(python) {
     if (!existsSync(envPath)) {
         console.error(`Ciclopes configuration is missing: ${envPath}`);
         console.error("Copy Ciclopes-API/.env.example to Ciclopes-API/.env and configure the required model settings first.");
-        return false;
-    }
-
-    const envText = readFileSync(envPath, "utf8");
-    const tokenInFile = envText.match(/^\s*HF_TOKEN\s*=\s*(.*?)\s*$/m)?.[1]
-        ?.replace(/^['"]|['"]$/g, "") || "";
-    const effectiveToken = process.env.HF_TOKEN || process.env.HUGGING_FACE_HUB_TOKEN || tokenInFile;
-    const hasToken = Boolean(effectiveToken);
-    const placeholderToken = ["hf_token", "your_token", "your_hf_token", "changeme"]
-        .includes(effectiveToken.toLowerCase());
-    const localModelReady = existsSync(resolve(ciclopesRoot, "core", "weights", "sam3d_body", "model.ckpt"))
-        && existsSync(resolve(ciclopesRoot, "core", "weights", "sam3d_body", "assets", "mhr_model.pt"));
-    if ((!hasToken || placeholderToken) && !localModelReady) {
-        console.error("SAM 3D Body needs an approved Hugging Face HF_TOKEN or local SAM3D model weights.");
-        console.error("Set HF_TOKEN in Ciclopes-API/.env, then run this command again.");
         return false;
     }
 
