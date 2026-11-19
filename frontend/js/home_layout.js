@@ -1,4 +1,7 @@
 import { request } from "./database.js";
+import { enableHomeResizing } from "./home_resize.js";
+import { renderHomeWidget } from "./home_widgets.js";
+import { enableHomeRearranging } from "./home_rearrange.js";
 const ITEMS = {
     events: { label: "Schedule Event", selector: "#schedule-event-button", width: 1, height: 1 },
     game: { label: "Start Game", selector: "#start-game-button", width: 1, height: 1 },
@@ -17,8 +20,14 @@ const ITEMS = {
 };
 const DEFAULT = [{ id: "events", slot: 0 }, { id: "game", slot: 1 }, { id: "week", slot: 2 }];
 const SLOTS = 12;
-export function moduleCells(id, slot) {
+export const EXPANDABLE_MODULES = new Set(["stats", "games", "arsenal"]);
+export function moduleDimensions(id, size = null) {
     const item = ITEMS[id];
+    if (!item || (size != null && (!EXPANDABLE_MODULES.has(id) || !["small", "large"].includes(size)))) return null;
+    return size === "large" ? { width: 2, height: 2 } : item;
+}
+export function moduleCells(id, slot, size = null) {
+    const item = moduleDimensions(id, size);
     if (!item || !Number.isInteger(slot) || slot < 0 || slot % 2 + item.width > 2) return [];
     const cells = [];
     for (let y = 0; y < item.height; y++) for (let x = 0; x < item.width; x++) cells.push(slot + y * 2 + x);
@@ -29,12 +38,39 @@ export function validHomeLayout(layout) {
     const ids = new Set(), occupied = new Set();
     return layout.every((entry) => {
         if (!entry || ids.has(entry.id)) return false;
-        const cells = moduleCells(entry.id, entry.slot);
+        const cells = moduleCells(entry.id, entry.slot, entry.size);
         if (!cells.length || cells.some((cell) => occupied.has(cell))) return false;
         ids.add(entry.id); cells.forEach((cell) => occupied.add(cell));
         return true;
     });
 }
+/** Anchor the dragged widget and shift the remaining widgets in reading order. */
+export function moveHomeModule(layout, id, slot, size = undefined) {
+    const source = layout.find(entry => entry.id === id);
+    const moving = { ...source, slot, ...(size === undefined ? {} : { size }) };
+    if (!validHomeLayout(layout) || !source || !moduleCells(id, slot, moving.size).length) return null;
+    const others = layout.filter(entry => entry.id !== id).sort((a, b) => a.slot - b.slot);
+    function pack(order) {
+        const placed = [moving];
+        for (const entry of order) {
+            const next = Array.from({ length: SLOTS }, (_, slot) => slot)
+                .find(slot => validHomeLayout([...placed, { ...entry, slot }]));
+            if (next === undefined) return null;
+            placed.push({ ...entry, slot: next });
+        }
+        return placed.sort((a, b) => a.slot - b.slot);
+    }
+    // A full board may require placing the large widget before filling small gaps.
+    return pack(others) ?? pack([...others].sort((a, b) => moduleCells(b.id, b.slot, b.size).length - moduleCells(a.id, a.slot, a.size).length));
+}
+
+export function resizeHomeModule(layout, id, size) {
+    const entry = layout.find(item => item.id === id);
+    if (!entry || !EXPANDABLE_MODULES.has(id)) return null;
+    const slot = size === "large" ? Math.min(8, entry.slot - entry.slot % 2) : entry.slot;
+    return moveHomeModule(layout, id, slot, size);
+}
+
 export function initHomeLayout() {
     const landing = document.querySelector(".landing");
     const picker = document.getElementById("home-module-picker");
@@ -50,6 +86,8 @@ export function initHomeLayout() {
         if (validHomeLayout(stored)) layout = stored;
     } catch { /* Use the default layout if storage is unavailable or invalid. */ }
     let draft = structuredClone(layout), moving = null;
+    let dragOriginal = null;
+    let resizeOriginal = null;
     const nodes = Object.fromEntries(Object.entries(ITEMS).map(([id, item]) => {
         if (item.selector) return [id, document.querySelector(item.selector)];
         const link = document.createElement("a");
@@ -61,16 +99,20 @@ export function initHomeLayout() {
     const grid = document.createElement("div"); grid.className = "home-modules";
     const editor = document.createElement("section"); editor.className = "home-editor";
     editor.setAttribute("aria-label", "Home page layout editor");
-    editor.innerHTML = '<h2>Edit Home Page</h2><p>Tap an empty space to add a module. Buttons use 1 space; Weekly Events uses 4. Tap a module to move or remove it.</p><div class="home-editor-actions"><button type="button" data-action="save">Save Layout</button><button type="button" data-action="cancel">Cancel</button><button type="button" data-action="reset">Reset to Default</button></div><p class="home-layout-status" role="status"></p><div class="home-edit-grid"></div><h3>Preview</h3>';
+    editor.innerHTML = '<h2>Rearrange Home</h2><p>Slide modules around to rearrange them. Other modules shift out of the way.</p><div class="home-editor-actions"><button type="button" data-action="add">Add Module</button><button type="button" data-action="save">Done</button><button type="button" data-action="cancel">Cancel</button><button type="button" data-action="reset">Reset to Default</button></div><p class="home-layout-status" role="status"></p><div class="home-edit-grid" aria-label="Rearrange home modules"></div>';
     landing.querySelector(".welcome_container").after(editor);
     editor.after(grid);
+    const editButton = document.createElement("button");
+    editButton.type = "button"; editButton.className = "home-edit-toggle";
+    editButton.textContent = "Edit Home Page";
+    editor.before(editButton);
     const editGrid = editor.querySelector(".home-edit-grid");
     const status = editor.querySelector(".home-layout-status");
     const options = document.getElementById("home-module-options");
     const message = document.getElementById("home-module-message");
     let editing = new URLSearchParams(window.location.search).get("edit_home") === "1";
     function position(node, entry) {
-        const item = ITEMS[entry.id];
+        const item = moduleDimensions(entry.id, entry.size);
         node.style.gridColumn = `${entry.slot % 2 + 1} / span ${item.width}`;
         node.style.gridRow = `${Math.floor(entry.slot / 2) + 1} / span ${item.height}`;
     }
@@ -78,48 +120,131 @@ export function initHomeLayout() {
         for (const button of editor.querySelectorAll(".home-editor-actions button")) button.disabled = hydrating || saving;
         editGrid.inert = hydrating || saving;
         editor.hidden = !editing;
+        editButton.hidden = editing;
+        grid.hidden = editing;
+        landing.classList.toggle("home-rearranging", editing);
         grid.inert = editing;
-        for (const node of Object.values(nodes)) { node.hidden = true; grid.append(node); }
+        for (const [id, node] of Object.entries(nodes)) { node.dataset.homeModule = id; node.hidden = true; grid.append(node); }
         landing.querySelector(".quick_links_container")?.remove();
         for (const entry of editing ? draft : layout) {
             nodes[entry.id].hidden = false;
             position(nodes[entry.id], entry);
+            if (EXPANDABLE_MODULES.has(entry.id)) renderHomeWidget(nodes[entry.id], entry.id, entry.size === "large");
         }
         editGrid.replaceChildren();
         const occupied = new Set();
         for (const entry of draft) {
-            moduleCells(entry.id, entry.slot).forEach((cell) => occupied.add(cell));
+            moduleCells(entry.id, entry.slot, entry.size).forEach((cell) => occupied.add(cell));
             const button = document.createElement("button"); button.type = "button"; button.className = "home-edit-module";
-            button.textContent = `${ITEMS[entry.id].label} (${moduleCells(entry.id, entry.slot).length} ${entry.id === "week" ? "spaces" : "space"})`;
+            button.textContent = ITEMS[entry.id].label;
+            button.dataset.homeModule = entry.id;
+            button.dataset.slot = String(entry.slot);
             position(button, entry);
+            button.addEventListener("keydown", event => {
+                const offsets = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -2, ArrowDown: 2 };
+                if (!(event.key in offsets) || hydrating || saving) return;
+                event.preventDefault();
+                move(entry.id, entry.slot + offsets[event.key]);
+                editGrid.querySelector(`[data-home-module="${entry.id}"]`)?.focus();
+            });
             button.addEventListener("click", () => manage(entry));
             editGrid.append(button);
+            if (EXPANDABLE_MODULES.has(entry.id)) {
+                const handle = document.createElement("button"); handle.type = "button";
+                handle.className = "home-resize-handle"; handle.dataset.resizeHome = entry.id;
+                handle.setAttribute("aria-label", `Resize ${ITEMS[entry.id].label}`);
+                handle.title = "Drag to resize";
+                handle.innerHTML = '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m8 20 12-12M14 20l6-6M20 20h.01"/></svg>';
+                position(handle, entry); editGrid.append(handle);
+            }
         }
         for (let slot = 0; slot < SLOTS; slot++) {
-            if (occupied.has(slot)) continue;
-            const button = document.createElement("button"); button.type = "button"; button.className = "home-empty-module";
-            button.textContent = moving ? "Move here" : "+ Add module";
-            button.setAttribute("aria-label", `${button.textContent}, space ${slot + 1}`);
-            button.style.gridColumn = String(slot % 2 + 1); button.style.gridRow = String(Math.floor(slot / 2) + 1);
-            button.addEventListener("click", () => {
-                if (!moving) { choose(slot); return; }
-                const candidate = draft.map((entry) => entry.id === moving ? { ...entry, slot } : entry);
-                if (!validHomeLayout(candidate)) { status.textContent = "Not enough adjacent space here. Weekly Events needs two full rows."; return; }
-                draft = candidate; moving = null; status.textContent = "Module moved."; render();
-            });
-            editGrid.append(button);
+            const spot = document.createElement(moving && !occupied.has(slot) ? "button" : "span");
+            spot.className = "home-drop-slot";
+            spot.dataset.slot = String(slot);
+            spot.style.gridColumn = String(slot % 2 + 1);
+            spot.style.gridRow = String(Math.floor(slot / 2) + 1);
+            if (moving && !occupied.has(slot)) {
+                spot.type = "button"; spot.textContent = "Move here";
+                spot.addEventListener("click", () => move(moving, slot));
+            } else spot.setAttribute("aria-hidden", "true");
+            editGrid.append(spot);
         }
     }
+    function previewLayout(candidate) {
+        if (!candidate) return false;
+        const positions = new Map([...editGrid.querySelectorAll(".home-edit-module")].map(node => [node.dataset.homeModule, node.getBoundingClientRect()]));
+        draft = candidate;
+        for (const entry of draft) {
+            const node = editGrid.querySelector(`[data-home-module="${entry.id}"]`);
+            position(node, entry); node.dataset.slot = String(entry.slot);
+            const handle = editGrid.querySelector(`[data-resize-home="${entry.id}"]`);
+            if (handle) position(handle, entry);
+        }
+        if (!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+            for (const node of editGrid.querySelectorAll(".home-edit-module:not(.is-dragging)")) {
+                const before = positions.get(node.dataset.homeModule), after = node.getBoundingClientRect();
+                if (before && (before.x !== after.x || before.y !== after.y)) node.animate?.([
+                    { transform: `translate(${before.x - after.x}px, ${before.y - after.y}px)` }, { transform: "translate(0, 0)" },
+                ], { duration: 170, easing: "ease-out" });
+            }
+        }
+        return true;
+    }
+
+    function previewDrag(id, slot) {
+        return previewLayout(moveHomeModule(dragOriginal ?? draft, id, slot));
+    }
+    enableHomeResizing(landing, {
+        canResize: () => editing && !hydrating && !saving && !document.querySelector("dialog[open]"),
+        getSize: id => draft.find(entry => entry.id === id)?.size === "large" ? "large" : "small",
+        begin: () => { resizeOriginal = structuredClone(draft); },
+        preview: (id, size) => {
+            const changed = previewLayout(resizeHomeModule(resizeOriginal ?? draft, id, size));
+            if (!changed) status.textContent = "Not enough space for this module here.";
+            return changed;
+        },
+        commit: () => { resizeOriginal = null; status.textContent = "Widget resized."; render(); },
+        cancel: () => { if (resizeOriginal) draft = resizeOriginal; resizeOriginal = null; render(); },
+    });
+
+    function move(id, slot) {
+        const candidate = moveHomeModule(draft, id, slot);
+        if (!candidate) { status.textContent = "Not enough space for this module here."; return false; }
+        draft = candidate; moving = null; status.textContent = "Module moved."; render();
+        return true;
+    }
+    function beginEditing() {
+        if (editing || hydrating || saving || document.querySelector("dialog[open]")) return false;
+        draft = structuredClone(layout); editing = true; status.textContent = ""; render();
+        return true;
+    }
+    editButton.addEventListener("click", beginEditing);
+    enableHomeRearranging(landing, {
+        canEdit: () => !hydrating && !saving && !document.querySelector("dialog[open]"),
+        isEditing: () => editing,
+        beginEditing,
+        board: editGrid,
+        move: (id, slot) => { const changed = previewDrag(id, slot); dragOriginal = null; render(); return changed; },
+        beginDrag: () => { dragOriginal = structuredClone(draft); },
+        cancelDrag: () => { if (dragOriginal) draft = dragOriginal; dragOriginal = null; render(); },
+        preview: previewDrag,
+        normalizeSlot: (id, slot) => moduleDimensions(id, draft.find(entry => entry.id === id)?.size).width === 2 ? Math.min(8, slot - slot % 2) : slot,
+        canMove: (id, slot) => Boolean(moveHomeModule(dragOriginal ?? draft, id, slot)),
+    });
+
     function option(label, callback, disabled = false) {
         const button = document.createElement("button"); button.type = "button"; button.textContent = label; button.disabled = disabled;
         button.addEventListener("click", callback); options.append(button);
     }
-    function choose(slot) {
+    editor.querySelector('[data-action="add"]').addEventListener("click", () => choose());
+    function choose() {
         options.replaceChildren(); message.textContent = "";
         document.getElementById("home-module-title").textContent = "Add a module";
         for (const [id, item] of Object.entries(ITEMS)) {
             const exists = draft.some((entry) => entry.id === id);
-            const fits = validHomeLayout([...draft, { id, slot }]);
+            const slot = Array.from({ length: SLOTS }, (_, i) => i).find(slot => validHomeLayout([...draft, { id, slot }]));
+            const fits = slot !== undefined;
             option(`${item.label} · ${id === "week" ? "4 spaces" : "1 space"}${exists ? " (already added)" : !fits ? " (needs more space)" : ""}`, () => {
                 draft.push({ id, slot }); picker.close(); render();
             }, exists || !fits);
@@ -157,7 +282,11 @@ export function initHomeLayout() {
             try { localStorage.setItem(key, JSON.stringify(selected)); }
             catch (error) { if (!signedIn) throw error; }
             layout = selected; finish();
-        } catch { status.textContent = "Could not save this layout. Please try again."; }
+        } catch (error) {
+            status.textContent = error.status === 422 && /size.*Extra inputs are not permitted/i.test(error.message)
+                ? "The server needs an update to save resized widgets. Your changes are still here."
+                : "Could not save this layout. Please try again.";
+        }
         finally { saving = false; render(); }
     });
     editor.querySelector('[data-action="cancel"]').addEventListener("click", () => { draft = structuredClone(layout); finish(); });

@@ -584,3 +584,31 @@ For an existing local SQLite test database, `npm run db:test:init` (Windows:
 `npm.cmd run db:test:init`) applies the additive schema updates without resetting
 records. Restart the local API afterward. Remote SQL Server tests now require
 this migration as well; regular `npm test` uses isolated local/mocked databases.
+
+
+### Rearranging the home page
+
+Hold a home widget or an empty home area for about half a second to enter
+rearrange mode. You can also select **Edit Home Page** on Home or in Account
+Settings. Slide tiles into different spots; neighboring tiles shift live to make room
+while you drag. Near the screen edges, dragging scrolls the page.
+
+Use **Add Module** in the top toolbar to add a widget to the next available
+spot. Tap a tile for move/remove options, or use the arrow keys on a focused tile. **Done** saves through the existing account
+layout API (or browser storage for guests). **Cancel** discards the draft;
+invalid drops and interrupted drags do not change the saved layout. Reduced
+motion preferences turn off the tile animation. No database migration is needed
+for these interaction changes.
+
+
+Stats, Games, and Ball Arsenal widgets have a corner resize handle in rearrange
+mode. Drag outward to expand into a two-by-two preview, or inward to return to a
+compact shortcut. The handle also supports arrow keys (right/down expands,
+left/up compacts). Stats shows completed games, average and highest score; Games
+shows recent saved games; Ball Arsenal shows up to three saved balls. Selecting
+a widget opens its full page. Guests see a sign-in message instead of private
+data, and failed loads show an error rather than made-up statistics.
+
+Widget size is saved as an optional `size` value (`small`/`large`) within the
+existing layout JSON. Deploy the updated API before saving expanded layouts;
+no SQL schema migration is needed. Older layouts without sizes remain valid.

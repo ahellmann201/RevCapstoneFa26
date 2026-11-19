@@ -15,6 +15,7 @@ class LayoutEntry(BaseModel):
     model_config = ConfigDict(extra="forbid")
     id: str = Field(max_length=32)
     slot: int = Field(ge=0, le=11, strict=True)
+    size: Literal["small", "large"] | None = None
 
 class HomeLayoutInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -27,7 +28,9 @@ class HomeLayoutInput(BaseModel):
         for entry in self.layout_json:
             if entry.id not in MODULES or entry.id in ids:
                 raise ValueError("Unknown or duplicate module")
-            width, height = MODULES[entry.id]
+            if entry.size is not None and entry.id not in {"stats", "games", "arsenal"}:
+                raise ValueError("This module cannot be resized")
+            width, height = (2, 2) if entry.size == "large" else MODULES[entry.id]
             cells = {entry.slot + y * 2 + x for y in range(height) for x in range(width)}
             if entry.slot % 2 + width > 2 or max(cells) >= 12 or cells & occupied:
                 raise ValueError("Modules overlap or extend outside the layout")
@@ -35,7 +38,9 @@ class HomeLayoutInput(BaseModel):
             occupied.update(cells)
         return self
 
-class HomeLayoutResponse(HomeLayoutInput):
+class HomeLayoutResponse(BaseModel):
+    layout_version: int
+    layout_json: list[dict]
     updated_at: datetime | None = None
 
 @router.get("", response_model=HomeLayoutResponse)
@@ -52,7 +57,7 @@ def save_home_layout(data: HomeLayoutInput, user: UserDependency):
     # The transaction serializes writes; user_id always comes from the token.
     updated = datetime.now(timezone.utc)
     stamp = updated.replace(tzinfo=None).isoformat(timespec="microseconds")
-    layout = [entry.model_dump() for entry in data.layout_json]
+    layout = [entry.model_dump(exclude_none=True) for entry in data.layout_json]
     encoded = json.dumps(layout, separators=(",", ":"))
     with database_cursor(write=True) as cursor:
         cursor.execute("SELECT user_id FROM user_home_layouts WHERE user_id = ?", (user.user_id,))

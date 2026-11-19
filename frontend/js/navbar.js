@@ -18,7 +18,7 @@ function enableMenuSwipe() {
     const signal = swipeListeners.signal;
     let start = null;
     let suppressClickUntil = 0;
-    const blocked = "input, textarea, select, button, a, [contenteditable], dialog, .lane_panel";
+    const blocked = "input, textarea, select, button, a, [contenteditable], dialog, .lane_panel, .home-rearranging";
     document.body.addEventListener("touchstart", event => {
         start = null;
         if (event.touches.length !== 1 || window.matchMedia("(min-width: 1100px)").matches ||
@@ -44,6 +44,7 @@ function enableMenuSwipe() {
     document.body.addEventListener("touchend", event => {
         const gesture = start;
         start = null;
+        if (document.querySelector(".home-rearranging")) return;
         if (!gesture || event.touches.length || window.matchMedia("(min-width: 1100px)").matches) return;
         const touch = [...event.changedTouches].find(item => item.identifier === gesture.id);
         if (!touch) return;

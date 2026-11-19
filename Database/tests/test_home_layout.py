@@ -60,3 +60,22 @@ def test_layout_database_failure_is_safe(authenticated, db):
     assert "secret-password" not in result.text
     cursor.close.assert_called_once()
     connection.close.assert_called_once()
+
+
+@pytest.mark.parametrize("entry", [
+    {"id": "stats", "slot": 1, "size": "large"},
+    {"id": "game", "slot": 0, "size": "large"},
+    {"id": "stats", "slot": 0, "size": "giant"},
+])
+def test_widget_sizes_are_validated(authenticated, db, entry):
+    assert authenticated.put("/auth/me/home-layout", json={"layout_json": [entry]}).status_code == 422
+    db[0].cursor.assert_not_called()
+
+
+def test_expanded_size_is_stored_and_returned(authenticated, db):
+    _, cursor = db
+    entries = [{"id": "stats", "slot": 0, "size": "large"}, {"id": "games", "slot": 4, "size": "small"}]
+    result = authenticated.put("/auth/me/home-layout", json={"layout_json": entries})
+    assert result.status_code == 200, result.text
+    assert result.json()["layout_json"] == entries
+    assert json.loads(cursor.execute.call_args.args[1][2]) == entries

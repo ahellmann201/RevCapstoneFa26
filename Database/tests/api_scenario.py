@@ -76,6 +76,9 @@ def run_scenario(usernames):
         assert response.json()["updated_at"] is not None
         assert client.get(layout_url, headers=owner).json()["layout_json"] == preference["layout_json"]
         assert client.get(layout_url, headers=other).json()["updated_at"] is None
+        expanded = {"layout_version": 1, "layout_json": [{"id": "stats", "slot": 0, "size": "large"}]}
+        assert client.put(layout_url, headers=owner, json=expanded).status_code == 200
+        assert client.get(layout_url, headers=owner).json()["layout_json"] == expanded["layout_json"]
         preference["layout_json"] = []
         assert client.put(layout_url, headers=owner, json=preference).status_code == 200
         assert client.get(layout_url, headers=owner).json()["layout_json"] == []
