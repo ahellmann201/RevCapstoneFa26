@@ -79,6 +79,9 @@ def run_scenario(usernames):
         expanded = {"layout_version": 1, "layout_json": [{"id": "stats", "slot": 0, "size": "large"}]}
         assert client.put(layout_url, headers=owner, json=expanded).status_code == 200
         assert client.get(layout_url, headers=owner).json()["layout_json"] == expanded["layout_json"]
+        custom_stats = {"layout_version": 1, "layout_json": [{"id": "stats", "slot": 0, "size": "large", "metrics": ["latest_score", "invalid_games"]}]}
+        assert client.put(layout_url, headers=owner, json=custom_stats).status_code == 200
+        assert client.get(layout_url, headers=owner).json()["layout_json"] == custom_stats["layout_json"]
         preference["layout_json"] = []
         assert client.put(layout_url, headers=owner, json=preference).status_code == 200
         assert client.get(layout_url, headers=owner).json()["layout_json"] == []

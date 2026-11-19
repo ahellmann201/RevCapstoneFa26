@@ -1,6 +1,6 @@
 import { request } from "./database.js";
 import { enableHomeResizing } from "./home_resize.js";
-import { renderHomeWidget } from "./home_widgets.js";
+import { renderHomeWidget, STAT_METRICS, DEFAULT_STAT_METRICS, validStatMetrics } from "./home_widgets.js";
 import { enableHomeRearranging } from "./home_rearrange.js";
 const ITEMS = {
     events: { label: "Schedule Event", selector: "#schedule-event-button", width: 1, height: 1 },
@@ -58,6 +58,7 @@ export function validHomeLayout(layout) {
     const ids = new Set(), occupied = new Set();
     return layout.every((entry) => {
         if (!entry || ids.has(entry.id) || (entry.color != null && !Object.hasOwn(COLOR_PRESETS, entry.color))) return false;
+        if (entry.metrics != null && (entry.id !== "stats" || !validStatMetrics(entry.metrics))) return false;
         const cells = moduleCells(entry.id, entry.slot, entry.size);
         if (!cells.length || cells.some((cell) => occupied.has(cell))) return false;
         ids.add(entry.id); cells.forEach((cell) => occupied.add(cell));
@@ -150,7 +151,7 @@ export function initHomeLayout() {
             nodes[entry.id].hidden = false;
             position(nodes[entry.id], entry);
             applyModuleColor(nodes[entry.id], entry);
-            if (EXPANDABLE_MODULES.has(entry.id)) renderHomeWidget(nodes[entry.id], entry.id, entry.size === "large");
+            if (EXPANDABLE_MODULES.has(entry.id)) renderHomeWidget(nodes[entry.id], entry.id, entry.size === "large", entry.metrics);
         }
         editGrid.replaceChildren();
         const occupied = new Set();
@@ -276,10 +277,44 @@ export function initHomeLayout() {
     function manage(entry) {
         options.replaceChildren(); message.textContent = "";
         document.getElementById("home-module-title").textContent = ITEMS[entry.id].label;
+        if (entry.id === "stats") option("Choose statistics", () => chooseStats(entry));
         if (entry.id !== "week") option("Change button color", () => chooseColor(entry.id));
         option("Move module", () => { moving = entry.id; picker.close(); status.textContent = "Tap an empty space to move this module."; render(); });
         option("Remove module", () => { draft = draft.filter((item) => item.id !== entry.id); moving = null; picker.close(); render(); });
         picker.showModal();
+    }
+    function chooseStats(entry) {
+        options.replaceChildren(); message.textContent = "Choose one to three statistics.";
+        document.getElementById("home-module-title").textContent = "Statistics to show";
+        let selected = [...(entry.metrics ?? DEFAULT_STAT_METRICS)];
+        const checkboxes = [];
+        const apply = document.createElement("button"); apply.type = "button"; apply.textContent = "Apply changes";
+        function update() {
+            apply.disabled = !validStatMetrics(selected);
+            for (const input of checkboxes) input.disabled = !input.checked && selected.length >= 3;
+        }
+        for (const [key, label] of Object.entries(STAT_METRICS)) {
+            const row = document.createElement("label"); row.className = "home-stat-choice";
+            const input = document.createElement("input"); input.type = "checkbox"; input.value = key;
+            input.checked = selected.includes(key);
+            const caption = document.createElement("span"); caption.textContent = label;
+            input.addEventListener("change", () => {
+                selected = input.checked ? [...selected, key] : selected.filter(value => value !== key);
+                update();
+            });
+            checkboxes.push(input); row.append(input, caption); options.append(row);
+        }
+        apply.addEventListener("click", () => {
+            if (!validStatMetrics(selected)) return;
+            draft = draft.map(item => item.id === "stats" ? { ...item, metrics: [...selected] } : item);
+            picker.close(); render();
+        });
+        options.append(apply);
+        option("Use default statistics", () => {
+            draft = draft.map(item => { if (item.id !== "stats") return item; const { metrics, ...rest } = item; return rest; });
+            picker.close(); render();
+        });
+        update();
     }
     function chooseColor(id) {
         options.replaceChildren(); message.textContent = "Choose a color preset from the home page theme.";
@@ -326,8 +361,8 @@ export function initHomeLayout() {
             catch (error) { if (!signedIn) throw error; }
             layout = selected; finish();
         } catch (error) {
-            status.textContent = error.status === 422 && /size.*Extra inputs are not permitted/i.test(error.message)
-                ? "The server needs an update to save resized widgets. Your changes are still here."
+            status.textContent = error.status === 422 && /(?:size|color|metrics).*Extra inputs are not permitted/i.test(error.message)
+                ? "The server needs an update to save widget preferences. Your changes are still here."
                 : "Could not save this layout. Please try again.";
         }
         finally { saving = false; render(); }

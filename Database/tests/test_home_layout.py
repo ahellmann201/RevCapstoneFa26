@@ -90,3 +90,24 @@ def test_color_and_size_round_trip_together(authenticated, db):
     assert result.json()["layout_json"] == entries
     assert json.loads(cursor.execute.call_args.args[1][2]) == entries
     assert authenticated.put("/auth/me/home-layout", json={"layout_json": [{"id": "stats", "slot": 0, "color": "url(unsafe)"}]}).status_code == 422
+
+
+@pytest.mark.parametrize("entry", [
+    {"id": "stats", "slot": 0, "metrics": []},
+    {"id": "stats", "slot": 0, "metrics": ["average_score", "average_score"]},
+    {"id": "stats", "slot": 0, "metrics": ["unknown"]},
+    {"id": "games", "slot": 0, "metrics": ["average_score"]},
+    {"id": "stats", "slot": 0, "metrics": ["completed_games", "average_score", "highest_score", "invalid_games"]},
+])
+def test_metric_preferences_are_validated(authenticated, db, entry):
+    assert authenticated.put("/auth/me/home-layout", json={"layout_json": [entry]}).status_code == 422
+    db[0].cursor.assert_not_called()
+
+
+def test_metric_selection_is_saved_with_size_and_color(authenticated, db):
+    _, cursor = db
+    entries = [{"id": "stats", "slot": 0, "size": "large", "color": "amber", "metrics": ["latest_score", "average_score"]}]
+    result = authenticated.put("/auth/me/home-layout", json={"layout_json": entries})
+    assert result.status_code == 200, result.text
+    assert result.json()["layout_json"] == entries
+    assert json.loads(cursor.execute.call_args.args[1][2]) == entries
