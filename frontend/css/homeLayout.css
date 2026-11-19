@@ -1,0 +1,22 @@
+.home-modules { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 24px; align-items: start; }
+.home-modules > [hidden], .home-editor[hidden] { display: none !important; }
+.home-modules > button { width: 100%; min-height: 56px; padding: 12px; border: 1px solid #31505a; border-radius: 15px; background: #092b35; color: var(--appearance-text, #f5f7f7); font: bold 1.1rem var(--standard-font-family); cursor: pointer; }
+.home-modules > .button_2 { background: var(--button-color-1); color: #132c33; border-color: transparent; }
+.home-modules > button:hover { border-color: var(--button-color-2); }
+.home-modules > .week-schedule { margin-top: 0; min-width: 0; }
+.home-shortcut { display: flex; align-items: center; justify-content: center; min-height: 56px; padding: 12px; border: 1px solid #31505a; border-radius: 15px; background: #092b35; color: var(--appearance-text, #f5f7f7); font: bold 1.1rem var(--standard-font-family); text-align: center; text-decoration: none; overflow-wrap: anywhere; }
+.home-shortcut:hover { border-color: var(--button-color-2); }
+.home-shortcut:focus-visible { outline: 2px solid var(--button-color-2); outline-offset: 3px; }
+.home-editor { margin-top: 24px; }
+.home-editor h2 { font-size: 1.4rem; }
+.home-editor p { color: var(--appearance-text-muted, #a6bdc3); line-height: 1.5; margin-top: 8px; }
+.home-editor-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.home-editor-actions button, #home-module-options button { min-height: 44px; padding: 10px 14px; border: 1px solid #31505a; border-radius: 12px; background: #092b35; color: var(--appearance-text, #f5f7f7); font: inherit; cursor: pointer; }
+.home-editor-actions [data-action="save"] { background: var(--button-color-1); color: #132c33; }
+.home-edit-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(6, 88px); gap: 10px; margin: 16px 0 24px; }
+.home-edit-grid button { border: 1px solid #31505a; border-radius: 15px; padding: 12px; font: inherit; cursor: pointer; }
+.home-edit-module { background: #103440; color: var(--appearance-text, #f5f7f7); }
+.home-edit-grid .home-empty-module { border-style: dashed; background: transparent; color: var(--appearance-text-muted, #a6bdc3); }
+#home-module-options { display: grid; gap: 10px; margin-top: 20px; }
+#home-module-options button:disabled { opacity: .45; cursor: default; }
+.home-editor button:focus-visible, .home-modules button:focus-visible { outline: 2px solid var(--button-color-2); outline-offset: 3px; }
