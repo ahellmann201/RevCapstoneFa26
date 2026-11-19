@@ -2,6 +2,7 @@ import { getAuthToken, logOut, submitAuth } from "./authentication.js";
 import setupStyles from "../css/gameSetup.css?inline";
 import { listAll } from "./game_persistence.js";
 import { translate } from "./language.js";
+import { bindPasswordVisibility, setPasswordVisibilityButton } from "./password_visibility.js";
 
 // Authentication dialogs
 export function openAuthPopup(id) {
@@ -94,17 +95,17 @@ export function createAuthPopup(type) {
                 >
 
                 <label for="${type}_password" data-i18n="Password">Password</label>
-                <input
-                    id="${type}_password"
-                    type="password"
-                    class="text_input"
-                    placeholder="${isSignup ? "At least 8 characters" : "Your password"}"
-                    autocomplete="${isSignup ? "new-password" : "current-password"}"
-                    maxlength="128"
-                >
-                <button type="button" class="password_visibility" aria-controls="${type}_password" aria-pressed="false">Show password</button>
-
-                ${isSignup ? "" : '<a href="/reset_password.html">Forgot password?</a>'}
+                <div class="password_input_wrap">
+                    <input
+                        id="${type}_password"
+                        type="password"
+                        class="text_input"
+                        placeholder="${isSignup ? "At least 8 characters" : "Your password"}"
+                        autocomplete="${isSignup ? "new-password" : "current-password"}"
+                        maxlength="128"
+                    >
+                    <button type="button" class="password_visibility" aria-controls="${type}_password" aria-label="Show password" aria-pressed="false"></button>
+                </div>
 
                 <button type="button" class="popup_primary">
                     ${buttonText}
@@ -124,16 +125,10 @@ export function createAuthPopup(type) {
     const popup = document.getElementById(popupId);
     const password = document.getElementById(`${type}_password`);
     const visibility = popup.querySelector(".password_visibility");
-    visibility.addEventListener("click", () => {
-        const show = password.type === "password";
-        password.type = show ? "text" : "password";
-        visibility.textContent = show ? "Hide password" : "Show password";
-        visibility.setAttribute("aria-pressed", String(show));
-    });
+    bindPasswordVisibility(visibility, password);
     popup.addEventListener("close", () => {
         password.type = "password";
-        visibility.textContent = "Show password";
-        visibility.setAttribute("aria-pressed", "false");
+        setPasswordVisibilityButton(visibility, false);
     });
 
     setupPopupDrag(popup);

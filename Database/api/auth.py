@@ -56,6 +56,13 @@ class LoginRequest(BaseModel):
     password: SecretStr = Field(min_length=1, max_length=128)
 
 
+class PasswordChangeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    current_password: SecretStr = Field(min_length=1, max_length=128)
+    new_password: SecretStr = Field(min_length=8, max_length=128)
+
+
 class UserResponse(BaseModel):
     user_id: int
     display_name: str
@@ -131,6 +138,22 @@ def inserted_columns() -> str:
         return f"RETURNING {columns}"
     return "OUTPUT " + ", ".join(
         f"INSERTED.{column}" for column in columns.split(", ")
+    )
+
+
+def issue_access_token(user_id: int, encoded_hash: bytes, secret: str) -> str:
+    now = datetime.now(timezone.utc)
+    return jwt.encode(
+        {
+            "sub": str(user_id),
+            "pwd": password_stamp(secret, encoded_hash),
+            "iat": now,
+            "exp": now + timedelta(minutes=TOKEN_MINUTES),
+            "iss": TOKEN_ISSUER,
+            "aud": TOKEN_AUDIENCE,
+        },
+        secret,
+        algorithm="HS256",
     )
 
 
@@ -249,20 +272,7 @@ def login(data: LoginRequest, response: Response) -> TokenResponse:
     if row is None or not valid_password or stored_hash == DUMMY_HASH:
         raise unauthorized()
 
-    now = datetime.now(timezone.utc)
-
-    token = jwt.encode(
-        {
-            "sub": str(row[0]),
-            "pwd": password_stamp(secret, bytes(row[1])),
-            "iat": now,
-            "exp": now + timedelta(minutes=TOKEN_MINUTES),
-            "iss": TOKEN_ISSUER,
-            "aud": TOKEN_AUDIENCE,
-        },
-        secret,
-        algorithm="HS256",
-    )
+    token = issue_access_token(row[0], bytes(row[1]), secret)
 
     response.headers["Cache-Control"] = "no-store"
     response.headers["Pragma"] = "no-cache"
@@ -383,3 +393,62 @@ def update_language(
         finally:
             cursor.close()
     return result
+
+
+@router.put("/me/password", response_model=TokenResponse)
+def change_password(
+    data: PasswordChangeRequest,
+    user: Annotated[UserResponse, Depends(current_user)],
+    response: Response,
+) -> TokenResponse:
+    with database() as connection:
+        cursor = connection.cursor()
+
+        try:
+            cursor.execute(
+                "SELECT password_hash FROM users WHERE user_id = ?",
+                (user.user_id,),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise HTTPException(status_code=404, detail="Account not found")
+
+            current_hash = bytes(row[0])
+            try:
+                valid_password = password_hasher.verify(
+                    data.current_password.get_secret_value(),
+                    current_hash.decode("utf-8"),
+                )
+            except Exception:
+                valid_password = False
+
+            if not valid_password:
+                raise HTTPException(status_code=400, detail="Current password is incorrect")
+
+            new_hash = password_hasher.hash(
+                data.new_password.get_secret_value()
+            ).encode("utf-8")
+            cursor.execute(
+                "UPDATE users SET password_hash = ? "
+                "WHERE user_id = ? AND password_hash = ?",
+                (new_hash, user.user_id, current_hash),
+            )
+            if cursor.rowcount == 0:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Password changed recently. Sign in and try again.",
+                )
+
+            connection.commit()
+        except Exception:
+            connection.rollback()
+            raise
+        finally:
+            cursor.close()
+
+    secret = signing_secret()
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
+    return TokenResponse(
+        access_token=issue_access_token(user.user_id, new_hash, secret)
+    )

@@ -1,55 +1,82 @@
 import { request } from "./database.js";
+import { getAuthToken } from "./authentication.js";
+import { loadNavbar } from "./navbar.js";
+import { bindPasswordVisibility, setPasswordVisibilityButton } from "./password_visibility.js";
 
-let token = new URLSearchParams(window.location.hash.slice(1)).get("token");
-if (window.location.hash) {
-    history.replaceState(null, "", window.location.pathname);
-}
-const requestForm = document.querySelector("#request-reset");
-const completeForm = document.querySelector("#complete-reset");
-const status = document.querySelector("#recovery-status");
-requestForm.hidden = Boolean(token);
-// The request form uses inline display:grid, so apply hidden explicitly.
-if (token) requestForm.style.display = "none";
-completeForm.hidden = !token;
+loadNavbar();
 
-function bind(form, action) {
-    const button = form.querySelector("button");
-    button.disabled = false;
-    form.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        if (button.disabled) return;
-        button.disabled = true;
-        status.textContent = "";
-        try {
-            await action();
-        } catch (error) {
-            status.textContent = error.message;
-        } finally {
-            button.disabled = false;
-        }
-    });
+const form = document.querySelector("#change-password-form");
+const currentPassword = document.querySelector("#current-password");
+const newPassword = document.querySelector("#new-password");
+const confirmPassword = document.querySelector("#confirm-password");
+const submitButton = document.querySelector("#submit-password-change");
+const status = document.querySelector("#password-status");
+
+for (const button of document.querySelectorAll(".password_visibility")) {
+    const password = document.getElementById(button.getAttribute("aria-controls"));
+    bindPasswordVisibility(button, password);
 }
 
-function submit(path, payload) {
-    return request(`/auth/password-reset/${path}`, {
-        method: "POST", body: JSON.stringify(payload),
-    }, false);
+function hidePasswords() {
+    for (const button of document.querySelectorAll(".password_visibility")) {
+        const password = document.getElementById(button.getAttribute("aria-controls"));
+        password.type = "password";
+        setPasswordVisibilityButton(button, false);
+    }
 }
 
-bind(requestForm, async () => {
-    const result = await submit("request", { email: document.querySelector("#recovery-email").value.trim() });
-    status.textContent = result.message;
+document.querySelector("#cancel-password-change").addEventListener("click", () => {
+    window.location.href = "/account_settings.html";
 });
 
-bind(completeForm, async () => {
-    const password = document.querySelector("#new-password").value;
-    if (password !== document.querySelector("#confirm-password").value) {
-        throw new Error("Passwords do not match.");
+if (!getAuthToken()) {
+    form.hidden = true;
+    status.textContent = "Please log in to change your password.";
+}
+
+form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (submitButton.disabled) return;
+
+    if (newPassword.value !== confirmPassword.value) {
+        status.dataset.state = "error";
+        status.textContent = "The new passwords do not match.";
+        confirmPassword.setAttribute("aria-invalid", "true");
+        confirmPassword.focus();
+        return;
     }
-    await submit("complete", { token, password });
-    token = null;
-    sessionStorage.removeItem("authentication_token");
-    completeForm.reset();
-    completeForm.hidden = true;
-    status.textContent = "Password reset. Return to RevMetrix and log in with your new password.";
+
+    confirmPassword.removeAttribute("aria-invalid");
+    status.removeAttribute("data-state");
+    status.textContent = "";
+    submitButton.disabled = true;
+
+    try {
+        const result = await request("/auth/me/password", {
+            method: "PUT",
+            body: JSON.stringify({
+                current_password: currentPassword.value,
+                new_password: newPassword.value,
+            }),
+        });
+
+        if (!result?.access_token) {
+            throw new Error("The password was changed, but the session could not be refreshed. Please log in again.");
+        }
+
+        sessionStorage.setItem("authentication_token", result.access_token);
+        form.reset();
+        hidePasswords();
+        status.dataset.state = "success";
+        status.textContent = "Your password has been changed.";
+    } catch (error) {
+        status.dataset.state = "error";
+        status.textContent = error.message;
+        if (!getAuthToken()) {
+            form.hidden = true;
+            status.textContent = "Your session expired. Please log in to change your password.";
+        }
+    } finally {
+        submitButton.disabled = false;
+    }
 });

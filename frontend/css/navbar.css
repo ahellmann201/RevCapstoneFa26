@@ -1,20 +1,46 @@
 @import "/css/theme.css";
 
+.password_input_wrap {
+    position: relative;
+}
+.popup_content .password_input_wrap input.text_input {
+    margin-bottom: 1.25rem;
+    padding-right: 3.25rem;
+}
 .popup_content button.password_visibility {
-    align-self: flex-end;
-    width: auto;
+    position: absolute;
+    z-index: 20;
+    top: 3px;
+    right: 6px;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
     min-height: 44px;
     margin: 0;
-    padding: 4px 8px;
+    padding: 10px;
     border: 0;
     background: transparent;
     color: var(--bg-color);
     font: inherit;
     cursor: pointer;
+    pointer-events: auto;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+.password_visibility svg {
+    display: block;
+    width: 24px;
+    height: 24px;
+    pointer-events: none;
 }
 .popup_content button.password_visibility:focus-visible {
     outline: 2px solid var(--button-color-1);
     outline-offset: 2px;
+}
+.popup_content button.password_visibility:focus:not(:focus-visible) {
+    outline: none;
+    box-shadow: none;
 }
 
 :root {
