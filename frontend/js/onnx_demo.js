@@ -13,14 +13,44 @@ const technicalOutput = document.getElementById("technical-result");
 const fileInput = document.getElementById("image-file");
 const manualButton = document.getElementById("manual");
 const correctButton = document.getElementById("correct");
+const laneResetButton = document.getElementById("lane-reset");
+const ballResetButton = document.getElementById("ball-reset");
 const candidateSelect = document.getElementById("candidate");
-const preview = document.getElementById("preview");
-const frameCanvas = document.getElementById("frame");
-const overlayCanvas = document.getElementById("overlay");
+const lanePreview = document.getElementById("lane-preview");
+const ballPreview = document.getElementById("ball-preview");
+const previewLayers = [
+  {
+    preview: lanePreview,
+    frameCanvas: document.getElementById("lane-frame"),
+    overlayCanvas: document.getElementById("lane-overlay"),
+    zoom: 1,
+    panX: 0,
+    panY: 0,
+    controls: {
+      in: document.getElementById("lane-zoom-in"),
+      out: document.getElementById("lane-zoom-out"),
+      reset: document.getElementById("lane-zoom-reset"),
+      level: document.getElementById("lane-zoom-level"),
+    },
+  },
+  {
+    preview: ballPreview,
+    frameCanvas: document.getElementById("ball-frame"),
+    overlayCanvas: document.getElementById("ball-overlay"),
+    zoom: 1,
+    panX: 0,
+    panY: 0,
+    controls: {
+      in: document.getElementById("ball-zoom-in"),
+      out: document.getElementById("ball-zoom-out"),
+      reset: document.getElementById("ball-zoom-reset"),
+      level: document.getElementById("ball-zoom-level"),
+    },
+  },
+];
 const imageName = document.getElementById("image-name");
 const videoInput = document.getElementById("video-file");
 const videoName = document.getElementById("video-name");
-const ciclopesApiBaseInput = document.getElementById("ciclopes-api-base");
 const uploadStatus = document.getElementById("upload-status");
 const uploadResult = document.getElementById("upload-result");
 const analysisResult = document.getElementById("ciclopes-analysis-result");
@@ -34,17 +64,72 @@ const recordStopButton = document.getElementById("record-stop");
 const recordStatus = document.getElementById("record-status");
 const cameraPreview = document.getElementById("camera-preview");
 const videoPreview = document.getElementById("video-preview");
+const trackingPreviewPanel = document.getElementById("tracking-preview-panel");
+const trackingOverlay = document.getElementById("tracking-overlay");
+const trackingOverlayContext = trackingOverlay.getContext("2d");
 const videoFrameReview = document.getElementById("video-frame-review");
-const framePicker = document.getElementById("frame-picker");
 const frameCount = document.getElementById("frame-count");
 const frameList = document.getElementById("frame-list");
 const frameProcessingStatus = document.getElementById("frame-processing-status");
-const frameReviewStatus = document.getElementById("frame-review-status");
 const ballSeedDrawButton = document.getElementById("ball-seed-draw");
 const ballSeedApplyButton = document.getElementById("ball-seed-apply");
 const ballSeedStatus = document.getElementById("ball-seed-status");
-const frameContext = frameCanvas.getContext("2d");
-const overlayContext = overlayCanvas.getContext("2d");
+const frameStepperControls = [
+  {
+    previous: document.getElementById("lane-frame-prev"),
+    next: document.getElementById("lane-frame-next"),
+    position: document.getElementById("lane-frame-position"),
+  },
+  {
+    previous: document.getElementById("ball-frame-prev"),
+    next: document.getElementById("ball-frame-next"),
+    position: document.getElementById("ball-frame-position"),
+  },
+];
+previewLayers.forEach((layer) => {
+  layer.frameContext = layer.frameCanvas.getContext("2d");
+  layer.overlayContext = layer.overlayCanvas.getContext("2d");
+});
+
+function clampLayerPan(layer) {
+  const width = layer.frameCanvas.clientWidth || layer.frameCanvas.width;
+  const height = layer.frameCanvas.clientHeight || layer.frameCanvas.height;
+  const maxX = (width * (layer.zoom - 1)) / 2;
+  const maxY = (height * (layer.zoom - 1)) / 2;
+  layer.panX = Math.min(maxX, Math.max(-maxX, layer.panX));
+  layer.panY = Math.min(maxY, Math.max(-maxY, layer.panY));
+}
+
+function updateLayerZoom(layer) {
+  clampLayerPan(layer);
+  const transform = `translate(${layer.panX}px, ${layer.panY}px) scale(${layer.zoom})`;
+  layer.frameCanvas.style.transform = transform;
+  layer.overlayCanvas.style.transform = transform;
+  layer.preview.classList.toggle("is-zoomed", layer.zoom > 1);
+  layer.controls.level.value = `${Math.round(layer.zoom * 100)}%`;
+  layer.controls.level.textContent = `${Math.round(layer.zoom * 100)}%`;
+  const hasFrame = Boolean(frameDimensions);
+  layer.controls.in.disabled = !hasFrame || layer.zoom >= 3;
+  layer.controls.out.disabled = !hasFrame || layer.zoom <= 1;
+  layer.controls.reset.disabled = !hasFrame || (layer.zoom <= 1 && layer.panX === 0 && layer.panY === 0);
+}
+
+previewLayers.forEach((layer) => {
+  layer.controls.in.addEventListener("click", () => {
+    layer.zoom = Math.min(3, Math.round((layer.zoom + 0.25) * 100) / 100);
+    updateLayerZoom(layer);
+  });
+  layer.controls.out.addEventListener("click", () => {
+    layer.zoom = Math.max(1, Math.round((layer.zoom - 0.25) * 100) / 100);
+    updateLayerZoom(layer);
+  });
+  layer.controls.reset.addEventListener("click", () => {
+    layer.zoom = 1;
+    layer.panX = 0;
+    layer.panY = 0;
+    updateLayerZoom(layer);
+  });
+});
 const inferenceCanvas = document.createElement("canvas");
 const inferenceContext = inferenceCanvas.getContext("2d", { willReadFrequently: true });
 const TARGET_ONNX_BUDGET_MS = 10_000;
@@ -56,6 +141,7 @@ let frameDimensions = null;
 let laneCorners = null;
 let result = null;
 let draggedCorner = -1;
+let activePan = null;
 let ballSeedMode = false;
 let ballDrawStart = null;
 let ballBoxDraft = null;
@@ -77,6 +163,10 @@ let recordingChunks = [];
 let currentVideoUrl = null;
 let uploadedVideoKey = null;
 let pendingStillInference = false;
+let videoFrameBaseline = null;
+let lockedLaneBaseline = null;
+let laneAnchorFrameBaseline = -1;
+let stillLaneBaseline = null;
 
 function renderLanePath(analysis) {
   lanePathVisual.replaceChildren();
@@ -181,12 +271,19 @@ function renderLanePath(analysis) {
 
 function renderAnalysisSummary(analysis, submittedFrameCount) {
   analysisSummary.replaceChildren();
+  const summaryList = document.createElement("ul");
+  summaryList.className = "analysis-summary-list";
+  analysisSummary.append(summaryList);
   renderLanePath(analysis);
-  const addParagraph = (text, className = "") => {
-    const paragraph = document.createElement("p");
-    paragraph.textContent = text;
-    if (className) paragraph.className = className;
-    analysisSummary.append(paragraph);
+  const addMetric = (label, value, className = "") => {
+    const item = document.createElement("li");
+    const key = document.createElement("strong");
+    key.textContent = `${label}:`;
+    const data = document.createElement("span");
+    data.textContent = String(value);
+    item.append(key, data);
+    if (className) item.className = className;
+    summaryList.append(item);
   };
 
   const points = Array.isArray(analysis.ball_points) ? analysis.ball_points : [];
@@ -201,16 +298,14 @@ function renderAnalysisSummary(analysis, submittedFrameCount) {
   const predictedCount = Number(health.frames_with_predicted_ball ?? 0);
   const manualCount = points.filter((point) => point.source === "manual").length;
   const measuredCount = Math.max(0, detectedCount - predictedCount - manualCount);
-  addParagraph(
-    points.length
-      ? `Ciclopes used ${manualCount ? "the user-set starting position, " : ""}${measuredCount} detected ball positions and ${predictedCount} estimated positions across ${submittedFrameCount} reviewed frames.`
-      : Number(health.frames_with_ball_before_contact) > 0
-        ? `The ball appeared in ${health.frames_with_ball_before_contact} frames before lane contact could be confirmed. Ciclopes needs two consecutive ONNX detections with the ball on the lane before it reports speed.`
-        : `Ciclopes could not confirm the ball on the lane in the ${submittedFrameCount} reviewed frames. Try correcting the lane outline or reviewing frames where the ball is visible.`,
-  );
-  if (Number.isFinite(Number(health.ball_contact_timestamp_s))) {
-    addParagraph(`Speed tracking starts at about ${Number(health.ball_contact_timestamp_s).toFixed(2)} seconds, when the ball was confirmed on the lane.`);
-  }
+  addMetric("Reviewed frames", submittedFrameCount);
+  addMetric("Detected ball positions", measuredCount);
+  addMetric("Estimated ball positions", predictedCount);
+  if (manualCount) addMetric("User-set starting positions", manualCount);
+  addMetric("Ball before lane contact", Number(health.frames_with_ball_before_contact ?? 0));
+  addMetric("Lane contact", Number.isFinite(Number(health.ball_contact_timestamp_s))
+    ? `${Number(health.ball_contact_timestamp_s).toFixed(2)} s`
+    : "Not confirmed");
 
   const quarters = (analysis.kinematics_table ?? [])
     .filter((row) => Number(row.sample_count) > 0 && Number.isFinite(Number(row.mean_speed_mps)))
@@ -219,17 +314,19 @@ function renderAnalysisSummary(analysis, submittedFrameCount) {
     const mph = (mps) => `${(Number(mps) * 2.23694).toFixed(1)} mph`;
     const sampleWeight = quarters.reduce((sum, row) => sum + Number(row.sample_count), 0);
     const weightedMps = quarters.reduce((sum, row) => sum + Number(row.mean_speed_mps) * Number(row.sample_count), 0) / sampleWeight;
-    addParagraph(`Estimated average lane speed: ${mph(weightedMps)} across ${sampleWeight} measured intervals.`);
+    addMetric("Average speed", mph(weightedMps));
+    addMetric("Measured intervals", sampleWeight);
   } else {
-    addParagraph("There were not enough ball positions to estimate speed. More clear frames of the ball in motion may help.");
+    addMetric("Average speed", "Unavailable");
+    addMetric("Measured intervals", 0);
   }
 
   if (movedLaneFallbackFrames > 0) {
-    addParagraph(`Camera movement was detected on ${movedLaneFallbackFrames} samples, but no matching lane was found on those frames. The previous lane outline was kept; speed and path estimates may be less accurate there.`, "analysis-note");
+    addMetric("Lane reacquisitions missed", movedLaneFallbackFrames);
   } else if (matchedMovingLaneFrames > 0) {
-    addParagraph(`Camera movement was detected on ${matchedMovingLaneFrames} samples, and the lane was updated from matching detections.`);
+    addMetric("Lane reacquisitions", matchedMovingLaneFrames);
   } else if (sharedLaneOverride && fallbackLaneFrames > 0) {
-    addParagraph("The lane outline you corrected was used across the reviewed frames. No significant camera movement was detected, so Ciclopes kept that lane reference.");
+    addMetric("Lane reference", "User corrected");
   }
 
   if (points.length >= 2) {
@@ -238,17 +335,13 @@ function renderAnalysisSummary(analysis, submittedFrameCount) {
     const lateralFeet = (Number(last.x) - Number(first.x)) * 3.28084;
     const lateralMagnitude = Math.abs(lateralFeet);
     if (Number.isFinite(lateralFeet) && lateralMagnitude >= 0.3) {
-      addParagraph(`Across the reviewed frames, the detected path moved about ${lateralMagnitude.toFixed(1)} ft toward the ${lateralFeet > 0 ? "right" : "left"} side of the lane.`);
+      addMetric("Path shift", `${lateralMagnitude.toFixed(1)} ft ${lateralFeet > 0 ? "right" : "left"}`);
     } else if (Number.isFinite(lateralFeet)) {
-      addParagraph("Across the reviewed frames, the detected path stayed close to the same side-to-side position.");
+      addMetric("Path shift", "Stable");
     }
-    const outOfLane = points.some((point) => Number(point.x) < 0 || Number(point.x) > 1.0541 || Number(point.y) < 0 || Number(point.y) > 18.288);
-    if (outOfLane) {
-      addParagraph("Some plotted positions fall outside the lane dimensions. Check the orange lane outline; an inaccurate outline can distort speed and path measurements.", "analysis-note");
-    }
+    const outOfLaneCount = points.filter((point) => Number(point.x) < 0 || Number(point.x) > 1.0541 || Number(point.y) < 0 || Number(point.y) > 18.288).length;
+    addMetric("Out-of-lane positions", outOfLaneCount);
   }
-
-  addParagraph("These are estimates from sampled video frames. Speed begins after lane contact is confirmed by detections; short predicted gaps may contribute between measured positions. Sparse samples and camera movement can make the result imprecise. The path shift describes movement across the lane; it does not measure ball spin.", "analysis-note");
 }
 
 function delay(milliseconds) {
@@ -383,8 +476,8 @@ async function renderShowcaseVideo() {
     context.fillStyle = "#f5f7f7";
     context.font = "23px system-ui, sans-serif";
     let y = 190;
-    for (const paragraph of analysisSummary.querySelectorAll("p")) {
-      y = wrapCanvasText(context, paragraph.textContent, 92, y, 1090, 33) + 13;
+    for (const item of analysisSummary.querySelectorAll("li")) {
+      y = wrapCanvasText(context, `• ${item.textContent}`, 92, y, 1090, 33) + 13;
       if (y > 620) break;
     }
     await delay(5000);
@@ -400,12 +493,113 @@ async function renderShowcaseVideo() {
 }
 
 const localDevelopmentHost = ["localhost", "127.0.0.1"].includes(window.location.hostname);
-ciclopesApiBaseInput.value = import.meta.env.VITE_CICLOPES_API_BASE
+let ciclopesApiBaseUrl = import.meta.env.VITE_CICLOPES_API_BASE
   || (localDevelopmentHost ? `${window.location.origin}/ciclopes` : "");
+
+function canSubmitFrameResults() {
+  return Boolean(uploadedVideoKey && ciclopesApiBaseUrl && videoFrames.some((frame) => !frame.error && frame.result));
+}
+
+function updateAnalyzeButton() {
+  sendCiclopesAnalysisButton.disabled = !canSubmitFrameResults();
+}
+
+window.printCiclopesApiUrl = function printCiclopesApiUrl() {
+  console.log(`Ciclopes API URL: ${ciclopesApiBaseUrl || "(not configured)"}`);
+  return ciclopesApiBaseUrl;
+};
+
+window.setCiclopesApiUrl = function setCiclopesApiUrl(url) {
+  if (typeof url !== "string") throw new TypeError("Ciclopes API URL must be a string.");
+  ciclopesApiBaseUrl = url.trim().replace(/\/+$/, "");
+  updateAnalyzeButton();
+  console.info(`Ciclopes API URL set to ${ciclopesApiBaseUrl || "(not configured)"}`);
+  return ciclopesApiBaseUrl;
+};
 
 function setStatus(message) {
   status.textContent = message;
 }
+
+function copyData(value) {
+  return value == null ? value : JSON.parse(JSON.stringify(value));
+}
+
+function snapshotFrameBaseline(frame) {
+  return {
+    corners: copyData(frame.corners),
+    laneSource: frame.laneSource,
+    laneOverride: Boolean(frame.laneOverride),
+    correction: copyData(frame.correction),
+    candidates: copyData(frame.result?.candidates ?? []),
+    balls: copyData(frame.result?.balls ?? []),
+    tracked: Boolean(frame.tracked),
+    trackingSource: frame.result?.health?.trackingSource,
+    cameraMotion: copyData(frame.cameraMotion),
+  };
+}
+
+function captureVideoBaseline() {
+  videoFrameBaseline = videoFrames.map((frame) => frame.originalBaseline ?? snapshotFrameBaseline(frame));
+  lockedLaneBaseline = copyData(lockedLane);
+  laneAnchorFrameBaseline = laneAnchorFrame;
+  laneResetButton.disabled = false;
+  ballResetButton.disabled = false;
+}
+
+function drawTrackingOverlay() {
+  if (!videoPreview.videoWidth || !videoPreview.videoHeight || !videoFrames.length) return;
+  const width = videoPreview.videoWidth;
+  const height = videoPreview.videoHeight;
+  if (trackingOverlay.width !== width || trackingOverlay.height !== height) {
+    trackingOverlay.width = width;
+    trackingOverlay.height = height;
+  }
+  trackingOverlayContext.clearRect(0, 0, width, height);
+  const time = videoPreview.currentTime || 0;
+  const frame = videoFrames.reduce((closest, item) =>
+    Math.abs(item.timeSeconds - time) < Math.abs(closest.timeSeconds - time) ? item : closest, videoFrames[0]);
+  const corners = frame.corners ?? frame.result?.candidates?.[0]?.corners;
+  if (corners?.length === 4) {
+    trackingOverlayContext.beginPath();
+    corners.forEach((point, index) => {
+      const x = point.x * width;
+      const y = point.y * height;
+      if (index === 0) trackingOverlayContext.moveTo(x, y);
+      else trackingOverlayContext.lineTo(x, y);
+    });
+    trackingOverlayContext.closePath();
+    trackingOverlayContext.lineWidth = Math.max(3, width / 240);
+    trackingOverlayContext.strokeStyle = "#f07800";
+    trackingOverlayContext.fillStyle = "rgba(240, 120, 0, .08)";
+    trackingOverlayContext.fill();
+    trackingOverlayContext.stroke();
+  }
+  for (const ball of frame.result?.balls ?? []) {
+    if (!ball.box) continue;
+    const [left, top, right, bottom] = ball.box;
+    const confidence = Number.isFinite(Number(ball.confidence)) ? Math.min(1, Math.max(0, Number(ball.confidence))) : 0;
+    trackingOverlayContext.lineWidth = Math.max(3, width / 300);
+    trackingOverlayContext.strokeStyle = ball.source === "detected" ? "#38c889" : ball.source === "manual" ? "#ff4f86" : "#f3c84b";
+    trackingOverlayContext.globalAlpha = Math.max(0.45, confidence);
+    trackingOverlayContext.setLineDash(ball.source === "predicted" ? [Math.max(6, width / 120), Math.max(4, width / 200)] : []);
+    trackingOverlayContext.strokeRect(left * width, top * height, (right - left) * width, (bottom - top) * height);
+    trackingOverlayContext.setLineDash([]);
+    trackingOverlayContext.globalAlpha = 1;
+    const label = ball.source === "manual" ? "Starting box" : `${Math.round(confidence * 100)}%`;
+    const fontSize = Math.max(14, width / 75);
+    trackingOverlayContext.font = `700 ${fontSize}px system-ui, sans-serif`;
+    trackingOverlayContext.lineWidth = Math.max(3, width / 400);
+    trackingOverlayContext.strokeStyle = "rgba(0, 0, 0, .8)";
+    trackingOverlayContext.strokeText(label, left * width, Math.max(fontSize, top * height - 5));
+    trackingOverlayContext.fillStyle = "#ffffff";
+    trackingOverlayContext.fillText(label, left * width, Math.max(fontSize, top * height - 5));
+  }
+}
+
+videoPreview.addEventListener("timeupdate", drawTrackingOverlay);
+videoPreview.addEventListener("seeked", drawTrackingOverlay);
+videoPreview.addEventListener("loadedmetadata", drawTrackingOverlay);
 
 function median(values) {
   if (!values.length) return null;
@@ -450,47 +644,70 @@ function showFrameResult(frameResult, { correction = null, error = null } = {}) 
 }
 
 function drawCorners() {
-  overlayContext.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-  overlayContext.lineWidth = Math.max(3, overlayCanvas.width / 350);
-  if (laneCorners) {
-    overlayContext.strokeStyle = "#e79f40";
-    overlayContext.fillStyle = "#d06c01";
-    overlayContext.beginPath();
-    laneCorners.forEach((point, index) => {
-      const x = point.x * overlayCanvas.width;
-      const y = point.y * overlayCanvas.height;
-      if (index === 0) overlayContext.moveTo(x, y);
-      else overlayContext.lineTo(x, y);
-    });
-    overlayContext.closePath();
-    overlayContext.stroke();
-
-    const radius = Math.max(9, overlayCanvas.width / 70);
-    laneCorners.forEach((point) => {
-      overlayContext.beginPath();
-      overlayContext.arc(point.x * overlayCanvas.width, point.y * overlayCanvas.height, radius, 0, 2 * Math.PI);
-      overlayContext.fill();
-      overlayContext.stroke();
-    });
-  }
-
   const selectedSeed = startingBallSeed?.frameIndex === selectedVideoFrame ? startingBallSeed.box : null;
   const displayedBoxes = [
     ...(result?.balls ?? []).filter((ball) => ball.source !== "manual").map((ball) => ({ box: ball.box, color: ball.source === "predicted" ? "#72d9ff" : "#8ce99a" })),
     ...(selectedSeed ? [{ box: selectedSeed, color: "#ff4f86" }] : []),
     ...(ballBoxDraft ? [{ box: ballBoxDraft, color: "#ff4f86" }] : []),
   ];
-  displayedBoxes.forEach(({ box, color }) => {
-    const [left, top, right, bottom] = box;
-    overlayContext.strokeStyle = color;
-    overlayContext.fillStyle = "rgba(255, 79, 134, .12)";
-    overlayContext.setLineDash(color === "#72d9ff" ? [8, 6] : []);
-    overlayContext.strokeRect(left * overlayCanvas.width, top * overlayCanvas.height,
-      (right - left) * overlayCanvas.width, (bottom - top) * overlayCanvas.height);
-    if (color === "#ff4f86") overlayContext.fillRect(left * overlayCanvas.width, top * overlayCanvas.height,
-      (right - left) * overlayCanvas.width, (bottom - top) * overlayCanvas.height);
-    overlayContext.setLineDash([]);
+  previewLayers.forEach(({ overlayCanvas, overlayContext }) => {
+    overlayContext.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+    overlayContext.lineWidth = Math.max(3, overlayCanvas.width / 350);
+    if (laneCorners) {
+      overlayContext.strokeStyle = "#e79f40";
+      overlayContext.fillStyle = "#d06c01";
+      overlayContext.beginPath();
+      laneCorners.forEach((point, index) => {
+        const x = point.x * overlayCanvas.width;
+        const y = point.y * overlayCanvas.height;
+        if (index === 0) overlayContext.moveTo(x, y);
+        else overlayContext.lineTo(x, y);
+      });
+      overlayContext.closePath();
+      overlayContext.stroke();
+      const radius = Math.max(9, overlayCanvas.width / 70);
+      const arm = Math.max(3, overlayCanvas.width / 180);
+      laneCorners.forEach((point) => {
+        const x = point.x * overlayCanvas.width;
+        const y = point.y * overlayCanvas.height;
+        // Hollow handles keep the lane visible underneath; the crosshair marks
+        // the exact point used by the correction geometry.
+        overlayContext.beginPath();
+        overlayContext.arc(x, y, radius, 0, 2 * Math.PI);
+        overlayContext.strokeStyle = "#f07800";
+        overlayContext.lineWidth = 2.5;
+        overlayContext.stroke();
+
+        overlayContext.beginPath();
+        overlayContext.moveTo(x - arm, y);
+        overlayContext.lineTo(x + arm, y);
+        overlayContext.moveTo(x, y - arm);
+        overlayContext.lineTo(x, y + arm);
+        overlayContext.strokeStyle = "#00151a";
+        overlayContext.lineWidth = 4;
+        overlayContext.stroke();
+        overlayContext.strokeStyle = "#ffffff";
+        overlayContext.lineWidth = 1.4;
+        overlayContext.stroke();
+        overlayContext.beginPath();
+        overlayContext.arc(x, y, 1.8, 0, 2 * Math.PI);
+        overlayContext.fillStyle = "#ffffff";
+        overlayContext.fill();
+      });
+    }
+    displayedBoxes.forEach(({ box, color }) => {
+      const [left, top, right, bottom] = box;
+      overlayContext.strokeStyle = color;
+      overlayContext.fillStyle = "rgba(255, 79, 134, .12)";
+      overlayContext.setLineDash(color === "#72d9ff" ? [8, 6] : []);
+      overlayContext.strokeRect(left * overlayCanvas.width, top * overlayCanvas.height,
+        (right - left) * overlayCanvas.width, (bottom - top) * overlayCanvas.height);
+      if (color === "#ff4f86") overlayContext.fillRect(left * overlayCanvas.width, top * overlayCanvas.height,
+        (right - left) * overlayCanvas.width, (bottom - top) * overlayCanvas.height);
+      overlayContext.setLineDash([]);
+    });
   });
+  drawTrackingOverlay();
 }
 
 function persistSelectedFrame() {
@@ -522,45 +739,71 @@ function selectCandidate(index) {
 }
 
 function pointFromPointer(event) {
-  const bounds = overlayCanvas.getBoundingClientRect();
+  const bounds = event.currentTarget.getBoundingClientRect();
   return {
     x: Math.min(1, Math.max(0, (event.clientX - bounds.left) / bounds.width)),
     y: Math.min(1, Math.max(0, (event.clientY - bounds.top) / bounds.height)),
   };
 }
 
-overlayCanvas.addEventListener("pointerdown", (event) => {
-  if (ballSeedMode && selectedVideoFrame >= 0) {
-    ballDrawStart = pointFromPointer(event);
-    ballBoxDraft = [ballDrawStart.x, ballDrawStart.y, ballDrawStart.x, ballDrawStart.y];
-    overlayCanvas.setPointerCapture(event.pointerId);
-    drawCorners();
-    return;
-  }
-  if (!laneCorners) return;
-  const point = pointFromPointer(event);
-  const threshold = Math.max(0.025, 18 / overlayCanvas.width);
-  draggedCorner = laneCorners.findIndex((corner) => Math.hypot(corner.x - point.x, corner.y - point.y) < threshold);
-  if (draggedCorner >= 0) overlayCanvas.setPointerCapture(event.pointerId);
-});
-
-overlayCanvas.addEventListener("pointermove", (event) => {
-  if (ballDrawStart && ballSeedMode) {
+previewLayers.forEach((layer) => {
+  const { overlayCanvas, preview } = layer;
+  overlayCanvas.addEventListener("pointerdown", (event) => {
+    if (ballSeedMode && selectedVideoFrame >= 0) {
+      ballDrawStart = pointFromPointer(event);
+      ballBoxDraft = [ballDrawStart.x, ballDrawStart.y, ballDrawStart.x, ballDrawStart.y];
+      overlayCanvas.setPointerCapture(event.pointerId);
+      drawCorners();
+      return;
+    }
     const point = pointFromPointer(event);
-    ballBoxDraft = [Math.min(ballDrawStart.x, point.x), Math.min(ballDrawStart.y, point.y),
-      Math.max(ballDrawStart.x, point.x), Math.max(ballDrawStart.y, point.y)];
+    const threshold = Math.max(0.025, 18 / overlayCanvas.width);
+    draggedCorner = laneCorners?.findIndex((corner) => Math.hypot(corner.x - point.x, corner.y - point.y) < threshold) ?? -1;
+    if (draggedCorner >= 0) {
+      overlayCanvas.setPointerCapture(event.pointerId);
+    } else if (layer.zoom > 1) {
+      activePan = {
+        layer,
+        overlayCanvas,
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        panX: layer.panX,
+        panY: layer.panY,
+      };
+      preview.classList.add("is-panning");
+      overlayCanvas.setPointerCapture(event.pointerId);
+    }
+  });
+
+  overlayCanvas.addEventListener("pointermove", (event) => {
+    if (ballDrawStart && ballSeedMode) {
+      const point = pointFromPointer(event);
+      ballBoxDraft = [Math.min(ballDrawStart.x, point.x), Math.min(ballDrawStart.y, point.y),
+        Math.max(ballDrawStart.x, point.x), Math.max(ballDrawStart.y, point.y)];
+      drawCorners();
+      return;
+    }
+    if (activePan?.overlayCanvas === overlayCanvas) {
+      layer.panX = activePan.panX + event.clientX - activePan.startX;
+      layer.panY = activePan.panY + event.clientY - activePan.startY;
+      updateLayerZoom(layer);
+      return;
+    }
+    if (draggedCorner < 0) return;
+    laneCorners[draggedCorner] = pointFromPointer(event);
+    if (selectedVideoFrame >= 0) updateSharedLaneCorners(laneCorners);
+    persistSelectedFrame();
+    if (selectedVideoFrame >= 0) videoFrames[selectedVideoFrame].laneOverride = true;
     drawCorners();
-    return;
-  }
-  if (draggedCorner < 0) return;
-  laneCorners[draggedCorner] = pointFromPointer(event);
-  if (selectedVideoFrame >= 0) updateSharedLaneCorners(laneCorners);
-  persistSelectedFrame();
-  if (selectedVideoFrame >= 0) videoFrames[selectedVideoFrame].laneOverride = true;
-  drawCorners();
+  });
 });
 
-function finishDrag() {
+function finishDrag(event) {
+  if (activePan?.overlayCanvas === event?.currentTarget) {
+    activePan.layer.preview.classList.remove("is-panning");
+    activePan = null;
+  }
   if (ballDrawStart && ballBoxDraft) {
     const [left, top, right, bottom] = ballBoxDraft;
     if (right - left >= 0.006 && bottom - top >= 0.006) {
@@ -594,8 +837,10 @@ function finishDrag() {
   draggedCorner = -1;
   drawCorners();
 }
-overlayCanvas.addEventListener("pointerup", finishDrag);
-overlayCanvas.addEventListener("pointercancel", finishDrag);
+previewLayers.forEach(({ overlayCanvas }) => {
+  overlayCanvas.addEventListener("pointerup", finishDrag);
+  overlayCanvas.addEventListener("pointercancel", finishDrag);
+});
 
 function clearVideoFrames() {
   videoFrames.forEach((frame) => URL.revokeObjectURL(frame.imageUrl));
@@ -612,19 +857,46 @@ function clearVideoFrames() {
   sharedLaneOverride = null;
   laneAnchorFrame = -1;
   ballReprocessPending = false;
+  videoFrameBaseline = null;
+  lockedLaneBaseline = null;
+  laneAnchorFrameBaseline = -1;
+  stillLaneBaseline = null;
+  laneResetButton.disabled = true;
+  ballResetButton.disabled = true;
+  trackingPreviewPanel.hidden = true;
+  videoPreview.pause();
+  videoPreview.removeAttribute("src");
+  videoPreview.load();
+  trackingOverlayContext.clearRect(0, 0, trackingOverlay.width, trackingOverlay.height);
+  if (currentVideoUrl) URL.revokeObjectURL(currentVideoUrl);
+  currentVideoUrl = null;
+  frameDimensions = null;
+  previewLayers.forEach((layer) => {
+    layer.zoom = 1;
+    layer.panX = 0;
+    layer.panY = 0;
+    updateLayerZoom(layer);
+  });
   frameList.replaceChildren();
+  previewLayers.forEach(({ preview }) => { preview.hidden = true; });
   videoFrameReview.hidden = true;
+  uploadedVideoKey = null;
+  updateFrameSteppers();
+  updateAnalyzeButton();
 }
 
 function resizeFrame(width, height) {
   const scale = Math.min(1, 1920 / Math.max(width, height));
   const scaledWidth = Math.max(1, Math.round(width * scale));
   const scaledHeight = Math.max(1, Math.round(height * scale));
-  frameCanvas.width = overlayCanvas.width = scaledWidth;
-  frameCanvas.height = overlayCanvas.height = scaledHeight;
+  previewLayers.forEach(({ frameCanvas, overlayCanvas }) => {
+    frameCanvas.width = overlayCanvas.width = scaledWidth;
+    frameCanvas.height = overlayCanvas.height = scaledHeight;
+  });
   inferenceCanvas.width = scaledWidth;
   inferenceCanvas.height = scaledHeight;
   frameDimensions = { width: scaledWidth, height: scaledHeight };
+  previewLayers.forEach(updateLayerZoom);
 }
 
 function renderFrameList() {
@@ -637,52 +909,107 @@ function renderFrameList() {
       button.type = "button";
       button.className = "frame-choice";
       button.setAttribute("role", "listitem");
+      const number = document.createElement("span");
+      number.className = "frame-number";
+      const time = document.createElement("span");
+      time.className = "frame-time";
       const image = document.createElement("img");
       image.alt = "";
-      const caption = document.createElement("span");
-      button.append(image, caption);
+      const certainty = document.createElement("span");
+      certainty.className = "frame-certainty";
+      const ballCertainty = document.createElement("span");
+      ballCertainty.className = "frame-certainty-item";
+      ballCertainty.dataset.certainty = "ball";
+      const ballDot = document.createElement("i");
+      ballDot.className = "certainty-square";
+      const ballLabel = document.createElement("span");
+      ballLabel.textContent = "Ball";
+      ballCertainty.append(ballDot, ballLabel);
+      const laneCertainty = document.createElement("span");
+      laneCertainty.className = "frame-certainty-item";
+      laneCertainty.dataset.certainty = "lane";
+      const laneDot = document.createElement("i");
+      laneDot.className = "certainty-square";
+      const laneLabel = document.createElement("span");
+      laneLabel.textContent = "Lane";
+      laneCertainty.append(laneDot, laneLabel);
+      certainty.append(ballCertainty, laneCertainty);
+      button.append(number, time, image, certainty);
       button.addEventListener("click", () => {
         showVideoFrame(Number(button.dataset.frameIndex));
-        framePicker.open = false;
-        window.setTimeout(() => preview.scrollIntoView({ block: "center", behavior: "smooth" }), 0);
+        window.setTimeout(() => lanePreview.scrollIntoView({ block: "center", behavior: "smooth" }), 0);
       });
       frameList.append(button);
     }
     button.dataset.frameIndex = String(index);
     button.setAttribute("aria-pressed", String(index === selectedVideoFrame));
+    button.disabled = Boolean(frame.processing);
     button.classList.toggle("is-selected", index === selectedVideoFrame);
+    const isSelected = index === selectedVideoFrame;
+    const number = button.querySelector(".frame-number");
+    number.textContent = `Frame ${index + 1}`;
+    const time = button.querySelector(".frame-time");
+    time.textContent = frame.label ?? `${Number(frame.timeSeconds ?? 0).toFixed(2)} s`;
     const image = button.querySelector("img");
     image.src = frame.imageUrl;
-    const caption = button.querySelector("span");
-    const isSeed = startingBallSeed?.frameIndex === index;
-    const motionLabel = frame.cameraMotion?.detected ? " · camera moved" : "";
     const balls = frame.result?.balls ?? [];
-    const ballLabel = balls.some((ball) => ball.source === "detected")
-      ? "ball detected"
-      : balls.some((ball) => ball.source === "manual")
-        ? "ball set"
+    const ballState = balls.some((ball) => ball.source === "detected")
+      ? "detected"
       : balls.length
-        ? "ball estimated"
-        : frame.inferenceRan
-          ? "no ball"
-          : "not checked";
-    const laneLabel = frame.result?.candidates.length
-      ? `${frame.result.candidates.length} lane${frame.result.candidates.length === 1 ? "" : "s"}`
-      : "no lane";
-    caption.textContent = `${frame.label} · ${ballLabel}${isSeed ? " · start box" : ""} · ${laneLabel}${motionLabel}`;
+        ? "estimated"
+        : "none";
+    const candidates = frame.result?.candidates ?? [];
+    const laneState = frame.cameraMotion?.detected && frame.laneSource === "manual-fallback"
+      ? "estimated"
+      : frame.laneSource === "manual-fallback" || frame.laneSource === "inferred-overlap"
+        ? "certain"
+        : candidates.length
+          ? candidates.some((candidate) => candidate.geometrySource !== "detection-box")
+            ? "certain"
+            : "estimated"
+          : "none";
+    const ballNames = { none: "No ball", estimated: "Ball estimated", detected: "Ball detected" };
+    const laneNames = { none: "No lane", estimated: "Lane estimated", certain: "Lane certain" };
+    const ballIndicator = button.querySelector('[data-certainty="ball"]');
+    const laneIndicator = button.querySelector('[data-certainty="lane"]');
+    ballIndicator.className = `frame-certainty-item certainty-${ballState}`;
+    laneIndicator.className = `frame-certainty-item certainty-${laneState}`;
+    ballIndicator.title = ballNames[ballState];
+    ballIndicator.setAttribute("aria-label", ballNames[ballState]);
+    laneIndicator.title = laneNames[laneState];
+    laneIndicator.setAttribute("aria-label", laneNames[laneState]);
+    button.setAttribute("aria-label", `Frame ${index + 1}, ${time.textContent}, ${ballNames[ballState]}, ${laneNames[laneState]}${isSelected ? ", selected" : ""}`);
   });
   while (frameList.children.length > videoFrames.length) frameList.lastElementChild.remove();
   frameList.scrollTop = scrollTop;
+  updateFrameSteppers();
+  drawTrackingOverlay();
+}
+
+function updateFrameSteppers() {
+  const hasFrames = videoFrames.length > 0 && selectedVideoFrame >= 0;
+  const lastCompletedFrame = videoFrames.findLastIndex((frame) => !frame.processing);
+  frameStepperControls.forEach(({ previous, next, position }) => {
+    previous.disabled = !hasFrames || selectedVideoFrame <= 0;
+    next.disabled = !hasFrames || selectedVideoFrame >= lastCompletedFrame;
+    position.textContent = hasFrames
+      ? `Frame ${selectedVideoFrame + 1} of ${videoFrames.length}`
+      : "No video frame selected";
+  });
 }
 
 function showVideoFrame(index) {
   persistSelectedFrame();
   const item = videoFrames[index];
-  if (!item) return;
+  if (!item || item.processing) return;
   const selectionVersion = ++frameSelectionVersion;
   selectedVideoFrame = index;
-  ballSeedDrawButton.disabled = videoProcessingInProgress;
-  ballSeedApplyButton.disabled = !startingBallSeed || videoProcessingInProgress;
+  if (Number.isFinite(item.timeSeconds) && videoPreview.readyState >= HTMLMediaElement.HAVE_METADATA && videoPreview.paused) {
+    videoPreview.currentTime = item.timeSeconds;
+  }
+  updateFrameSteppers();
+  ballSeedDrawButton.disabled = false;
+  ballSeedApplyButton.disabled = !startingBallSeed;
   ballSeedStatus.textContent = startingBallSeed
     ? `Starting ball box is on frame ${startingBallSeed.frameIndex + 1}. Select another frame and draw again to replace it.`
     : "Select the first frame where the ball touches the lane, then draw a box around it.";
@@ -693,14 +1020,20 @@ function showVideoFrame(index) {
     ?? item.corners?.map(({ x, y }) => ({ x, y }))
     ?? result?.candidates[0]?.corners.map(({ x, y }) => ({ x, y }))
     ?? null;
-  frameCanvas.width = overlayCanvas.width = item.width;
-  frameCanvas.height = overlayCanvas.height = item.height;
+  previewLayers.forEach(({ frameCanvas, overlayCanvas }) => {
+    frameCanvas.width = overlayCanvas.width = item.width;
+    frameCanvas.height = overlayCanvas.height = item.height;
+  });
+  previewLayers.forEach(updateLayerZoom);
   const image = new Image();
   image.onload = () => {
     if (selectionVersion !== frameSelectionVersion) return;
-    frameContext.clearRect(0, 0, item.width, item.height);
-    frameContext.drawImage(image, 0, 0, item.width, item.height);
-    preview.hidden = false;
+    previewLayers.forEach(({ frameContext, preview }) => {
+      frameContext.clearRect(0, 0, item.width, item.height);
+      frameContext.drawImage(image, 0, 0, item.width, item.height);
+      preview.hidden = false;
+    });
+    previewLayers.forEach(updateLayerZoom);
     candidateSelect.replaceChildren();
     if (result?.candidates.length) {
       result.candidates.forEach((candidate, candidateIndex) => {
@@ -717,7 +1050,6 @@ function showVideoFrame(index) {
     // automatic model initialization or detection fails.
     manualButton.disabled = !frameDimensions;
     drawCorners();
-    frameReviewStatus.textContent = `Frame ${index + 1} of ${videoFrames.length} · ${item.label}`;
     showFrameResult(result, { correction: item.correction });
     setStatus(`Frame ${index + 1} of ${videoFrames.length} is selected. Review the outline or adjust it below.`);
     renderFrameList();
@@ -764,7 +1096,7 @@ async function writeFrameToCache(canvas) {
   return { path, uri };
 }
 
-async function runFrameInference({ detectLane = true, canvas = frameCanvas, width = frameDimensions.width, height = frameDimensions.height } = {}) {
+async function runFrameInference({ detectLane = true, canvas = previewLayers[0].frameCanvas, width = frameDimensions.width, height = frameDimensions.height } = {}) {
   if (!canRunInference) throw new Error("ONNX inference is not available in this environment.");
   if (!useAndroidPlugin) return analyzeCanvas(canvas, { detectLane });
   const cached = await writeFrameToCache(canvas);
@@ -1137,7 +1469,7 @@ async function reprocessBallsInsideCorrectedLane() {
     renderFrameList();
   }
   const movedFrameCount = videoFrames.filter((frame) => frame.cameraMotion?.detected).length;
-  frameProcessingStatus.textContent = `Ball detections were checked inside the lane. Camera movement triggered lane re-detection on ${movedFrameCount} samples.`;
+  console.info(`[ONNX demo] Ball detections were checked inside the lane; camera movement triggered lane re-detection on ${movedFrameCount} samples.`);
 }
 
 function chooseBallNearPrediction(balls, predictedBall) {
@@ -1301,11 +1633,10 @@ async function detectVideoFrames(file) {
   clearVideoFrames();
   laneCorners = null;
   result = null;
-  preview.hidden = true;
+  previewLayers.forEach(({ preview }) => { preview.hidden = true; });
   correctButton.disabled = true;
   frameList.replaceChildren();
   videoFrameReview.hidden = false;
-  frameReviewStatus.textContent = "No frame selected yet.";
   frameProcessingStatus.textContent = "Opening video…";
   const video = document.createElement("video");
   video.muted = true;
@@ -1314,7 +1645,8 @@ async function detectVideoFrames(file) {
   if (currentVideoUrl) URL.revokeObjectURL(currentVideoUrl);
   currentVideoUrl = objectUrl;
   videoPreview.src = objectUrl;
-  videoPreview.hidden = false;
+  trackingPreviewPanel.hidden = false;
+  videoPreview.load();
   video.src = objectUrl;
   await waitForVideoEvent(video, "loadedmetadata");
   if (!Number.isFinite(video.duration) || video.duration <= 0) throw new Error("This video has no readable duration.");
@@ -1371,6 +1703,7 @@ async function detectVideoFrames(file) {
       correction: null,
       laneOverride: Boolean(sharedLaneOverride),
       laneSource: activeVideoLaneSource,
+      processing: true,
     };
     videoFrames.push(frameItem);
     renderFrameList();
@@ -1486,6 +1819,9 @@ async function detectVideoFrames(file) {
     }
     frameItem.result.health.laneCount = frameItem.result.candidates.length;
     frameItem.result.health.ballCount = frameItem.result.balls.length;
+    frameItem.processing = false;
+    frameItem.originalBaseline = snapshotFrameBaseline(frameItem);
+    if (!lockedLaneBaseline && lockedLane) lockedLaneBaseline = copyData(lockedLane);
     if (selectedVideoFrame === index) refreshSelectedFrameLane();
     renderFrameList();
   }
@@ -1512,6 +1848,7 @@ async function detectVideoFrames(file) {
     });
   }
   if (videoFrames.length && selectedVideoFrame < 0) showVideoFrame(bestLaneFrame >= 0 ? bestLaneFrame : 0);
+  if (videoFrames.length) captureVideoBaseline();
   const successful = videoFrames.filter((frame) => !frame.error).length;
   const inferredCount = videoFrames.filter((frame) => frame.inferenceRan).length;
   const elapsedSeconds = (performance.now() - processingStartedAt) / 1000;
@@ -1532,10 +1869,14 @@ async function detectVideoFrames(file) {
     : adaptiveInferenceMs === null
       ? ` Using the default cadence of every ${inferenceStride} samples.`
       : ` Device-adaptive cadence: every ${inferenceStride} samples after a ${Math.round(adaptiveInferenceMs)} ms median benchmark.`;
-  frameProcessingStatus.textContent = bestLaneFrame >= 0
+  const diagnostics = bestLaneFrame >= 0
     ? `${timingSummary}${cadenceSummary}${pinDeckSummary} The lane is locked from frame ${bestLaneFrame + 1}; positions between detections are estimates.`
     : `${timingSummary}${cadenceSummary}${pinDeckSummary} No lane was detected; set the lane corners manually if needed.`;
-  if (!canRunInference) frameProcessingStatus.textContent = "Video is ready, but local ONNX frame detection is unavailable.";
+  if (!canRunInference) {
+    console.warn("[ONNX demo] Video is ready, but local ONNX frame detection is unavailable.");
+  } else {
+    console.info(`[ONNX demo] ${diagnostics}`);
+  }
 }
 
 function predictBall(history, sampleIndex, timeSeconds, maxGap) {
@@ -1568,12 +1909,6 @@ function predictBall(history, sampleIndex, timeSeconds, maxGap) {
 }
 
 async function uploadVideo(file) {
-  const apiBase = ciclopesApiBaseInput.value.trim().replace(/\/$/, "");
-  if (!apiBase) {
-    uploadStatus.textContent = "Video is ready for local frame detection. Enter the Ciclopes API URL to send reviewed results.";
-    return null;
-  }
-
   // This demo analyzes frames in the browser and only submits reviewed frame
   // results. The original clip does not need to be uploaded to cloud storage.
   const videoKey = `local-${Date.now()}-${crypto.randomUUID?.() ?? Math.random().toString(36).slice(2)}`;
@@ -1583,9 +1918,8 @@ async function uploadVideo(file) {
 }
 
 async function submitFrameResults(videoKey) {
-  const apiBase = ciclopesApiBaseInput.value.trim().replace(/\/$/, "");
-  if (!apiBase) return null;
-  return submitFrameResultsToCiclopes({ apiBaseUrl: apiBase, videoKey, frames: videoFrames, fps: 30 });
+  if (!ciclopesApiBaseUrl) throw new Error("Ciclopes API URL is not configured.");
+  return submitFrameResultsToCiclopes({ apiBaseUrl: ciclopesApiBaseUrl, videoKey, frames: videoFrames, fps: 30 });
 }
 
 async function processVideo(file) {
@@ -1615,12 +1949,11 @@ async function processVideo(file) {
     if (videoKey) {
       uploadedVideoKey = videoKey;
       uploadResult.textContent = JSON.stringify({ file: file.name, videoKey, sampledFrames: videoFrames.length }, null, 2);
-      sendCiclopesAnalysisButton.disabled = !ciclopesApiBaseInput.value.trim()
-        || !videoFrames.some((frame) => !frame.error && frame.result);
-      if (ciclopesApiBaseInput.value.trim()) {
+      updateAnalyzeButton();
+      if (ciclopesApiBaseUrl) {
         uploadStatus.textContent = "Frames detected locally. Review or correct the lane, then send the results to Ciclopes.";
       } else {
-        uploadStatus.textContent = "Frames detected locally. Enter a reachable Ciclopes API URL to enable sending results.";
+        uploadStatus.textContent = "Frames detected locally. Ciclopes analysis is unavailable until an API URL is configured by a developer.";
       }
     }
   } catch (error) {
@@ -1628,6 +1961,11 @@ async function processVideo(file) {
     frameProcessingStatus.textContent = `Could not analyze this video: ${error.message}`;
   } finally {
     videoProcessingInProgress = false;
+    updateFrameSteppers();
+    if (selectedVideoFrame >= 0) {
+      ballSeedDrawButton.disabled = false;
+      ballSeedApplyButton.disabled = !startingBallSeed;
+    }
     if (ballReprocessPending && sharedLaneOverride) {
       ballReprocessPending = false;
       await reprocessBallsInsideCorrectedLane().catch((error) => {
@@ -1659,7 +1997,7 @@ sendCiclopesAnalysisButton.addEventListener("click", async () => {
     uploadStatus.textContent = `Ciclopes could not analyze these frames: ${error.message}`;
   } finally {
     sendCiclopesAnalysisButton.textContent = "Analyze reviewed frames with Ciclopes";
-    sendCiclopesAnalysisButton.disabled = !uploadedVideoKey || !ciclopesApiBaseInput.value.trim();
+    updateAnalyzeButton();
   }
 });
 
@@ -1682,8 +2020,79 @@ exportShowcaseButton.addEventListener("click", async () => {
   }
 });
 
-ciclopesApiBaseInput.addEventListener("input", () => {
-  sendCiclopesAnalysisButton.disabled = !uploadedVideoKey || !ciclopesApiBaseInput.value.trim();
+frameStepperControls.forEach(({ previous, next }) => {
+  previous.addEventListener("click", () => showVideoFrame(selectedVideoFrame - 1));
+  next.addEventListener("click", () => showVideoFrame(selectedVideoFrame + 1));
+});
+
+laneResetButton.addEventListener("click", () => {
+  if (videoFrameBaseline) {
+    sharedLaneOverride = null;
+    lockedLane = copyData(lockedLaneBaseline);
+    laneAnchorFrame = laneAnchorFrameBaseline;
+    videoFrames.forEach((frame, index) => {
+      const baseline = videoFrameBaseline[index];
+      if (!baseline) return;
+      frame.corners = copyData(baseline.corners);
+      frame.laneSource = baseline.laneSource;
+      frame.laneOverride = baseline.laneOverride;
+      frame.correction = copyData(baseline.correction);
+      frame.cameraMotion = copyData(baseline.cameraMotion);
+      frame.result.candidates = copyData(baseline.candidates);
+    });
+    if (selectedVideoFrame >= 0) {
+      const frame = videoFrames[selectedVideoFrame];
+      result = frame.result;
+      laneCorners = copyData(frame.corners ?? frame.result.candidates[0]?.corners ?? null);
+      candidateSelect.replaceChildren();
+      frame.result.candidates.forEach((candidate, index) => {
+        candidateSelect.add(new Option(`Lane ${index + 1} (${candidate.confidence.toFixed(2)})`, String(index)));
+      });
+      candidateSelect.disabled = frame.result.candidates.length === 0;
+      correctButton.disabled = !laneCorners;
+      showFrameResult(result, { correction: frame.correction });
+    }
+  } else if (stillLaneBaseline) {
+    result = { candidates: copyData(stillLaneBaseline.candidates), balls: [], health: {} };
+    laneCorners = copyData(stillLaneBaseline.corners);
+    candidateSelect.replaceChildren();
+    result.candidates.forEach((candidate, index) => {
+      candidateSelect.add(new Option(`Lane ${index + 1} (${candidate.confidence.toFixed(2)})`, String(index)));
+    });
+    candidateSelect.disabled = result.candidates.length === 0;
+    correctButton.disabled = !laneCorners;
+    showFrameResult(result);
+  }
+  drawCorners();
+  renderFrameList();
+  setStatus("Lane restored to the original detection.");
+});
+
+ballResetButton.addEventListener("click", () => {
+  if (!videoFrameBaseline) return;
+  startingBallSeed = null;
+  ballSeedMode = false;
+  ballDrawStart = null;
+  ballBoxDraft = null;
+  videoFrames.forEach((frame, index) => {
+    const baseline = videoFrameBaseline[index];
+    if (!baseline) return;
+    frame.result.balls = copyData(baseline.balls);
+    frame.tracked = baseline.tracked;
+    frame.result.health ??= {};
+    if (baseline.trackingSource === undefined) delete frame.result.health.trackingSource;
+    else frame.result.health.trackingSource = baseline.trackingSource;
+    frame.result.health.ballCount = frame.result.balls.length;
+  });
+  ballSeedDrawButton.disabled = selectedVideoFrame < 0;
+  ballSeedApplyButton.disabled = true;
+  ballSeedDrawButton.textContent = "Draw ball box";
+  ballSeedStatus.textContent = "Ball tracking restored to the original detections.";
+  if (selectedVideoFrame >= 0) {
+    result = videoFrames[selectedVideoFrame].result;
+    drawCorners();
+  }
+  renderFrameList();
 });
 
 ballSeedDrawButton.addEventListener("click", () => {
@@ -1695,7 +2104,7 @@ ballSeedDrawButton.addEventListener("click", () => {
   ballSeedStatus.textContent = ballSeedMode
     ? "Drag a tight rectangle around the ball on this frame. Choose the first frame where it touches the lane."
     : "Box drawing cancelled.";
-  if (ballSeedMode) preview.scrollIntoView({ block: "center", behavior: "smooth" });
+  if (ballSeedMode) ballPreview.scrollIntoView({ block: "center", behavior: "smooth" });
   drawCorners();
 });
 
@@ -1715,15 +2124,20 @@ fileInput.addEventListener("change", async () => {
     image.src = objectUrl;
     await image.decode();
     resizeFrame(image.naturalWidth, image.naturalHeight);
-    frameContext.drawImage(image, 0, 0, frameDimensions.width, frameDimensions.height);
+    previewLayers.forEach(({ frameContext, preview }) => {
+      frameContext.drawImage(image, 0, 0, frameDimensions.width, frameDimensions.height);
+      preview.hidden = false;
+    });
     URL.revokeObjectURL(objectUrl);
     laneCorners = null;
     result = null;
+    stillLaneBaseline = { candidates: [], corners: null };
+    laneResetButton.disabled = false;
+    ballResetButton.disabled = true;
     candidateSelect.replaceChildren(new Option("No detected lane", ""));
     candidateSelect.disabled = true;
     correctButton.disabled = true;
     manualButton.disabled = !frameDimensions;
-    preview.hidden = false;
     drawCorners();
     resultOutput.textContent = "Image ready. Checking for the lane automatically…";
     technicalOutput.textContent = `${file.name} (${frameDimensions.width} × ${frameDimensions.height})`;
@@ -1795,6 +2209,8 @@ async function detectStillFrame() {
   setStatus("Running ONNX Runtime on this device…");
   try {
     result = await runFrameInference();
+    stillLaneBaseline = { candidates: copyData(result.candidates), corners: copyData(result.candidates[0]?.corners ?? null) };
+    laneResetButton.disabled = false;
     candidateSelect.replaceChildren();
     result.candidates.forEach((candidate, index) => {
       const sourceLabel = candidate.geometrySource === "detection-box" ? ", rough box" : "";
