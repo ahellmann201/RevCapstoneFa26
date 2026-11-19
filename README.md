@@ -65,6 +65,24 @@ the local FastAPI service on port 8000, so the website uses the local database
 without editing source files. SQLite mode binds to loopback by default.
 Stop both processes with Ctrl+C in the launcher terminal.
 
+## Run the app with Ciclopes
+
+The Ciclopes-enabled launcher closes earlier RevCapstone/Ciclopes listeners on
+the development ports, then starts the frontend, the local database API, and the
+Ciclopes FastAPI service together. Ctrl+C stops all of them:
+
+```bash
+npm run dev:ciclopes -- --db=test
+```
+
+Initialize the local test database first with `npm run db:test:init`. Ciclopes
+needs its own Python 3.11 environment and `.env` configuration; follow
+[`Ciclopes-API/MACOS.md`](Ciclopes-API/MACOS.md). If that environment is outside
+`Ciclopes-API/.venv`, set `CICLOPES_PYTHON` to its Python executable. Vite serves
+the app on port 5173, the database API uses port 8000, and Ciclopes uses port
+8001. Vite forwards `/ciclopes/*` to Ciclopes, so the browser uses the local
+service without entering an API URL.
+
 The checked-in `.env.test` contains **local-only test settings**, including a
 public development signing key. Never use those settings on a public deployment.
 No SQL credentials, SQL Server, system ODBC driver, or SSH tunnel is needed for

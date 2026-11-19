@@ -12,6 +12,7 @@
     "dev:full": "node scripts/dev.mjs",
     "dev:full:test": "node scripts/dev.mjs --db=test",
     "dev:full:real": "node scripts/dev.mjs --db=real",
+    "dev:ciclopes": "node scripts/commands/dev-ciclopes.mjs",
     "build": "node scripts/commands/build.mjs",
     "preview": "vite preview",
     "test": "node scripts/commands/test.mjs all",
