@@ -63,33 +63,7 @@
         </ol>
       </section>
     </div>
-    <dialog class="game-setup" id="game-setup-dialog" aria-labelledby="game-setup-title" aria-describedby="game-setup-description">
-      <form id="game-setup-form">
-        <h2 id="game-setup-title" data-i18n="Start Game">Start Game</h2>
-        <p id="game-setup-description">Choose an event and establishment, or leave them blank.</p>
-        <label for="game-setup-event">Event (optional)</label>
-        <select id="game-setup-event" name="event">
-          <option value="">No event</option>
-        </select>
-        <label for="game-setup-establishment">Establishment (optional)</label>
-        <select id="game-setup-establishment" name="establishment">
-          <option value="">No establishment</option>
-        </select>
-        <fieldset class="game-session-choice" id="game-session-choice" hidden>
-          <legend>Session</legend>
-          <p id="game-session-summary"></p>
-          <label class="new-session-option" for="start-new-session">
-            <input type="checkbox" id="start-new-session" name="newSession">
-            Start a new session instead
-          </label>
-        </fieldset>
-        <p class="game-setup-note">When logged in, Next Shot saves your progress automatically. An event is optional.</p>
-        <div class="game-setup-actions">
-          <button type="button" id="cancel-game-setup" autofocus data-i18n="Cancel">Cancel</button>
-          <button type="submit" data-i18n="Start Game">Start Game</button>
-        </div>
-      </form>
-    </dialog>
+    <game-setup-dialog></game-setup-dialog>
     <dialog class="game-setup" id="resume-game-dialog" aria-labelledby="resume-game-title" aria-describedby="resume-game-description">
       <h2 id="resume-game-title">Continue your game?</h2>
       <p id="resume-game-description">You have an unfinished game on this device. Continue it or start a new game.</p>

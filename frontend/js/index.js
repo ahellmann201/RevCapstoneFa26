@@ -2,12 +2,12 @@
 import { loadNavbar } from "./navbar.js";
 import { initHomeLayout } from "./home_layout.js";
 import { getActiveGameId, getGameState } from "./cache.js";
-import { listAll } from "./game_persistence.js";
 import { loadWeeklyEvents } from "./weekly_events.js";
 import Event from "./objects/event.js"
 import { getAuthToken } from "./authentication.js";
 import { getCachedDisplayName } from "./database.js";
 import { parseDisplayName } from "./data_handling.js"
+import "./popups.js";
 loadNavbar();
 initHomeLayout();
 
@@ -64,60 +64,6 @@ const requestedNewGame = new URLSearchParams(window.location.search).get("start_
 let weeklyGame = false;
 let forceNewGame = false;
 let pendingEventChoice = null;
-let setupSessions = [];
-let setupGames = [];
-let unassignedEventId = null;
-let matchingSession = null;
-const SESSION_CONTINUATION_WINDOW_MS = 6 * 60 * 60 * 1000;
-
-function sessionDate(value) {
-    if (!value) return null;
-    // The API stores UTC datetimes without an offset in SQL Server.
-    const normalized = /(?:Z|[+-]\d{2}:\d{2})$/i.test(value) ? value : `${value}Z`;
-    const date = new Date(normalized);
-    return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function recentSessions() {
-    const now = Date.now();
-    return setupSessions
-        .filter((session) => {
-            const startedAt = sessionDate(session.date_time);
-            const elapsed = startedAt ? now - startedAt.getTime() : Infinity;
-            return elapsed >= 0 && elapsed <= SESSION_CONTINUATION_WINDOW_MS
-                && setupGames.some((game) => Number(game.session_id) === Number(session.session_id));
-        })
-        .sort((a, b) => sessionDate(b.date_time) - sessionDate(a.date_time));
-}
-
-function updateSessionChoice() {
-    const choice = document.getElementById("game-session-choice");
-    const summary = document.getElementById("game-session-summary");
-    const newSession = document.getElementById("start-new-session");
-    const selectedEvent = document.getElementById("game-setup-event").value;
-    const eventId = selectedEvent ? Number(selectedEvent) : unassignedEventId;
-    const selectedEstablishment = document.getElementById("game-setup-establishment").value;
-    const establishmentId = selectedEstablishment ? Number(selectedEstablishment) : null;
-
-    matchingSession = recentSessions().find((session) =>
-        Number(session.event_id) === Number(eventId)
-        && (session.establishment_id == null ? null : Number(session.establishment_id)) === establishmentId,
-    ) ?? null;
-
-    choice.hidden = !matchingSession;
-    if (!matchingSession) {
-        newSession.checked = false;
-        return;
-    }
-    const gamesInSession = setupGames.filter((game) => Number(game.session_id) === Number(matchingSession.session_id));
-    const nextGameNumber = Math.max(0, ...gamesInSession.map((game) => Number(game.game_number) || 0)) + 1;
-    const startedAt = sessionDate(matchingSession.date_time);
-    const startedLabel = startedAt
-        ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(startedAt)
-        : "recently";
-    summary.textContent = `Continue the session from ${startedLabel} (${gamesInSession.length} game${gamesInSession.length === 1 ? "" : "s"}).`;
-    summary.dataset.nextGameNumber = String(nextGameNumber);
-}
 
 function pageLoad() {
     loadWelcomeMessage();
@@ -143,6 +89,19 @@ document.getElementById("start-game-button").addEventListener("click", () => { v
 export function scheduleEvent() {
     window.location.href = "/events.html"
 }
+
+const gameSetupDialog = document.querySelector("game-setup-dialog");
+gameSetupDialog.addEventListener("game-setup-submit", ({ detail }) => {
+    sessionStorage.setItem("pendingGameSetup", JSON.stringify({
+        eventId: detail.eventId,
+        establishmentId: detail.establishmentId,
+        sessionId: detail.sessionId,
+        sessionEventId: detail.sessionEventId,
+        gameNumber: detail.gameNumber,
+    }));
+    window.location.href = forceNewGame || requestedNewGame || weeklyGame ? "/game.html?new=1" : "/game.html";
+});
+
 export async function startGame(selectedEventId = null, startNew = false) {
     const activeId = getActiveGameId();
     const active = activeId && getGameState(activeId);
@@ -158,96 +117,8 @@ export async function startGame(selectedEventId = null, startNew = false) {
         window.location.href = forceNewGame || requestedNewGame ? "/game.html?new=1" : "/game.html";
         return;
     }
-    const dialog = document.getElementById("game-setup-dialog");
-    document.getElementById("game-setup-form").reset();
-    dialog.showModal();
-    const eventSelect = document.getElementById("game-setup-event");
-    const establishmentSelect = document.getElementById("game-setup-establishment");
-    document.getElementById("game-session-choice").hidden = true;
-    document.getElementById("start-new-session").checked = false;
-    matchingSession = null;
-    setupSessions = [];
-    setupGames = [];
-    unassignedEventId = null;
-    eventSelect.replaceChildren(new Option("No event", ""));
-    establishmentSelect.replaceChildren(new Option("No establishment", ""));
-    const message = document.querySelector(".game-setup-note");
-    message.textContent = "When logged in, Next Shot saves your progress automatically. An event is optional.";
-    if (!getAuthToken()) return;
-    const submit = document.querySelector('#game-setup-form button[type="submit"]');
-    submit.disabled = true;
-    try {
-        const [events, establishments, sessions, games] = await Promise.all([
-            listAll("/events"), listAll("/establishments"), listAll("/sessions"), listAll("/games"),
-        ]);
-        setupSessions = sessions;
-        setupGames = games;
-        // SystemUnassigned events are intentionally hidden from /events. Infer
-        // its ID from owned sessions whose event is absent from that endpoint.
-        const visibleEventIds = new Set(events.map((event) => Number(event.event_id)));
-        unassignedEventId = sessions.find((session) => !visibleEventIds.has(Number(session.event_id)))?.event_id ?? null;
-        for (const event of events) {
-            if (event.enabled === false || event.enabled === 0 || event.event_type === "SystemUnassigned") continue;
-            eventSelect.append(new Option(event.event_name, event.event_id));
-        }
-        for (const establishment of establishments) {
-            if (establishment.enabled === false || establishment.enabled === 0) continue;
-            establishmentSelect.append(new Option(establishment.establishment_name, establishment.establishment_id));
-        }
-        if (selectedEventId !== null) {
-            const selected = events.find((event) => event.event_id === selectedEventId
-                && event.enabled !== false && event.enabled !== 0 && event.event_type !== "SystemUnassigned");
-            if (selected) {
-                eventSelect.value = String(selected.event_id);
-                const house = establishments.find((entry) => selected.location_id != null
-                    && entry.location_id === selected.location_id && entry.enabled !== false && entry.enabled !== 0);
-                if (house) establishmentSelect.value = String(house.establishment_id);
-            } else message.textContent = "This event is no longer available. Please choose another event.";
-        } else {
-            // Keep the most recent visit's context selected so continuation is visible
-            // without making the user reselect the event and establishment every game.
-            const recent = recentSessions()[0];
-            if (recent) {
-                const event = events.find((entry) => Number(entry.event_id) === Number(recent.event_id));
-                if (event && event.event_type !== "SystemUnassigned"
-                    && event?.enabled !== false && event?.enabled !== 0) {
-                    eventSelect.value = String(event.event_id);
-                }
-                const establishment = establishments.find((entry) =>
-                    Number(entry.establishment_id) === Number(recent.establishment_id)
-                    && entry.enabled !== false && entry.enabled !== 0,
-                );
-                if (establishment) establishmentSelect.value = String(establishment.establishment_id);
-            }
-        }
-        updateSessionChoice();
-    } catch {
-        message.textContent = "Could not load your choices. You can continue without an event or establishment.";
-    } finally {
-        submit.disabled = false;
-    }
+    await gameSetupDialog.showSetup({ eventId: selectedEventId });
 }
-
-document.getElementById("game-setup-event").addEventListener("change", updateSessionChoice);
-document.getElementById("game-setup-establishment").addEventListener("change", updateSessionChoice);
-
-document.getElementById("cancel-game-setup").addEventListener("click", () => {
-    document.getElementById("game-setup-dialog").close();
-});
-document.getElementById("game-setup-form").addEventListener("submit", (event) => {
-    event.preventDefault();
-    const data = new FormData(document.getElementById("game-setup-form"));
-    sessionStorage.setItem("pendingGameSetup", JSON.stringify({
-        eventId: data.get("event") ? Number(data.get("event")) : null,
-        establishmentId: data.get("establishment") ? Number(data.get("establishment")) : null,
-        sessionId: matchingSession && !data.get("newSession") ? matchingSession.session_id : null,
-        sessionEventId: matchingSession && !data.get("newSession") ? matchingSession.event_id : null,
-        gameNumber: matchingSession && !data.get("newSession")
-            ? Number(document.getElementById("game-session-summary").dataset.nextGameNumber) : 1,
-    }));
-    document.getElementById("game-setup-dialog").close();
-    window.location.href = forceNewGame || requestedNewGame || weeklyGame ? "/game.html?new=1" : "/game.html";
-});
 
 document.getElementById("continue-game-choice").addEventListener("click", () => {
     sessionStorage.removeItem("pendingGameSetup");
