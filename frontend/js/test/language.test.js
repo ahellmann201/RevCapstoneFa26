@@ -132,9 +132,9 @@ it("translates the real appearance controls in every language without changing t
     for (const code of ["es", "fr", "de", "zh-CN", "en"]) {
         setLanguage(code);
         expect(document.querySelector("label").textContent).toBe(translations[code].Appearance);
+        expect(document.querySelector('[value="auto"]').textContent).toBe(translations[code].Auto);
         expect(document.querySelector('[value="dark"]').textContent).toBe(translations[code].Dark);
         expect(document.querySelector('[value="light"]').textContent).toBe(translations[code].Light);
-        expect(document.querySelector("small").textContent).toBe(translations[code]["Saved on this browser, including when logged out."]);
         expect(document.querySelector("select").value).toBe("light");
         expect(getTheme()).toBe("light");
     }
