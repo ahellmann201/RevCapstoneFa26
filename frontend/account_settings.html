@@ -15,19 +15,21 @@
     <navbar></navbar>
 
     <div class="fields_container">
-        <div class="account_field language-preference">
-            <label for="account-language" data-i18n="Language">Language</label>
-            <select id="account-language" data-language-picker></select>
-            <span role="status" data-language-status></span>
+        <div class="account_field preferences_field">
+            <div class="preference_row language-preference">
+                <label for="account-language" data-i18n="Language">Language</label>
+                <select id="account-language" data-language-picker></select>
+                <span role="status" data-language-status></span>
+            </div>
+            <div class="preference_row appearance-preference">
+                <label for="account-theme" data-i18n="Appearance">Appearance</label>
+                <select id="account-theme" data-theme-picker aria-describedby="theme-description">
+                    <option value="auto" data-i18n="Auto">Auto</option><option value="dark" data-i18n="Dark">Dark</option><option value="light" data-i18n="Light">Light</option>
+                </select>
+                <small id="theme-description" data-i18n="Saved on this browser, including when logged out.">Saved on this browser, including when logged out.</small>
+            </div>
         </div>
-        <div class="account_field appearance-preference">
-            <label for="account-theme" data-i18n="Appearance">Appearance</label>
-            <select id="account-theme" data-theme-picker aria-describedby="theme-description">
-                <option value="dark" data-i18n="Dark">Dark</option><option value="light" data-i18n="Light">Light</option>
-            </select>
-            <small id="theme-description" data-i18n="Saved on this browser, including when logged out.">Saved on this browser, including when logged out.</small>
-        </div>
-        <div class="account_field pfp_field">
+        <div class="account_field pfp_field" hidden>
             <div class="pfp_field_content_container">
                 <h1 data-i18n="Profile Picture">Profile Picture</h1>
                 <div class="pfp_field_picture_container" id="pfp-field-picture-container"></div> <!--The pfp image is put into this with js-->
@@ -93,26 +95,25 @@
                     <button class="cancel_display_name" id="cancel-display-name" data-i18n="Cancel">Cancel</button>
                     <button class="save_display_name" id="save-display-name" disabled data-i18n="Save Changes">Save Changes</button>
                 </div>
-            </div>
-        </div>
-        <div class="extra_field account_field">
-            <div class="mainhand_area">
-                <p data-i18n="Main Hand">Main Hand</p>
-                <div class="mainhand_selector" id="mainhand-selector">
-                    <div class="mainhand_selection" id="mainhand-selection">
-                        <div class="left_hand hand mainhand_overlay" id="left-hand-overlay" data-i18n="Left">Left</div>
-                        <div class="both_hands hand mainhand_overlay" id="both-hands-overlay" data-i18n="Both">Both</div>
-                        <div class="right_hand hand mainhand_overlay" id="right-hand-overlay" data-i18n="Right">Right</div>
+                <div class="mainhand_area">
+                    <p data-i18n="Main Hand">Main Hand</p>
+                    <div class="mainhand_selector" id="mainhand-selector">
+                        <div class="mainhand_selection" id="mainhand-selection">
+                            <div class="left_hand hand mainhand_overlay" id="left-hand-overlay" data-i18n="Left">Left</div>
+                            <div class="both_hands hand mainhand_overlay" id="both-hands-overlay" data-i18n="Both">Both</div>
+                            <div class="right_hand hand mainhand_overlay" id="right-hand-overlay" data-i18n="Right">Right</div>
+                        </div>
+                        <div class="left_hand hand mainhand_underlay" id="left-hand" data-i18n="Left">Left</div>
+                        <div class="both_hands hand mainhand_underlay" id="both-hands" data-i18n="Both">Both</div>
+                        <div class="right_hand hand mainhand_underlay" id="right-hand" data-i18n="Right">Right</div>
                     </div>
-                    <div class="left_hand hand mainhand_underlay" id="left-hand" data-i18n="Left">Left</div>
-                    <div class="both_hands hand mainhand_underlay" id="both-hands" data-i18n="Both">Both</div>
-                    <div class="right_hand hand mainhand_underlay" id="right-hand" data-i18n="Right">Right</div>
                 </div>
+                <button class="reset_password_button button_2" id="reset-password-button" type="button" onclick="window.location.href='/reset_password.html'">Reset Password</button>
             </div>
         </div>
     </div>
     
-    <div class="home-customize-entry"><a href="/index.html?edit_home=1">Edit Home Page</a></div>
+    <div class="home-customize-entry"><a href="/index.html?edit_home=1">Edit Home Page Layout</a></div>
     <script type="module" src="/js/account_settings.js"></script>
 </body>
 </html>

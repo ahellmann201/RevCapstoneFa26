@@ -41,7 +41,14 @@
     width: 85%;
     border-radius: 20px;
     margin-bottom: 2rem;
+    padding: 1.5rem;
 }
+.preferences_field { display: flex; flex-direction: column; gap: 0.5rem; }
+.preference_row { display: flex; flex-direction: column; align-items: stretch; gap: 0.25rem; }
+.preferences_field > .preference_row.language-preference,
+.preferences_field > .preference_row.appearance-preference { width: 100%; padding: 0; gap: 0.25rem; align-items: stretch; }
+.preference_row label { align-self: flex-start; width: 100%; text-align: left; font-weight: 700; }
+.preference_row select { width: 100%; min-width: 0; min-height: 44px; padding: 8px 12px; border-radius: 12px; font: inherit; }
 
 .fields_container {
     width: 100dvw;
@@ -60,6 +67,7 @@
     justify-content: center;
     align-items: center;
 }
+.pfp_field[hidden] { display: none; }
 
 .pfp_field_content_container {
     height: 100%;
@@ -124,9 +132,7 @@
     height: var(--button-2-svg-size);
 }
 
-.names_field {
-    padding: 4%;
-}
+.names_field { padding: 1.5rem; }
 
 .username_area {
     width: 90%;
@@ -199,6 +205,7 @@
     justify-content: space-between;
     align-items: center;
     width: 90%;
+    margin-top: 1rem;
 }
 .mainhand_area > p {
     font-family: 'Jaldi', sans-serif;
@@ -357,14 +364,17 @@
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
+    gap: 0.75rem;
 
     width: 90%;
     margin-top: 1rem;
 }
 .save_container > button {
+    flex: 1 1 0;
+    min-width: 0;
     border: none;
     padding: 0.5rem;
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     border-radius: 1rem;
 }
 .cancel_display_name {
@@ -376,6 +386,20 @@
 .save_display_name:disabled {
     color: rgb(12 12 12 / 50%);
 }
+.reset_password_button {
+    align-self: flex-start;
+    width: 90%;
+    margin: 1rem 5% 0;
+    padding: 0.5rem;
+    border: none;
+    border-radius: 1rem;
+    background-color: var(--button-color-2);
+    color: var(--off-black);
+    font-size: 1.2rem;
+    cursor: pointer;
+}
+.reset_password_button:hover { filter: brightness(1.05); }
+.reset_password_button:focus-visible { outline: 2px solid var(--button-color-1); outline-offset: 2px; }
 
 @media (max-width: 640px) {
     .account_field { width: calc(100% - 24px); min-width: 0; }
@@ -383,8 +407,11 @@
     .pfp_field_content_container, .pfp_field_buttons_container { width: 100%; min-width: 0; }
     .names_field { flex-direction: column; }
     .username_area, .display_name_area { width: 100%; min-width: 0; }
-    .save_container { width: 100%; gap: 8px; flex-wrap: wrap; }
+    .account_field { padding: 1rem; }
+    .save_container { width: 90%; gap: 8px; }
     .save_container > button { min-height: 44px; font-size: 1.1rem; }
+    .reset_password_button { min-height: 44px; width: 90%; font-size: 1.1rem; }
+    .home-customize-entry { width: calc(100% - 24px); }
 }
 
 @media (max-width: 640px) {
@@ -402,12 +429,8 @@
 .account_field { background: var(--settings-surface); color: var(--app-text); border: 1px solid var(--appearance-outline, #31505a); }
 .username_disclaimer, .username_field > span { color: var(--settings-muted); }
 body .account_field .display_name_field, body .account_field select { background: var(--appearance-surface, #092b35); color: var(--app-text); border: 1px solid var(--appearance-outline-strong, #52717b); }
-.appearance-preference { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 16px; }
-.appearance-preference label { font-weight: bold; }
-.appearance-preference select { min-height: 44px; min-width: 130px; padding: 8px 12px; border-radius: 12px; font: inherit; }
-.appearance-preference small { flex-basis: 100%; color: var(--settings-muted); }
 .account_field .mainhand_selector, .account_field .cancel_display_name { background: var(--appearance-raised, #254e57); color: var(--app-text); }
 
-.home-customize-entry { width: min(100% - 32px, 720px); margin: 24px auto; }
-.home-customize-entry a { display: inline-flex; align-items: center; min-height: 48px; padding: 10px 20px; border-radius: 12px; background: var(--button-color-1); color: #132c33; font: bold 1.1rem var(--standard-font-family); text-decoration: none; }
+.home-customize-entry { width: 85%; margin: 0 auto 2rem; }
+.home-customize-entry a { display: flex; width: 100%; align-items: center; justify-content: center; min-height: 48px; padding: 10px 20px; border-radius: 12px; background: var(--button-color-1); color: var(--off-white); font: bold 1.1rem var(--standard-font-family); text-decoration: none; }
 .home-customize-entry a:focus-visible { outline: 2px solid var(--button-color-2); outline-offset: 4px; }

@@ -79,3 +79,14 @@ def test_expanded_size_is_stored_and_returned(authenticated, db):
     assert result.status_code == 200, result.text
     assert result.json()["layout_json"] == entries
     assert json.loads(cursor.execute.call_args.args[1][2]) == entries
+
+
+
+def test_color_and_size_round_trip_together(authenticated, db):
+    _, cursor = db
+    entries = [{"id": "stats", "slot": 0, "size": "large", "color": "amber"}]
+    result = authenticated.put("/auth/me/home-layout", json={"layout_json": entries})
+    assert result.status_code == 200, result.text
+    assert result.json()["layout_json"] == entries
+    assert json.loads(cursor.execute.call_args.args[1][2]) == entries
+    assert authenticated.put("/auth/me/home-layout", json={"layout_json": [{"id": "stats", "slot": 0, "color": "url(unsafe)"}]}).status_code == 422

@@ -1,4 +1,7 @@
-import { logOut, submitAuth } from "./authentication.js";
+import { getAuthToken, logOut, submitAuth } from "./authentication.js";
+import setupStyles from "../css/gameSetup.css?inline";
+import { listAll } from "./game_persistence.js";
+import { translate } from "./language.js";
 
 // Authentication dialogs
 export function openAuthPopup(id) {
@@ -847,4 +850,244 @@ export function showMiniPopup(content = "Popup") {
 
         setTimeout(() => popup.remove(), 400);
     }, 2000);
+}
+
+const template = document.createElement("template");
+template.innerHTML = `
+    <style>:host { display: block; }\n${setupStyles}</style>
+    <dialog class="game-setup" aria-labelledby="game-setup-title" aria-describedby="game-setup-description">
+      <form>
+        <h2 id="game-setup-title" data-i18n="Start Game">Start Game</h2>
+        <p id="game-setup-description">Choose an event and establishment, or leave them blank.</p>
+        <label for="game-setup-event">Event (optional)</label>
+        <select id="game-setup-event" name="event">
+          <option value="">No event</option>
+        </select>
+        <label for="game-setup-establishment">Establishment (optional)</label>
+        <select id="game-setup-establishment" name="establishment">
+          <option value="">No establishment</option>
+        </select>
+        <fieldset class="game-session-choice" hidden>
+          <legend>Session</legend>
+          <p class="game-session-summary"></p>
+          <label class="new-session-option">
+            <input type="checkbox" name="newSession">
+            Start a new session instead
+          </label>
+        </fieldset>
+        <p class="game-setup-note">When logged in, Next Shot saves your progress automatically. An event is optional.</p>
+        <div class="game-setup-actions">
+          <button type="button" class="cancel-game-setup" autofocus data-i18n="Cancel">Cancel</button>
+          <button type="submit" data-i18n="Start Game">Start Game</button>
+        </div>
+      </form>
+    </dialog>
+`;
+
+function sessionDate(value) {
+    if (!value) return null;
+    // The API stores UTC datetimes without an offset in SQL Server.
+    const normalized = /(?:Z|[+-]\d{2}:\d{2})$/i.test(value) ? value : `${value}Z`;
+    const date = new Date(normalized);
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+
+const SESSION_CONTINUATION_WINDOW_MS = 6 * 60 * 60 * 1000;
+
+/**
+ * Reusable game setup dialog.
+ *
+ * Add <game-setup-dialog></game-setup-dialog> to a page and import this module.
+ * Call showSetup({ eventId }) to open it. On submit it emits a bubbling,
+ * composed `game-setup-submit` event whose detail contains the selected event,
+ * establishment, and any session continuation values.
+ */
+class GameSetupDialog extends HTMLElement {
+    constructor() {
+        super();
+        this.attachShadow({ mode: "open" });
+        this.shadowRoot.append(template.content.cloneNode(true));
+        this.setupSessions = [];
+        this.setupGames = [];
+        this.unassignedEventId = null;
+        this.matchingSession = null;
+        this.openRequest = 0;
+
+        this.dialog = this.shadowRoot.querySelector("dialog");
+        this.form = this.shadowRoot.querySelector("form");
+        this.eventSelect = this.shadowRoot.querySelector('[name="event"]');
+        this.establishmentSelect = this.shadowRoot.querySelector('[name="establishment"]');
+        this.sessionChoice = this.shadowRoot.querySelector(".game-session-choice");
+        this.sessionSummary = this.shadowRoot.querySelector(".game-session-summary");
+        this.newSession = this.shadowRoot.querySelector('[name="newSession"]');
+        this.note = this.shadowRoot.querySelector(".game-setup-note");
+        this.submitButton = this.form.querySelector('[type="submit"]');
+        this.handleLanguageChange = () => this.updateTranslations();
+
+        this.eventSelect.addEventListener("change", () => this.updateSessionChoice());
+        this.establishmentSelect.addEventListener("change", () => this.updateSessionChoice());
+        this.shadowRoot.querySelector(".cancel-game-setup").addEventListener("click", () => this.close());
+        this.form.addEventListener("submit", (event) => this.submit(event));
+        this.updateTranslations();
+    }
+
+    connectedCallback() {
+        this.ownerDocument.defaultView?.addEventListener("languagechange", this.handleLanguageChange);
+    }
+
+    disconnectedCallback() {
+        this.ownerDocument.defaultView?.removeEventListener("languagechange", this.handleLanguageChange);
+    }
+
+    updateTranslations() {
+        for (const element of this.shadowRoot.querySelectorAll("[data-i18n]")) {
+            element.textContent = translate(element.dataset.i18n);
+        }
+    }
+
+    /** Open the dialog and preselect an event when one is provided. */
+    async showSetup({ eventId = null } = {}) {
+        const request = ++this.openRequest;
+        this.form.reset();
+        this.dialog.showModal();
+        this.eventSelect.replaceChildren(new Option("No event", ""));
+        this.establishmentSelect.replaceChildren(new Option("No establishment", ""));
+        this.sessionChoice.hidden = true;
+        this.matchingSession = null;
+        this.setupSessions = [];
+        this.setupGames = [];
+        this.unassignedEventId = null;
+        this.note.textContent = "When logged in, Next Shot saves your progress automatically. An event is optional.";
+        this.submitButton.disabled = false;
+
+        if (!getAuthToken()) return;
+
+        this.submitButton.disabled = true;
+        try {
+            const [events, establishments, sessions, games] = await Promise.all([
+                listAll("/events"), listAll("/establishments"), listAll("/sessions"), listAll("/games"),
+            ]);
+            if (request !== this.openRequest) return;
+
+            this.setupSessions = sessions;
+            this.setupGames = games;
+            // SystemUnassigned events are hidden from /events. Infer its ID
+            // from owned sessions whose event is absent from that endpoint.
+            const visibleEventIds = new Set(events.map((event) => Number(event.event_id)));
+            this.unassignedEventId = sessions.find((session) => !visibleEventIds.has(Number(session.event_id)))?.event_id ?? null;
+            for (const event of events) {
+                if (event.enabled === false || event.enabled === 0 || event.event_type === "SystemUnassigned") continue;
+                const option = new Option(event.event_name, event.event_id);
+                option.setAttribute("translate", "no"); this.eventSelect.append(option);
+            }
+            for (const establishment of establishments) {
+                if (establishment.enabled === false || establishment.enabled === 0) continue;
+                const option = new Option(establishment.establishment_name, establishment.establishment_id);
+                option.setAttribute("translate", "no"); this.establishmentSelect.append(option);
+            }
+
+            if (eventId !== null) {
+                const selected = events.find((event) => Number(event.event_id) === Number(eventId)
+                    && event.enabled !== false && event.enabled !== 0 && event.event_type !== "SystemUnassigned");
+                if (selected) {
+                    this.eventSelect.value = String(selected.event_id);
+                    const house = establishments.find((entry) => selected.location_id != null
+                        && Number(entry.location_id) === Number(selected.location_id)
+                        && entry.enabled !== false && entry.enabled !== 0);
+                    if (house) this.establishmentSelect.value = String(house.establishment_id);
+                } else {
+                    this.note.textContent = "This event is no longer available. Please choose another event.";
+                }
+            } else {
+                // Keep the most recent visit's context selected so continuation
+                // is visible without reselecting it each game.
+                const recent = this.recentSessions()[0];
+                if (recent) {
+                    const event = events.find((entry) => Number(entry.event_id) === Number(recent.event_id));
+                    if (event && event.event_type !== "SystemUnassigned"
+                        && event.enabled !== false && event.enabled !== 0) {
+                        this.eventSelect.value = String(event.event_id);
+                    }
+                    const establishment = establishments.find((entry) =>
+                        Number(entry.establishment_id) === Number(recent.establishment_id)
+                        && entry.enabled !== false && entry.enabled !== 0,
+                    );
+                    if (establishment) this.establishmentSelect.value = String(establishment.establishment_id);
+                }
+            }
+            this.updateSessionChoice();
+        } catch {
+            if (request === this.openRequest) {
+                this.note.textContent = "Could not load your choices. You can continue without an event or establishment.";
+            }
+        } finally {
+            if (request === this.openRequest) this.submitButton.disabled = false;
+        }
+    }
+
+    close() {
+        this.openRequest += 1;
+        this.dialog.close();
+    }
+
+    recentSessions() {
+        const now = Date.now();
+        return this.setupSessions
+            .filter((session) => {
+                const startedAt = sessionDate(session.date_time);
+                const elapsed = startedAt ? now - startedAt.getTime() : Infinity;
+                return elapsed >= 0 && elapsed <= SESSION_CONTINUATION_WINDOW_MS
+                    && this.setupGames.some((game) => Number(game.session_id) === Number(session.session_id));
+            })
+            .sort((a, b) => sessionDate(b.date_time) - sessionDate(a.date_time));
+    }
+
+    updateSessionChoice() {
+        const selectedEvent = this.eventSelect.value;
+        const eventId = selectedEvent ? Number(selectedEvent) : this.unassignedEventId;
+        const selectedEstablishment = this.establishmentSelect.value;
+        const establishmentId = selectedEstablishment ? Number(selectedEstablishment) : null;
+
+        this.matchingSession = this.recentSessions().find((session) =>
+            Number(session.event_id) === Number(eventId)
+            && (session.establishment_id == null ? null : Number(session.establishment_id)) === establishmentId,
+        ) ?? null;
+
+        this.sessionChoice.hidden = !this.matchingSession;
+        if (!this.matchingSession) {
+            this.newSession.checked = false;
+            return;
+        }
+        const gamesInSession = this.setupGames.filter((game) => Number(game.session_id) === Number(this.matchingSession.session_id));
+        const nextGameNumber = Math.max(0, ...gamesInSession.map((game) => Number(game.game_number) || 0)) + 1;
+        const startedAt = sessionDate(this.matchingSession.date_time);
+        const startedLabel = startedAt
+            ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(startedAt)
+            : "recently";
+        this.sessionSummary.textContent = `Continue the session from ${startedLabel} (${gamesInSession.length} game${gamesInSession.length === 1 ? "" : "s"}).`;
+        this.sessionSummary.dataset.nextGameNumber = String(nextGameNumber);
+    }
+
+    submit(event) {
+        event.preventDefault();
+        const data = new FormData(this.form);
+        const continuesSession = Boolean(this.matchingSession && !data.get("newSession"));
+        this.close();
+        this.dispatchEvent(new CustomEvent("game-setup-submit", {
+            bubbles: true,
+            composed: true,
+            detail: {
+                eventId: data.get("event") ? Number(data.get("event")) : null,
+                establishmentId: data.get("establishment") ? Number(data.get("establishment")) : null,
+                sessionId: continuesSession ? this.matchingSession.session_id : null,
+                sessionEventId: continuesSession ? this.matchingSession.event_id : null,
+                gameNumber: continuesSession ? Number(this.sessionSummary.dataset.nextGameNumber) : 1,
+                startNewSession: Boolean(data.get("newSession")),
+            },
+        }));
+    }
+}
+
+if (!customElements.get("game-setup-dialog")) {
+    customElements.define("game-setup-dialog", GameSetupDialog);
 }

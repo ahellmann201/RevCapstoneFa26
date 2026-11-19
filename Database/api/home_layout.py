@@ -16,6 +16,7 @@ class LayoutEntry(BaseModel):
     id: str = Field(max_length=32)
     slot: int = Field(ge=0, le=11, strict=True)
     size: Literal["small", "large"] | None = None
+    color: Literal["orange", "amber", "deepTeal", "teal", "slateTeal", "offWhite", "errorRed"] | None = None
 
 class HomeLayoutInput(BaseModel):
     model_config = ConfigDict(extra="forbid")

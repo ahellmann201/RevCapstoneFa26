@@ -59,6 +59,7 @@ export async function loadAccountInfoToFields() {
     const displayNameField = document.getElementById("display-name-field");
     const displayName = await Database.getCachedDisplayNameBlank();
     if (displayName != null) displayNameField.value = displayName;
+    initialDisplayName = displayNameField.value;
 
     await setMainhandSelection(mainhand);
 }

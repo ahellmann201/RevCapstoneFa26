@@ -78,8 +78,16 @@ const observer = new MutationObserver(() => {
     if (typeof document !== "undefined") translatePage();
 });
 window[observerKey] = observer;
+function interfaceRoots(root) {
+    const roots = [root];
+    for (let i = 0; i < roots.length; i++) {
+        for (const element of roots[i].querySelectorAll("*")) if (element.shadowRoot) roots.push(element.shadowRoot);
+    }
+    return roots;
+}
 function observeInterface() {
-    if (document.body) observer.observe(document.body, {
+    if (!document.body) return;
+    for (const root of interfaceRoots(document.body)) observer.observe(root, {
         subtree: true, childList: true, characterData: true, attributes: true,
         attributeFilter: ["placeholder", "title", "aria-label", "alt"],
     });
@@ -88,18 +96,16 @@ function observeInterface() {
 export function translatePage(root = document) {
     observer.disconnect();
     document.documentElement.lang = currentLanguage;
-    for (const element of root.querySelectorAll("[data-i18n]")) {
-        element.textContent = translate(element.dataset.i18n);
+    for (const target of interfaceRoots(root)) {
+        for (const element of target.querySelectorAll("[data-i18n]")) element.textContent = translate(element.dataset.i18n);
+        for (const element of target.querySelectorAll("[data-i18n-placeholder]")) element.setAttribute("placeholder", translate(element.dataset.i18nPlaceholder));
+        for (const picker of target.querySelectorAll("[data-language-picker]")) {
+            picker.value = currentLanguage;
+            picker.setAttribute("aria-label", translate("Language"));
+            syncSidebarLanguagePicker(picker);
+        }
+        translateInterface(target, translateText);
     }
-    for (const element of root.querySelectorAll("[data-i18n-placeholder]")) {
-        element.setAttribute("placeholder", translate(element.dataset.i18nPlaceholder));
-    }
-    for (const picker of root.querySelectorAll("[data-language-picker]")) {
-        picker.value = currentLanguage;
-        picker.setAttribute("aria-label", translate("Language"));
-        syncSidebarLanguagePicker(picker);
-    }
-    translateInterface(root, translateText);
     observeInterface();
 }
 

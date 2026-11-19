@@ -60,3 +60,8 @@
 .home-resize-handle:hover { background: color-mix(in srgb, #27b3b0 16%, transparent); }
 .home-resizing { user-select: none; -webkit-user-select: none; }
 .home-resizing .home-edit-module { animation: none; }
+
+.home-modules > .home-color-custom, .home-edit-grid > .home-color-custom, #home-module-options .home-color-option {
+    background: var(--home-module-background); color: var(--home-module-foreground);
+}
+.home-color-custom .home-widget-content, .home-color-custom .home-widget-metric strong, .home-color-custom .home-widget-footer { color: var(--home-module-foreground); }

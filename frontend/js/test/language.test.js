@@ -132,9 +132,9 @@ it("translates the real appearance controls in every language without changing t
     for (const code of ["es", "fr", "de", "zh-CN", "en"]) {
         setLanguage(code);
         expect(document.querySelector("label").textContent).toBe(translations[code].Appearance);
+        expect(document.querySelector('[value="auto"]').textContent).toBe(translations[code].Auto);
         expect(document.querySelector('[value="dark"]').textContent).toBe(translations[code].Dark);
         expect(document.querySelector('[value="light"]').textContent).toBe(translations[code].Light);
-        expect(document.querySelector("small").textContent).toBe(translations[code]["Saved on this browser, including when logged out."]);
         expect(document.querySelector("select").value).toBe("light");
         expect(getTheme()).toBe("light");
     }
@@ -201,4 +201,21 @@ it("uses the most specific dynamic message and preserves its numeric values", as
     expect(language.translateText("Frame 2 of 10 · Shot 1")).toBe("Cuadro 2 de 10 · Lanzamiento 1");
     language.setLanguage("fr");
     expect(language.translateText("Frame 2 of 10 · Shot 1")).toBe("Frame 2 sur 10 · Lancer 1");
+});
+
+
+it("translates dynamic shadow-root component content while preserving user names", async () => {
+    const language = await import("../language.js");
+    const host = document.createElement("div");
+    const shadow = host.attachShadow({ mode: "open" });
+    shadow.innerHTML = '<button>Start Game</button><p>Choose an event and establishment, or leave them blank.</p><span translate="no">Save</span>';
+    document.body.append(host);
+    language.setLanguage("es");
+    expect(shadow.querySelector("button").textContent).toBe("Iniciar partida");
+    expect(shadow.querySelector("p").textContent).not.toContain("Choose an event");
+    shadow.querySelector("p").textContent = "Loading…";
+    await vi.waitFor(() => expect(shadow.querySelector("p").textContent).toBe("Cargando…"));
+    expect(shadow.querySelector("span").textContent).toBe("Save");
+    language.setLanguage("en");
+    expect(shadow.querySelector("p").textContent).toBe("Loading…");
 });

@@ -12,6 +12,7 @@ loadNavbar();
 const list = document.getElementById("games-list");
 const status = document.getElementById("games-status");
 const search = document.getElementById("game-search");
+const sessionFilter = document.getElementById("session-game-filter");
 const activeId = getActiveGameId();
 const active = activeId && getGameState(activeId);
 document.getElementById("resume-local-game").hidden = !active || active.gameFinished;
@@ -56,10 +57,31 @@ function dateLabel(value) {
     return new Intl.DateTimeFormat(getLanguage(), { dateStyle: "medium", timeZone: "UTC" }).format(date);
 }
 
+function updateSessionFilterOptions() {
+    const selectedGameId = sessionFilter.value;
+    sessionFilter.replaceChildren(new Option("All games", ""));
+    for (const game of games) {
+        const session = sessions.get(game.session_id);
+        const event = events.get(session?.event_id);
+        const name = event?.event_name || "Unassigned game";
+        const date = dateLabel(session?.date_time);
+        const option = new Option(
+            `Game #${game.game_id} · Game ${game.game_number} · ${name} · ${date}`,
+            String(game.game_id),
+        );
+        sessionFilter.append(option);
+    }
+    sessionFilter.value = games.some((game) => String(game.game_id) === selectedGameId) ? selectedGameId : "";
+}
+
 function render() {
     const query = search.value.trim().toLocaleLowerCase();
+    const referenceGame = games.find((game) => String(game.game_id) === sessionFilter.value);
+    const sessionGames = referenceGame
+        ? games.filter((game) => String(game.session_id) === String(referenceGame.session_id))
+        : games;
     list.replaceChildren();
-    for (const game of games) {
+    for (const game of sessionGames) {
         const session = sessions.get(game.session_id);
         const event = events.get(session?.event_id);
         const name = event?.event_name || "Unassigned game";
@@ -100,6 +122,7 @@ function render() {
                 }
                 sessionStorage.removeItem(`savedGame:${game.game_id}:cache`);
                 games = games.filter(record => record.game_id !== game.game_id);
+                updateSessionFilterOptions();
                 render();
             } catch {
                 status.textContent = translate("Could not delete the game. Please try again.");
@@ -118,15 +141,19 @@ function render() {
         item.append(link, rename, remove);
         list.append(item);
     }
-    status.textContent = list.children.length ? "" : games.length ? "No games match your search." : "No saved games yet. Start a game to get going.";
+    status.textContent = list.children.length
+        ? referenceGame ? `Showing ${list.children.length} ${list.children.length === 1 ? "game" : "games"} from the session of Game #${referenceGame.game_id}.` : ""
+        : games.length ? "No games match your search or session filter." : "No saved games yet. Start a game to get going.";
 }
 search.addEventListener("input", render);
+sessionFilter.addEventListener("change", render);
 window.addEventListener("languagechange", render);
 
 async function loadGames() {
     if (!getAuthToken()) {
         status.textContent = "Log in to see your saved games. You can also start a game as a guest.";
         search.disabled = true;
+        sessionFilter.disabled = true;
         return;
     }
     try {
@@ -136,6 +163,7 @@ async function loadGames() {
         games = savedGames.sort((a, b) => b.game_id - a.game_id);
         for (const session of savedSessions) sessions.set(session.session_id, session);
         for (const event of savedEvents) events.set(event.event_id, event);
+        updateSessionFilterOptions();
         render();
     } catch {
         status.textContent = "Could not load your games. Refresh to try again.";

@@ -181,3 +181,17 @@ it("explains an outdated API and preserves the unsaved expanded layout", async (
     expect(document.querySelector('.home-edit-module[data-home-module="stats"]').style.gridColumn).toBe("1 / span 2");
     expect(document.querySelector('[data-action="save"]').disabled).toBe(false);
 });
+
+
+it("preserves Nadia's color presets together with our saved widget sizes", () => {
+    localStorage.setItem("revmetrix:home-layout:v1:guest", JSON.stringify([{ id: "stats", slot: 0, size: "large" }]));
+    initHomeLayout();
+    document.querySelector('.home-edit-module[data-home-module="stats"]').click();
+    [...document.querySelectorAll("#home-module-options button")].find(button => button.textContent === "Change button color").click();
+    [...document.querySelectorAll("#home-module-options button")].find(button => button.textContent === "Button amber").click();
+    document.querySelector('[data-action="save"]').click();
+    const saved = JSON.parse(localStorage.getItem("revmetrix:home-layout:v1:guest"));
+    expect(saved[0]).toMatchObject({ id: "stats", size: "large", color: "amber" });
+    expect(validHomeLayout(saved)).toBe(true);
+    expect(validHomeLayout([{ id: "stats", slot: 0, color: "url(unsafe)" }])).toBe(false);
+});

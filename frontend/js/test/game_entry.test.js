@@ -6,6 +6,7 @@ vi.mock("../weekly_events.js", () => ({ loadWeeklyEvents: vi.fn() }));
 vi.mock("../authentication.js", () => ({ getAuthToken: vi.fn() }));
 vi.mock("../requests.js", () => ({ getDisplayName: vi.fn() }));
 vi.mock("../data_handling.js", () => ({ parseDisplayName: vi.fn() }));
+vi.mock("../language.js", () => ({ translate: (key) => key }));
 vi.mock("../cache.js", () => ({ getActiveGameId: vi.fn(), getGameState: vi.fn() }));
 import { getActiveGameId, getGameState } from "../cache.js";
 import { getAuthToken } from "../authentication.js";
@@ -15,6 +16,8 @@ beforeEach(() => {
     document.body.innerHTML = readFileSync("frontend/index.html", "utf8");
     vi.stubGlobal("window", { location: { search: "", href: "/index.html" } });
     for (const dialog of document.querySelectorAll("dialog")) { dialog.showModal = vi.fn(); dialog.close = vi.fn(); }
+    const setupDialog = document.querySelector("game-setup-dialog")?.shadowRoot?.querySelector("dialog");
+    if (setupDialog) { setupDialog.showModal = vi.fn(); setupDialog.close = vi.fn(); }
     getActiveGameId.mockReturnValue("active"); getGameState.mockReturnValue({ currentFrame: 3 });
 });
 afterEach(() => vi.unstubAllGlobals());
@@ -33,8 +36,9 @@ it("preserves the weekly event choice when choosing a new game", async () => {
     const { startGame } = await import("../index.js");
     await startGame(7);
     document.getElementById("new-game-choice").click();
-    await vi.waitFor(() => expect(document.getElementById("game-setup-event").value).toBe("7"));
-    document.getElementById("game-setup-form").dispatchEvent(new Event("submit", { cancelable: true }));
+    const setup = document.querySelector("game-setup-dialog").shadowRoot;
+    await vi.waitFor(() => expect(setup.querySelector('[name="event"]').value).toBe("7"));
+    setup.querySelector("form").dispatchEvent(new Event("submit", { cancelable: true }));
     expect(window.location.href).toBe("/game.html?new=1");
     expect(JSON.parse(sessionStorage.getItem("pendingGameSetup")).eventId).toBe(7);
 });

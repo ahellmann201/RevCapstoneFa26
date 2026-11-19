@@ -9,7 +9,9 @@ body { color: var(--app-text); }
 .start-game-link:hover { background: var(--button-color-2); }
 .local-game-link { display: block; padding: 14px 16px; margin-bottom: 20px; border: 1px solid var(--appearance-outline-strong, #52717b); border-radius: 12px; color: var(--button-color-2); text-decoration: none; }
 .local-game-link[hidden] { display: none; }
-.game-search-label { display: block; margin-bottom: 8px; color: var(--appearance-text-soft, #d6e2e5); }
+.session-filter-label, .game-search-label { display: block; margin-bottom: 8px; color: var(--appearance-text-soft, #d6e2e5); }
+#session-game-filter { width: 100%; min-height: 48px; padding: 10px 12px; margin-bottom: 4px; border: 1px solid var(--appearance-outline-strong, #52717b); border-radius: 12px; background: var(--appearance-surface, #092b35); color: var(--app-text); font: inherit; }
+.session-filter-help { margin: 0 0 18px; color: var(--appearance-muted, #a6bdc3); font-size: .9rem; }
 #game-search { width: 100%; min-height: 48px; padding: 12px; margin-bottom: 16px; border: 1px solid var(--appearance-outline-strong, #52717b); border-radius: 12px; background: var(--appearance-surface, #092b35); color: var(--app-text); font: inherit; }
 #game-search::placeholder { color: var(--appearance-muted, #a6bdc3); }
 #games-status { color: var(--appearance-muted, #a6bdc3); margin-bottom: 16px; }

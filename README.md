@@ -612,3 +612,14 @@ data, and failed loads show an error rather than made-up statistics.
 Widget size is saved as an optional `size` value (`small`/`large`) within the
 existing layout JSON. Deploy the updated API before saving expanded layouts;
 no SQL schema migration is needed. Older layouts without sizes remain valid.
+
+
+The merged account settings support **Auto** appearance, which follows the
+system light/dark setting. Home widgets also support theme color presets through
+the tile options; their preset names are validated and saved alongside sizes in
+the existing layout JSON. Custom colors preserve readable text in both themes.
+
+The shared game-start dialog can continue a recent matching session or start a
+new session. The Games page can filter games by another game's session, while
+retaining nicknames, rename/delete controls, and search. The shared dialog also
+participates in automatic interface translations, including its dynamic content.

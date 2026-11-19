@@ -19,24 +19,30 @@ const post = (path, body) => request(path, {
 export async function createSavedGame(database, remember) {
     await request("/auth/me");
     if (!database.eventId) {
-        const event = database.selectedEventId
-            ? { event_id: database.selectedEventId }
-            : await post("/game-setup/unassigned-event", {});
+        const event = database.selectedSessionId
+            ? { event_id: database.selectedSessionEventId }
+            : database.selectedEventId
+                ? { event_id: database.selectedEventId }
+                : await post("/game-setup/unassigned-event", {});
         database.eventId = event.event_id;
         remember();
     }
     if (!database.sessionId) {
-        const session = await post("/sessions", {
-            event_id: database.eventId, establishment_id: database.selectedEstablishmentId ?? null,
-            date_time: new Date().toISOString(), opponent: null,
-            score: null, record: null,
-        });
-        database.sessionId = session.session_id;
+        if (database.selectedSessionId) {
+            database.sessionId = database.selectedSessionId;
+        } else {
+            const session = await post("/sessions", {
+                event_id: database.eventId, establishment_id: database.selectedEstablishmentId ?? null,
+                date_time: new Date().toISOString(), opponent: null,
+                score: null, record: null,
+            });
+            database.sessionId = session.session_id;
+        }
         remember();
     }
     if (!database.game) {
         database.game = await post("/games", {
-            session_id: database.sessionId, game_number: 1,
+            session_id: database.sessionId, game_number: database.selectedGameNumber ?? 1,
             lane_number: null, game_score: null, game_result: null,
         });
         remember();

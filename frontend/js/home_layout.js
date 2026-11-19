@@ -19,6 +19,26 @@ const ITEMS = {
     settings: { label: "Account Settings", href: "/account_settings.html", width: 1, height: 1 },
 };
 const DEFAULT = [{ id: "events", slot: 0 }, { id: "game", slot: 1 }, { id: "week", slot: 2 }];
+const COLOR_PRESETS = {
+    orange: { label: "Button orange", background: "--button-color-1", foreground: "--off-black" },
+    amber: { label: "Button amber", background: "--button-color-2", foreground: "--off-black" },
+    deepTeal: { label: "Background", background: "--bg-color", foreground: "--app-text" },
+    teal: { label: "Lighter background", background: "--lighter-bg-color", foreground: "--app-text" },
+    slateTeal: { label: "Lightest background", background: "--lighter-bg-color-2", foreground: "--app-text" },
+    offWhite: { label: "Off-white", background: "--off-white", foreground: "--off-black" },
+    errorRed: { label: "Error red", background: "--error-color", foreground: "--off-white" },
+};
+function applyModuleColor(node, entry) {
+    const preset = COLOR_PRESETS[entry.color];
+    node.classList.toggle("home-color-custom", Boolean(preset));
+    if (preset) {
+        node.style.setProperty("--home-module-background", `var(${preset.background})`);
+        node.style.setProperty("--home-module-foreground", `var(${preset.foreground})`);
+    } else {
+        node.style.removeProperty("--home-module-background");
+        node.style.removeProperty("--home-module-foreground");
+    }
+}
 const SLOTS = 12;
 export const EXPANDABLE_MODULES = new Set(["stats", "games", "arsenal"]);
 export function moduleDimensions(id, size = null) {
@@ -37,7 +57,7 @@ export function validHomeLayout(layout) {
     if (!Array.isArray(layout) || layout.length > SLOTS) return false;
     const ids = new Set(), occupied = new Set();
     return layout.every((entry) => {
-        if (!entry || ids.has(entry.id)) return false;
+        if (!entry || ids.has(entry.id) || (entry.color != null && !Object.hasOwn(COLOR_PRESETS, entry.color))) return false;
         const cells = moduleCells(entry.id, entry.slot, entry.size);
         if (!cells.length || cells.some((cell) => occupied.has(cell))) return false;
         ids.add(entry.id); cells.forEach((cell) => occupied.add(cell));
@@ -129,6 +149,7 @@ export function initHomeLayout() {
         for (const entry of editing ? draft : layout) {
             nodes[entry.id].hidden = false;
             position(nodes[entry.id], entry);
+            applyModuleColor(nodes[entry.id], entry);
             if (EXPANDABLE_MODULES.has(entry.id)) renderHomeWidget(nodes[entry.id], entry.id, entry.size === "large");
         }
         editGrid.replaceChildren();
@@ -137,6 +158,7 @@ export function initHomeLayout() {
             moduleCells(entry.id, entry.slot, entry.size).forEach((cell) => occupied.add(cell));
             const button = document.createElement("button"); button.type = "button"; button.className = "home-edit-module";
             button.textContent = ITEMS[entry.id].label;
+            applyModuleColor(button, entry);
             button.dataset.homeModule = entry.id;
             button.dataset.slot = String(entry.slot);
             position(button, entry);
@@ -254,9 +276,30 @@ export function initHomeLayout() {
     function manage(entry) {
         options.replaceChildren(); message.textContent = "";
         document.getElementById("home-module-title").textContent = ITEMS[entry.id].label;
+        if (entry.id !== "week") option("Change button color", () => chooseColor(entry.id));
         option("Move module", () => { moving = entry.id; picker.close(); status.textContent = "Tap an empty space to move this module."; render(); });
         option("Remove module", () => { draft = draft.filter((item) => item.id !== entry.id); moving = null; picker.close(); render(); });
         picker.showModal();
+    }
+    function chooseColor(id) {
+        options.replaceChildren(); message.textContent = "Choose a color preset from the home page theme.";
+        document.getElementById("home-module-title").textContent = "Button color";
+        option("Theme default", () => {
+            draft = draft.map(entry => { if (entry.id !== id) return entry; const { color, ...rest } = entry; return rest; });
+            picker.close(); render();
+        });
+        for (const [color, preset] of Object.entries(COLOR_PRESETS)) {
+            const button = document.createElement("button"); button.type = "button";
+            button.className = "home-color-option"; button.textContent = preset.label;
+            button.style.setProperty("--home-module-background", `var(${preset.background})`);
+            button.style.setProperty("--home-module-foreground", `var(${preset.foreground})`);
+            button.setAttribute("aria-pressed", String(draft.find(entry => entry.id === id)?.color === color));
+            button.addEventListener("click", () => {
+                draft = draft.map(entry => entry.id === id ? { ...entry, color } : entry);
+                picker.close(); render();
+            });
+            options.append(button);
+        }
     }
     document.getElementById("close-module-picker").addEventListener("click", () => picker.close());
     function finish() {

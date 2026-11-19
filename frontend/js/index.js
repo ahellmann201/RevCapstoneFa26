@@ -2,12 +2,12 @@
 import { loadNavbar } from "./navbar.js";
 import { initHomeLayout } from "./home_layout.js";
 import { getActiveGameId, getGameState } from "./cache.js";
-import { listAll } from "./game_persistence.js";
 import { loadWeeklyEvents } from "./weekly_events.js";
 import Event from "./objects/event.js"
 import { getAuthToken } from "./authentication.js";
 import { getCachedDisplayName } from "./database.js";
 import { parseDisplayName } from "./data_handling.js"
+import "./popups.js";
 loadNavbar();
 initHomeLayout();
 
@@ -89,6 +89,19 @@ document.getElementById("start-game-button").addEventListener("click", () => { v
 export function scheduleEvent() {
     window.location.href = "/events.html"
 }
+
+const gameSetupDialog = document.querySelector("game-setup-dialog");
+gameSetupDialog.addEventListener("game-setup-submit", ({ detail }) => {
+    sessionStorage.setItem("pendingGameSetup", JSON.stringify({
+        eventId: detail.eventId,
+        establishmentId: detail.establishmentId,
+        sessionId: detail.sessionId,
+        sessionEventId: detail.sessionEventId,
+        gameNumber: detail.gameNumber,
+    }));
+    window.location.href = forceNewGame || requestedNewGame || weeklyGame ? "/game.html?new=1" : "/game.html";
+});
+
 export async function startGame(selectedEventId = null, startNew = false) {
     const activeId = getActiveGameId();
     const active = activeId && getGameState(activeId);
@@ -104,58 +117,8 @@ export async function startGame(selectedEventId = null, startNew = false) {
         window.location.href = forceNewGame || requestedNewGame ? "/game.html?new=1" : "/game.html";
         return;
     }
-    const dialog = document.getElementById("game-setup-dialog");
-    document.getElementById("game-setup-form").reset();
-    dialog.showModal();
-    const eventSelect = document.getElementById("game-setup-event");
-    const establishmentSelect = document.getElementById("game-setup-establishment");
-    eventSelect.replaceChildren(new Option("No event", ""));
-    establishmentSelect.replaceChildren(new Option("No establishment", ""));
-    const message = document.querySelector(".game-setup-note");
-    message.textContent = "When logged in, Next Shot saves your progress automatically. An event is optional.";
-    if (!getAuthToken()) return;
-    const submit = document.querySelector('#game-setup-form button[type="submit"]');
-    submit.disabled = true;
-    try {
-        const [events, establishments] = await Promise.all([listAll("/events"), listAll("/establishments")]);
-        for (const event of events) {
-            if (event.enabled === false || event.enabled === 0 || event.event_type === "SystemUnassigned") continue;
-            eventSelect.append(new Option(event.event_name, event.event_id));
-        }
-        for (const establishment of establishments) {
-            if (establishment.enabled === false || establishment.enabled === 0) continue;
-            establishmentSelect.append(new Option(establishment.establishment_name, establishment.establishment_id));
-        }
-        if (selectedEventId !== null) {
-            const selected = events.find((event) => event.event_id === selectedEventId
-                && event.enabled !== false && event.enabled !== 0 && event.event_type !== "SystemUnassigned");
-            if (selected) {
-                eventSelect.value = String(selected.event_id);
-                const house = establishments.find((entry) => selected.location_id != null
-                    && entry.location_id === selected.location_id && entry.enabled !== false && entry.enabled !== 0);
-                if (house) establishmentSelect.value = String(house.establishment_id);
-            } else message.textContent = "This event is no longer available. Please choose another event.";
-        }
-    } catch {
-        message.textContent = "Could not load your choices. You can continue without an event or establishment.";
-    } finally {
-        submit.disabled = false;
-    }
+    await gameSetupDialog.showSetup({ eventId: selectedEventId });
 }
-
-document.getElementById("cancel-game-setup").addEventListener("click", () => {
-    document.getElementById("game-setup-dialog").close();
-});
-document.getElementById("game-setup-form").addEventListener("submit", (event) => {
-    event.preventDefault();
-    const data = new FormData(document.getElementById("game-setup-form"));
-    sessionStorage.setItem("pendingGameSetup", JSON.stringify({
-        eventId: data.get("event") ? Number(data.get("event")) : null,
-        establishmentId: data.get("establishment") ? Number(data.get("establishment")) : null,
-    }));
-    document.getElementById("game-setup-dialog").close();
-    window.location.href = forceNewGame || requestedNewGame || weeklyGame ? "/game.html?new=1" : "/game.html";
-});
 
 document.getElementById("continue-game-choice").addEventListener("click", () => {
     sessionStorage.removeItem("pendingGameSetup");
