@@ -19,7 +19,7 @@ it("removes a module and saves per account, preserving the original button and i
     sessionStorage.setItem("userID", "42");
     const start = document.getElementById("start-game-button"), handler = vi.fn(); start.addEventListener("click", handler);
     initHomeLayout();
-    document.querySelector(".home-edit-module").click();
+    document.querySelector(".home-edit-grid #schedule-event-button").click();
     [...document.querySelectorAll("#home-module-options button")].find((button) => button.textContent === "Remove module").click();
     document.querySelector('[data-action="save"]').click();
     expect(document.getElementById("schedule-event-button").hidden).toBe(true);
@@ -36,8 +36,8 @@ it("removes a module and saves per account, preserving the original button and i
 it("cancel discards changes and bad stored layouts fall back to defaults", () => {
     localStorage.setItem("revmetrix:home-layout:v1:guest", '[{"id":"week","slot":11}]');
     initHomeLayout();
-    expect(document.querySelectorAll(".home-edit-module")).toHaveLength(3);
-    document.querySelector(".home-edit-module").click();
+    expect(document.querySelectorAll(".home-edit-grid > #schedule-event-button, .home-edit-grid > #start-game-button, .home-edit-grid > .week-schedule")).toHaveLength(3);
+    document.querySelector(".home-edit-grid #schedule-event-button").click();
     [...document.querySelectorAll("#home-module-options button")].find((button) => button.textContent === "Remove module").click();
     document.querySelector('[data-action="cancel"]').click();
     expect(document.getElementById("schedule-event-button").hidden).toBe(false);
@@ -45,7 +45,7 @@ it("cancel discards changes and bad stored layouts fall back to defaults", () =>
 
 it("adds an optional page shortcut and persists it without changing defaults", () => {
     initHomeLayout();
-    expect(document.querySelectorAll(".home-edit-module")).toHaveLength(3);
+    expect(document.querySelectorAll(".home-edit-grid > #schedule-event-button, .home-edit-grid > #start-game-button, .home-edit-grid > .week-schedule")).toHaveLength(3);
     document.querySelector(".home-empty-module").click();
     const add = [...document.querySelectorAll("#home-module-options button")].find((button) => button.textContent.startsWith("Ball Arsenal"));
     expect(add.disabled).toBe(false); add.click();
