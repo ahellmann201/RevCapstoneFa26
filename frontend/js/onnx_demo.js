@@ -55,8 +55,6 @@ const uploadStatus = document.getElementById("upload-status");
 const uploadResult = document.getElementById("upload-result");
 const analysisResult = document.getElementById("ciclopes-analysis-result");
 const analysisSummary = document.getElementById("analysis-summary");
-const exportShowcaseButton = document.getElementById("export-showcase");
-const showcaseStatus = document.getElementById("showcase-status");
 const lanePathVisual = document.getElementById("lane-path-visual");
 const sendCiclopesAnalysisButton = document.getElementById("send-ciclopes-analysis");
 const recordStartButton = document.getElementById("record-start");
@@ -64,13 +62,19 @@ const recordStopButton = document.getElementById("record-stop");
 const recordStatus = document.getElementById("record-status");
 const cameraPreview = document.getElementById("camera-preview");
 const videoPreview = document.getElementById("video-preview");
+const sourceVideo = document.createElement("video");
+sourceVideo.muted = true;
+sourceVideo.playsInline = true;
 const trackingPreviewPanel = document.getElementById("tracking-preview-panel");
-const trackingOverlay = document.getElementById("tracking-overlay");
-const trackingOverlayContext = trackingOverlay.getContext("2d");
+const generateTrackingVideoButton = document.getElementById("generate-tracking-video");
+const trackingVideoStatus = document.getElementById("tracking-video-status");
+const downloadTrackingVideo = document.getElementById("download-tracking-video");
 const videoFrameReview = document.getElementById("video-frame-review");
 const frameCount = document.getElementById("frame-count");
 const frameList = document.getElementById("frame-list");
 const frameProcessingStatus = document.getElementById("frame-processing-status");
+const laneSelectionPanel = document.getElementById("lane-selection-panel");
+const laneSelectionOptions = document.getElementById("lane-selection-options");
 const ballSeedDrawButton = document.getElementById("ball-seed-draw");
 const ballSeedApplyButton = document.getElementById("ball-seed-apply");
 const ballSeedStatus = document.getElementById("ball-seed-status");
@@ -136,6 +140,12 @@ const TARGET_ONNX_BUDGET_MS = 10_000;
 const MIN_ONNX_OBSERVATIONS_PER_SECOND = 2;
 const MAX_INFERENCE_STRIDE = 6;
 const forceLegacy60Benchmark = new URLSearchParams(window.location.search).get("benchmark") === "legacy60";
+// Pad each side of the detected pin end. Set to 0 to disable; a small ratio
+// adds clearance beyond the far lane edges without moving the near corners.
+const DETECTED_LANE_FAR_END_PADDING_RATIO = 0.04;
+const LANE_POLYGON_NMS_IOU = 0.68;
+const MIN_LANE_AREA_RATIO = 0.018;
+const MIN_LANE_VERTICAL_SPAN = 0.2;
 
 let frameDimensions = null;
 let laneCorners = null;
@@ -143,6 +153,7 @@ let result = null;
 let draggedCorner = -1;
 let activePan = null;
 let ballSeedMode = false;
+let ballTrackingApplied = false;
 let ballDrawStart = null;
 let ballBoxDraft = null;
 let canRunInference = false;
@@ -157,6 +168,8 @@ let videoProcessingInProgress = false;
 let ballReprocessPending = false;
 let activeInferenceStride = 2;
 let startingBallSeed = null;
+let ballTrackingInProgress = false;
+let trackingVideoGenerationInProgress = false;
 let recorder = null;
 let cameraStream = null;
 let recordingChunks = [];
@@ -167,6 +180,48 @@ let videoFrameBaseline = null;
 let lockedLaneBaseline = null;
 let laneAnchorFrameBaseline = -1;
 let stillLaneBaseline = null;
+let showcaseExportReady = false;
+let generatedTrackingVideoUrl = null;
+
+function updateTrackingVideoButton() {
+  generateTrackingVideoButton.disabled = !currentVideoUrl || !videoFrames.some((frame) => !frame.processing && frame.result)
+    || videoProcessingInProgress || ballTrackingInProgress || ballSeedMode
+    || (startingBallSeed && !ballTrackingApplied) || trackingVideoGenerationInProgress;
+}
+
+function discardGeneratedTrackingVideo() {
+  if (generatedTrackingVideoUrl) URL.revokeObjectURL(generatedTrackingVideoUrl);
+  generatedTrackingVideoUrl = null;
+  videoPreview.pause();
+  videoPreview.removeAttribute("src");
+  videoPreview.load();
+  downloadTrackingVideo.removeAttribute("href");
+  downloadTrackingVideo.hidden = true;
+  trackingPreviewPanel.hidden = true;
+  generateTrackingVideoButton.textContent = "Generate Tracking Preview";
+  updateTrackingVideoButton();
+}
+
+function invalidateGeneratedTrackingVideo() {
+  if (!generatedTrackingVideoUrl) return;
+  discardGeneratedTrackingVideo();
+  trackingVideoStatus.textContent = "Tracking changed. Generate a new preview to include the updates.";
+}
+
+function updateBallSeedActions() {
+  const hasSeed = Boolean(startingBallSeed);
+  const canDrawNewSeed = !hasSeed || ballTrackingApplied;
+  const canApplySeed = hasSeed && !ballTrackingApplied;
+  ballSeedDrawButton.hidden = ballSeedMode || !canDrawNewSeed;
+  ballSeedApplyButton.hidden = !ballSeedMode && !canApplySeed;
+  ballSeedDrawButton.textContent = "Draw Ball Bounding Box";
+  ballSeedApplyButton.textContent = ballSeedMode
+    ? "Stop Drawing and Apply Box"
+    : "Apply Box and Track Video";
+  ballSeedDrawButton.disabled = selectedVideoFrame < 0 || videoProcessingInProgress || ballTrackingInProgress;
+  ballSeedApplyButton.disabled = videoProcessingInProgress || ballTrackingInProgress || (!hasSeed && !ballSeedMode);
+  updateTrackingVideoButton();
+}
 
 function renderLanePath(analysis) {
   lanePathVisual.replaceChildren();
@@ -251,12 +306,6 @@ function renderLanePath(analysis) {
     add("circle", { cx: first.x, cy: first.y, r: 5, fill: "#45d6a1", stroke: "#07382d", "stroke-width": 2 });
     if (coordinates.length > 1) {
       add("circle", { cx: last.x, cy: last.y, r: 6, fill: "#ff704f", stroke: "#4a1c14", "stroke-width": 2 });
-      add("text", {
-        x: Math.min(laneX + laneWidth - 4, Math.max(laneX + 4, last.x)),
-        y: Math.max(laneY + laneHeight + 18, last.y - 10),
-        "text-anchor": last.x > laneX + laneWidth - 36 ? "end" : "start",
-        fill: "#7a2516", "font-size": 10, "font-weight": 800,
-      }, "LAST DETECTED");
     }
   }
 
@@ -381,11 +430,17 @@ async function renderShowcaseVideo() {
     ? candidates
     : Array.from({ length: maxSlides }, (_, index) => candidates[Math.round(index * (candidates.length - 1) / (maxSlides - 1))]);
   const stream = canvas.captureStream(30);
-  const mimeType = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"]
+  const mimeType = [
+    "video/mp4;codecs=avc1.42E01E",
+    "video/mp4",
+    "video/webm;codecs=vp9",
+    "video/webm;codecs=vp8",
+    "video/webm",
+  ]
     .find((type) => MediaRecorder.isTypeSupported(type));
   if (!mimeType) {
     stream.getTracks().forEach((track) => track.stop());
-    throw new Error("This browser does not support WebM video export.");
+    throw new Error("This browser does not support MP4 or WebM video export.");
   }
 
   const chunks = [];
@@ -492,6 +547,20 @@ async function renderShowcaseVideo() {
   }
 }
 
+window.exportCiclopesShowcaseVideo = async function exportCiclopesShowcaseVideo() {
+  if (!showcaseExportReady) {
+    throw new Error("Run Ciclopes analysis after the latest video or lane changes before exporting.");
+  }
+  const blob = await renderShowcaseVideo();
+  const downloadUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = downloadUrl;
+    link.download = `ciclopes-shot-showcase.${blob.type.includes("mp4") ? "mp4" : "webm"}`;
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 60_000);
+  return blob;
+};
+
 const localDevelopmentHost = ["localhost", "127.0.0.1"].includes(window.location.hostname);
 let ciclopesApiBaseUrl = import.meta.env.VITE_CICLOPES_API_BASE
   || (localDevelopmentHost ? `${window.location.origin}/ciclopes` : "");
@@ -547,59 +616,55 @@ function captureVideoBaseline() {
   ballResetButton.disabled = false;
 }
 
-function drawTrackingOverlay() {
-  if (!videoPreview.videoWidth || !videoPreview.videoHeight || !videoFrames.length) return;
-  const width = videoPreview.videoWidth;
-  const height = videoPreview.videoHeight;
-  if (trackingOverlay.width !== width || trackingOverlay.height !== height) {
-    trackingOverlay.width = width;
-    trackingOverlay.height = height;
-  }
-  trackingOverlayContext.clearRect(0, 0, width, height);
-  const time = videoPreview.currentTime || 0;
-  const frame = videoFrames.reduce((closest, item) =>
-    Math.abs(item.timeSeconds - time) < Math.abs(closest.timeSeconds - time) ? item : closest, videoFrames[0]);
+function drawTrackingAnnotations(context, width, height, timeSeconds, frames = videoFrames, seed = startingBallSeed) {
+  if (!frames.length) return;
+  const frame = frames.reduce((closest, item) =>
+    Math.abs(item.timeSeconds - timeSeconds) < Math.abs(closest.timeSeconds - timeSeconds) ? item : closest, frames[0]);
   const corners = frame.corners ?? frame.result?.candidates?.[0]?.corners;
+  context.save();
   if (corners?.length === 4) {
-    trackingOverlayContext.beginPath();
+    context.beginPath();
     corners.forEach((point, index) => {
       const x = point.x * width;
       const y = point.y * height;
-      if (index === 0) trackingOverlayContext.moveTo(x, y);
-      else trackingOverlayContext.lineTo(x, y);
+      if (index === 0) context.moveTo(x, y);
+      else context.lineTo(x, y);
     });
-    trackingOverlayContext.closePath();
-    trackingOverlayContext.lineWidth = Math.max(3, width / 240);
-    trackingOverlayContext.strokeStyle = "#f07800";
-    trackingOverlayContext.fillStyle = "rgba(240, 120, 0, .08)";
-    trackingOverlayContext.fill();
-    trackingOverlayContext.stroke();
+    context.closePath();
+    context.lineWidth = Math.max(3, width / 240);
+    context.strokeStyle = "#f07800";
+    context.fillStyle = "rgba(240, 120, 0, .08)";
+    context.fill();
+    context.stroke();
   }
-  for (const ball of frame.result?.balls ?? []) {
+
+  const balls = [...(frame.result?.balls ?? [])];
+  const seedFrame = seed && frames[seed.frameIndex];
+  if (seed && frame === seedFrame && !balls.some((ball) => ball.source === "manual")) {
+    balls.push({ source: "manual", confidence: 1, box: seed.box });
+  }
+  for (const ball of balls) {
     if (!ball.box) continue;
     const [left, top, right, bottom] = ball.box;
     const confidence = Number.isFinite(Number(ball.confidence)) ? Math.min(1, Math.max(0, Number(ball.confidence))) : 0;
-    trackingOverlayContext.lineWidth = Math.max(3, width / 300);
-    trackingOverlayContext.strokeStyle = ball.source === "detected" ? "#38c889" : ball.source === "manual" ? "#ff4f86" : "#f3c84b";
-    trackingOverlayContext.globalAlpha = Math.max(0.45, confidence);
-    trackingOverlayContext.setLineDash(ball.source === "predicted" ? [Math.max(6, width / 120), Math.max(4, width / 200)] : []);
-    trackingOverlayContext.strokeRect(left * width, top * height, (right - left) * width, (bottom - top) * height);
-    trackingOverlayContext.setLineDash([]);
-    trackingOverlayContext.globalAlpha = 1;
+    context.lineWidth = Math.max(3, width / 300);
+    context.strokeStyle = ball.source === "detected" ? "#38c889" : ball.source === "manual" ? "#ff4f86" : "#f3c84b";
+    context.globalAlpha = Math.max(0.45, confidence);
+    context.setLineDash(ball.source === "predicted" ? [Math.max(6, width / 120), Math.max(4, width / 200)] : []);
+    context.strokeRect(left * width, top * height, (right - left) * width, (bottom - top) * height);
+    context.setLineDash([]);
+    context.globalAlpha = 1;
     const label = ball.source === "manual" ? "Starting box" : `${Math.round(confidence * 100)}%`;
     const fontSize = Math.max(14, width / 75);
-    trackingOverlayContext.font = `700 ${fontSize}px system-ui, sans-serif`;
-    trackingOverlayContext.lineWidth = Math.max(3, width / 400);
-    trackingOverlayContext.strokeStyle = "rgba(0, 0, 0, .8)";
-    trackingOverlayContext.strokeText(label, left * width, Math.max(fontSize, top * height - 5));
-    trackingOverlayContext.fillStyle = "#ffffff";
-    trackingOverlayContext.fillText(label, left * width, Math.max(fontSize, top * height - 5));
+    context.font = `700 ${fontSize}px system-ui, sans-serif`;
+    context.lineWidth = Math.max(3, width / 400);
+    context.strokeStyle = "rgba(0, 0, 0, .8)";
+    context.strokeText(label, left * width, Math.max(fontSize, top * height - 5));
+    context.fillStyle = "#ffffff";
+    context.fillText(label, left * width, Math.max(fontSize, top * height - 5));
   }
+  context.restore();
 }
-
-videoPreview.addEventListener("timeupdate", drawTrackingOverlay);
-videoPreview.addEventListener("seeked", drawTrackingOverlay);
-videoPreview.addEventListener("loadedmetadata", drawTrackingOverlay);
 
 function median(values) {
   if (!values.length) return null;
@@ -707,7 +772,6 @@ function drawCorners() {
       overlayContext.setLineDash([]);
     });
   });
-  drawTrackingOverlay();
 }
 
 function persistSelectedFrame() {
@@ -717,6 +781,7 @@ function persistSelectedFrame() {
 }
 
 function updateSharedLaneCorners(corners) {
+  invalidateGeneratedTrackingVideo();
   const normalized = corners.map(({ x, y }) => ({ x, y }));
   sharedLaneOverride = normalized.map(({ x, y }) => ({ x, y }));
   laneCorners = normalized;
@@ -748,7 +813,10 @@ function pointFromPointer(event) {
 
 previewLayers.forEach((layer) => {
   const { overlayCanvas, preview } = layer;
+  preview.addEventListener("contextmenu", (event) => event.preventDefault());
+  preview.addEventListener("dragstart", (event) => event.preventDefault());
   overlayCanvas.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
     if (ballSeedMode && selectedVideoFrame >= 0) {
       ballDrawStart = pointFromPointer(event);
       ballBoxDraft = [ballDrawStart.x, ballDrawStart.y, ballDrawStart.x, ballDrawStart.y];
@@ -800,13 +868,20 @@ previewLayers.forEach((layer) => {
 });
 
 function finishDrag(event) {
+  const cancelled = event?.type === "pointercancel" || event?.type === "lostpointercapture";
   if (activePan?.overlayCanvas === event?.currentTarget) {
     activePan.layer.preview.classList.remove("is-panning");
     activePan = null;
   }
-  if (ballDrawStart && ballBoxDraft) {
+  if (cancelled && ballDrawStart) {
+    ballSeedStatus.textContent = "Box drawing cancelled.";
+    ballDrawStart = null;
+    ballBoxDraft = null;
+    ballSeedMode = false;
+  } else if (ballDrawStart && ballBoxDraft) {
     const [left, top, right, bottom] = ballBoxDraft;
     if (right - left >= 0.006 && bottom - top >= 0.006) {
+      invalidateGeneratedTrackingVideo();
       const previousSeed = startingBallSeed;
       const originalFrames = previousSeed?.originalFrames ?? videoFrames.map((frame) => ({
         balls: (frame.result?.balls ?? []).filter((ball) => ball.source !== "manual").map((ball) => ({ ...ball, box: [...ball.box] })),
@@ -823,8 +898,10 @@ function finishDrag(event) {
         });
       }
       startingBallSeed = { frameIndex: selectedVideoFrame, box: ballBoxDraft, originalFrames };
+      ballTrackingApplied = false;
+      showcaseExportReady = false;
       ballSeedStatus.textContent = `Starting ball box set on frame ${selectedVideoFrame + 1}. Apply it to track the shot.`;
-      ballSeedApplyButton.disabled = videoProcessingInProgress;
+      updateBallSeedActions();
       renderFrameList();
     } else {
       ballSeedStatus.textContent = "Draw a larger box around the ball.";
@@ -833,13 +910,14 @@ function finishDrag(event) {
   }
   ballDrawStart = null;
   ballSeedMode = false;
-  ballSeedDrawButton.textContent = "Draw starting ball box";
+  updateBallSeedActions();
   draggedCorner = -1;
   drawCorners();
 }
 previewLayers.forEach(({ overlayCanvas }) => {
   overlayCanvas.addEventListener("pointerup", finishDrag);
   overlayCanvas.addEventListener("pointercancel", finishDrag);
+  overlayCanvas.addEventListener("lostpointercapture", finishDrag);
 });
 
 function clearVideoFrames() {
@@ -847,11 +925,11 @@ function clearVideoFrames() {
   videoFrames = [];
   selectedVideoFrame = -1;
   startingBallSeed = null;
+  ballTrackingApplied = false;
   ballSeedMode = false;
   ballDrawStart = null;
   ballBoxDraft = null;
-  ballSeedDrawButton.disabled = true;
-  ballSeedApplyButton.disabled = true;
+  updateBallSeedActions();
   ballSeedStatus.textContent = "Select a video frame to set the ball’s starting position.";
   lockedLane = null;
   sharedLaneOverride = null;
@@ -863,13 +941,14 @@ function clearVideoFrames() {
   stillLaneBaseline = null;
   laneResetButton.disabled = true;
   ballResetButton.disabled = true;
-  trackingPreviewPanel.hidden = true;
-  videoPreview.pause();
-  videoPreview.removeAttribute("src");
-  videoPreview.load();
-  trackingOverlayContext.clearRect(0, 0, trackingOverlay.width, trackingOverlay.height);
+  discardGeneratedTrackingVideo();
+  trackingVideoStatus.textContent = "Review the lane and ball tracking, then generate a preview video.";
+  sourceVideo.pause();
+  sourceVideo.removeAttribute("src");
+  sourceVideo.load();
   if (currentVideoUrl) URL.revokeObjectURL(currentVideoUrl);
   currentVideoUrl = null;
+  updateTrackingVideoButton();
   frameDimensions = null;
   previewLayers.forEach((layer) => {
     layer.zoom = 1;
@@ -983,7 +1062,6 @@ function renderFrameList() {
   while (frameList.children.length > videoFrames.length) frameList.lastElementChild.remove();
   frameList.scrollTop = scrollTop;
   updateFrameSteppers();
-  drawTrackingOverlay();
 }
 
 function updateFrameSteppers() {
@@ -1004,15 +1082,16 @@ function showVideoFrame(index) {
   if (!item || item.processing) return;
   const selectionVersion = ++frameSelectionVersion;
   selectedVideoFrame = index;
-  if (Number.isFinite(item.timeSeconds) && videoPreview.readyState >= HTMLMediaElement.HAVE_METADATA && videoPreview.paused) {
-    videoPreview.currentTime = item.timeSeconds;
+  if (Number.isFinite(item.timeSeconds) && sourceVideo.readyState >= HTMLMediaElement.HAVE_METADATA && sourceVideo.paused) {
+    sourceVideo.currentTime = item.timeSeconds;
   }
   updateFrameSteppers();
-  ballSeedDrawButton.disabled = false;
-  ballSeedApplyButton.disabled = !startingBallSeed;
+  updateBallSeedActions();
   ballSeedStatus.textContent = startingBallSeed
-    ? `Starting ball box is on frame ${startingBallSeed.frameIndex + 1}. Select another frame and draw again to replace it.`
-    : "Select the first frame where the ball touches the lane, then draw a box around it.";
+    ? ballTrackingApplied
+      ? `Tracking is complete from frame ${startingBallSeed.frameIndex + 1}. Draw a new box to replace it, or reset tracking.`
+      : `Starting box is on frame ${startingBallSeed.frameIndex + 1}. Apply it to track the shot, or reset to choose another box.`
+    : "Choose the first frame where the ball touches the lane, then draw a box.";
   frameDimensions = { width: item.width, height: item.height };
   result = item.result;
   laneCorners = (item.laneSource === "inferred-overlap" ? item.corners : null)?.map(({ x, y }) => ({ x, y }))
@@ -1098,19 +1177,51 @@ async function writeFrameToCache(canvas) {
 
 async function runFrameInference({ detectLane = true, canvas = previewLayers[0].frameCanvas, width = frameDimensions.width, height = frameDimensions.height } = {}) {
   if (!canRunInference) throw new Error("ONNX inference is not available in this environment.");
-  if (!useAndroidPlugin) return analyzeCanvas(canvas, { detectLane });
-  const cached = await writeFrameToCache(canvas);
-  try {
-    return await CiclopesLaneAnalysis.analyzeFrame({
-      frameUri: cached.uri,
-      width,
-      height,
-      rotation: 0,
-      detectLane,
-    });
-  } finally {
-    await Filesystem.deleteFile({ path: cached.path, directory: Directory.Cache }).catch(() => {});
+  let frameResult;
+  if (!useAndroidPlugin) {
+    frameResult = await analyzeCanvas(canvas, { detectLane });
+  } else {
+    const cached = await writeFrameToCache(canvas);
+    try {
+      frameResult = await CiclopesLaneAnalysis.analyzeFrame({
+        frameUri: cached.uri,
+        width,
+        height,
+        rotation: 0,
+        detectLane,
+      });
+    } finally {
+      await Filesystem.deleteFile({ path: cached.path, directory: Directory.Cache }).catch(() => {});
+    }
   }
+
+  if (detectLane) {
+    frameResult.candidates = suppressDuplicateLaneCandidates(frameResult.candidates ?? [])
+      .filter(isPlausibleLaneCandidate)
+      .map((candidate) => {
+        if (DETECTED_LANE_FAR_END_PADDING_RATIO <= 0) return candidate;
+        const [farLeft, farRight, nearRight, nearLeft] = candidate.corners ?? [];
+        if (!farLeft || !farRight || !nearRight || !nearLeft) return candidate;
+        const paddingX = (farRight.x - farLeft.x) * DETECTED_LANE_FAR_END_PADDING_RATIO;
+        const paddingY = (farRight.y - farLeft.y) * DETECTED_LANE_FAR_END_PADDING_RATIO;
+        const clampPoint = (point) => ({
+          x: Math.max(0, Math.min(1, point.x)),
+          y: Math.max(0, Math.min(1, point.y)),
+        });
+        return {
+          ...candidate,
+          corners: [
+            clampPoint({ x: farLeft.x - paddingX, y: farLeft.y - paddingY }),
+            clampPoint({ x: farRight.x + paddingX, y: farRight.y + paddingY }),
+            nearRight,
+            nearLeft,
+          ],
+        };
+      });
+    frameResult.health ??= {};
+    frameResult.health.laneCount = frameResult.candidates.length;
+  }
+  return frameResult;
 }
 
 function pointInLane(point, corners) {
@@ -1196,6 +1307,62 @@ function polygonIntersectionArea(subjectPoints, clipPoints) {
     }
   }
   return output.length >= 3 ? polygonArea(output) : 0;
+}
+
+function polygonIoU(first, second) {
+  const firstArea = polygonArea(first);
+  const secondArea = polygonArea(second);
+  if (firstArea <= 1e-9 || secondArea <= 1e-9) return 0;
+  const intersection = polygonIntersectionArea(first, second);
+  const union = firstArea + secondArea - intersection;
+  return union > 1e-9 ? intersection / union : 0;
+}
+
+function isPlausibleLaneCandidate(candidate) {
+  const corners = candidate?.corners;
+  if (!Array.isArray(corners) || corners.length !== 4
+    || corners.some((point) => !Number.isFinite(point?.x) || !Number.isFinite(point?.y)
+      || point.x < 0 || point.x > 1 || point.y < 0 || point.y > 1)) return false;
+  const area = polygonArea(corners);
+  const ys = corners.map(({ y }) => y);
+  const verticalSpan = Math.max(...ys) - Math.min(...ys);
+  const farEdgeY = (corners[0].y + corners[1].y) / 2;
+  const nearEdgeY = (corners[2].y + corners[3].y) / 2;
+  const farEdgeWidth = Math.hypot(corners[1].x - corners[0].x, corners[1].y - corners[0].y);
+  const nearEdgeWidth = Math.hypot(corners[2].x - corners[3].x, corners[2].y - corners[3].y);
+  return area >= MIN_LANE_AREA_RATIO
+    && verticalSpan >= MIN_LANE_VERTICAL_SPAN
+    && nearEdgeY - farEdgeY >= 0.14
+    && farEdgeWidth + nearEdgeWidth >= 0.08;
+}
+
+function suppressDuplicateLaneCandidates(candidates) {
+  const ordered = candidates
+    .filter(isPlausibleLaneCandidate)
+    .slice()
+    .sort((a, b) => (Number(b.confidence) || 0) - (Number(a.confidence) || 0));
+  const kept = [];
+  for (const candidate of ordered) {
+    if (kept.some((selected) => polygonIoU(selected.corners, candidate.corners) >= LANE_POLYGON_NMS_IOU)) continue;
+    kept.push(candidate);
+  }
+  return kept;
+}
+
+function laneCandidatesMatch(firstCorners, secondCorners) {
+  if (polygonIoU(firstCorners, secondCorners) >= 0.35) return true;
+  const meanCornerDistance = firstCorners.reduce((sum, point, index) => {
+    const other = secondCorners[index];
+    return sum + Math.hypot(point.x - other.x, point.y - other.y);
+  }, 0) / firstCorners.length;
+  return meanCornerDistance <= 0.04;
+}
+
+function averageLaneCorners(current, incoming, currentCount, nextCount) {
+  return current.map((point, index) => ({
+    x: (point.x * currentCount + incoming[index].x) / nextCount,
+    y: (point.y * currentCount + incoming[index].y) / nextCount,
+  }));
 }
 
 function laneOverlapRatio(referenceCorners, candidateCorners) {
@@ -1509,21 +1676,25 @@ async function trackFromStartingBallBox() {
     return;
   }
 
-  ballSeedApplyButton.disabled = true;
-  ballSeedDrawButton.disabled = true;
+  ballTrackingInProgress = true;
+  invalidateGeneratedTrackingVideo();
+  showcaseExportReady = false;
+  updateBallSeedActions();
   const history = [];
   const maxPredictionSamples = Math.max(6, activeInferenceStride * 2);
-  const seedCanvas = await canvasFromVideoFrame(seedFrame);
-  let motionPlane = cameraMotionPlane(seedCanvas);
+  let motionPlane = null;
   let missedDetections = 0;
   let completed = 0;
-  history.push({ sampleIndex: seedIndex, timeSeconds: seedFrame.timeSeconds, ball: { confidence: 1, box: seedBox, source: "manual" } });
-  seedFrame.result.balls = [{ confidence: 1, box: seedBox, source: "manual" }];
-  seedFrame.tracked = false;
-  renderFrameList();
-  if (selectedVideoFrame === seedIndex) drawCorners();
 
   try {
+    const seedCanvas = await canvasFromVideoFrame(seedFrame);
+    motionPlane = cameraMotionPlane(seedCanvas);
+    history.push({ sampleIndex: seedIndex, timeSeconds: seedFrame.timeSeconds, ball: { confidence: 1, box: seedBox, source: "manual" } });
+    seedFrame.result.balls = [{ confidence: 1, box: seedBox, source: "manual" }];
+    seedFrame.tracked = false;
+    renderFrameList();
+    if (selectedVideoFrame === seedIndex) drawCorners();
+
     for (let index = seedIndex + 1; index < videoFrames.length; index += 1) {
       const frame = videoFrames[index];
       const predicted = predictBall(history, index, frame.timeSeconds, maxPredictionSamples);
@@ -1603,14 +1774,15 @@ async function trackFromStartingBallBox() {
       if (selectedVideoFrame === index) refreshSelectedFrameLane();
       renderFrameList();
     }
-    ballSeedStatus.textContent = `Tracking used the box on frame ${seedIndex + 1}; small searches follow the predicted ball, with wider lane reacquisition when needed.`;
+    ballTrackingApplied = true;
+    ballSeedStatus.textContent = `Ball track applied from frame ${seedIndex + 1}.`;
     frameProcessingStatus.textContent = `Ball tracking completed from the user-set box across ${videoFrames.length - seedIndex} frames.`;
   } catch (error) {
     ballSeedStatus.textContent = `Tracking could not finish: ${error.message}`;
     frameProcessingStatus.textContent = `Ball tracking stopped: ${error.message}`;
   } finally {
-    ballSeedApplyButton.disabled = false;
-    ballSeedDrawButton.disabled = false;
+    ballTrackingInProgress = false;
+    updateBallSeedActions();
     if (selectedVideoFrame >= 0) drawCorners();
   }
 }
@@ -1628,6 +1800,186 @@ function waitForVideoEvent(video, eventName) {
   });
 }
 
+async function renderTrackingVideoBlob() {
+  if (!currentVideoUrl || !videoFrames.length) {
+    throw new Error("Import a video and finish frame analysis before generating a tracking preview.");
+  }
+  if (!HTMLCanvasElement.prototype.captureStream || typeof MediaRecorder === "undefined") {
+    throw new Error("This browser cannot render a downloadable tracking video.");
+  }
+  if (sourceVideo.src !== currentVideoUrl) {
+    sourceVideo.src = currentVideoUrl;
+    sourceVideo.load();
+  }
+  if (sourceVideo.readyState < HTMLMediaElement.HAVE_METADATA) {
+    await waitForVideoEvent(sourceVideo, "loadedmetadata");
+  }
+  if (!sourceVideo.videoWidth || !sourceVideo.videoHeight || !Number.isFinite(sourceVideo.duration)) {
+    throw new Error("The imported video is not ready to render.");
+  }
+  sourceVideo.pause();
+  if (sourceVideo.currentTime > 0.01) {
+    sourceVideo.currentTime = 0;
+    await waitForVideoEvent(sourceVideo, "seeked");
+  }
+  if (sourceVideo.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+    await waitForVideoEvent(sourceVideo, "loadeddata");
+  }
+
+  const frames = videoFrames.map((frame) => ({
+    timeSeconds: frame.timeSeconds,
+    corners: copyData(frame.corners),
+    result: frame.result ? {
+      candidates: copyData(frame.result.candidates ?? []),
+      balls: copyData(frame.result.balls ?? []),
+    } : null,
+  }));
+  const seed = startingBallSeed ? { frameIndex: startingBallSeed.frameIndex, box: [...startingBallSeed.box] } : null;
+  const scale = Math.min(1, 1920 / sourceVideo.videoWidth, 1080 / sourceVideo.videoHeight);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(sourceVideo.videoWidth * scale));
+  canvas.height = Math.max(1, Math.round(sourceVideo.videoHeight * scale));
+  const context = canvas.getContext("2d");
+  const stream = canvas.captureStream(30);
+  const mimeType = [
+    "video/mp4;codecs=avc1.42E01E",
+    "video/mp4",
+    "video/webm;codecs=vp9",
+    "video/webm;codecs=vp8",
+    "video/webm",
+  ]
+    .find((type) => MediaRecorder.isTypeSupported(type));
+  if (!mimeType) {
+    stream.getTracks().forEach((track) => track.stop());
+    throw new Error("This browser cannot encode the tracking preview as MP4 or WebM.");
+  }
+
+  const chunks = [];
+  const renderRecorder = new MediaRecorder(stream, { mimeType });
+  const recordingFinished = new Promise((resolve, reject) => {
+    renderRecorder.addEventListener("dataavailable", (event) => {
+      if (event.data.size) chunks.push(event.data);
+    });
+    renderRecorder.addEventListener("stop", resolve, { once: true });
+    renderRecorder.addEventListener("error", () => reject(renderRecorder.error ?? new Error("Tracking video encoding failed.")), { once: true });
+  });
+  let animationFrame = 0;
+  let isDrawing = true;
+  const drawFrame = () => {
+    if (!isDrawing) return;
+    context.drawImage(sourceVideo, 0, 0, canvas.width, canvas.height);
+    drawTrackingAnnotations(context, canvas.width, canvas.height, sourceVideo.currentTime, frames, seed);
+    animationFrame = requestAnimationFrame(drawFrame);
+  };
+
+  try {
+    renderRecorder.start(250);
+    drawFrame();
+    const playbackEnded = waitForVideoEvent(sourceVideo, "ended");
+    await sourceVideo.play();
+    await playbackEnded;
+    isDrawing = false;
+    cancelAnimationFrame(animationFrame);
+    if (renderRecorder.state !== "inactive") renderRecorder.stop();
+    await recordingFinished;
+    return new Blob(chunks, { type: mimeType });
+  } catch (error) {
+    isDrawing = false;
+    cancelAnimationFrame(animationFrame);
+    if (renderRecorder.state !== "inactive") {
+      renderRecorder.stop();
+      await recordingFinished.catch(() => {});
+    }
+    throw error;
+  } finally {
+    sourceVideo.pause();
+    stream.getTracks().forEach((track) => track.stop());
+  }
+}
+
+generateTrackingVideoButton.addEventListener("click", async () => {
+  trackingVideoGenerationInProgress = true;
+  discardGeneratedTrackingVideo();
+  trackingVideoStatus.textContent = "Rendering the annotated video. Keep this page open until it finishes.";
+  generateTrackingVideoButton.textContent = "Generating Tracking Video…";
+  updateTrackingVideoButton();
+  try {
+    const blob = await renderTrackingVideoBlob();
+    generatedTrackingVideoUrl = URL.createObjectURL(blob);
+    videoPreview.src = generatedTrackingVideoUrl;
+    videoPreview.load();
+    downloadTrackingVideo.href = generatedTrackingVideoUrl;
+    downloadTrackingVideo.download = `revmetrix-tracking-preview.${blob.type.includes("mp4") ? "mp4" : "webm"}`;
+    downloadTrackingVideo.hidden = false;
+    trackingPreviewPanel.hidden = false;
+    trackingVideoStatus.textContent = "Tracking preview is ready below. The lane bounds and ball boxes are included in the video.";
+  } catch (error) {
+    trackingVideoStatus.textContent = error.message;
+  } finally {
+    trackingVideoGenerationInProgress = false;
+    generateTrackingVideoButton.textContent = generatedTrackingVideoUrl ? "Regenerate Tracking Preview" : "Generate Tracking Preview";
+    updateTrackingVideoButton();
+  }
+});
+
+async function requestDetectedLaneChoice(options) {
+  laneSelectionOptions.replaceChildren();
+  laneSelectionPanel.hidden = false;
+  frameProcessingStatus.textContent = `Choose which of the ${options.length} detected lanes to analyze.`;
+  return new Promise(async (resolve) => {
+    options.forEach(async (option, index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "lane-choice";
+      button.setAttribute("aria-label", `Select lane ${index + 1}`);
+      const canvas = document.createElement("canvas");
+      canvas.width = 320;
+      canvas.height = 180;
+      const label = document.createElement("span");
+      label.className = "lane-choice-label";
+      label.textContent = `Lane ${index + 1}`;
+      const support = document.createElement("small");
+      support.className = "lane-choice-support";
+      support.textContent = `Seen in ${option.supportCount} of ${option.probeCount} opening frames`;
+      button.append(canvas, label, support);
+      button.addEventListener("click", () => {
+        laneSelectionPanel.hidden = true;
+        laneSelectionOptions.replaceChildren();
+        resolve(option);
+      }, { once: true });
+      laneSelectionOptions.append(button);
+
+      try {
+        const image = new Image();
+        image.src = option.imageUrl;
+        await image.decode();
+        const context = canvas.getContext("2d");
+        const scale = Math.min(canvas.width / image.width, canvas.height / image.height);
+        const imageWidth = image.width * scale;
+        const imageHeight = image.height * scale;
+        const imageX = (canvas.width - imageWidth) / 2;
+        const imageY = (canvas.height - imageHeight) / 2;
+        context.drawImage(image, imageX, imageY, imageWidth, imageHeight);
+        context.beginPath();
+        option.corners.forEach((point, pointIndex) => {
+          const x = imageX + point.x * imageWidth;
+          const y = imageY + point.y * imageHeight;
+          if (pointIndex === 0) context.moveTo(x, y);
+          else context.lineTo(x, y);
+        });
+        context.closePath();
+        context.lineWidth = 3;
+        context.strokeStyle = "#ff9b22";
+        context.fillStyle = "rgba(255, 155, 34, .12)";
+        context.fill();
+        context.stroke();
+      } catch {
+        label.textContent = `Lane ${index + 1} preview unavailable`;
+      }
+    });
+  });
+}
+
 async function detectVideoFrames(file) {
   videoProcessingInProgress = true;
   clearVideoFrames();
@@ -1637,16 +1989,19 @@ async function detectVideoFrames(file) {
   correctButton.disabled = true;
   frameList.replaceChildren();
   videoFrameReview.hidden = false;
+  frameProcessingStatus.hidden = false;
   frameProcessingStatus.textContent = "Opening video…";
+  laneSelectionPanel.hidden = true;
+  laneSelectionOptions.replaceChildren();
   const video = document.createElement("video");
   video.muted = true;
   video.playsInline = true;
   const objectUrl = URL.createObjectURL(file);
   if (currentVideoUrl) URL.revokeObjectURL(currentVideoUrl);
   currentVideoUrl = objectUrl;
-  videoPreview.src = objectUrl;
-  trackingPreviewPanel.hidden = false;
-  videoPreview.load();
+  sourceVideo.src = objectUrl;
+  sourceVideo.load();
+  updateTrackingVideoButton();
   video.src = objectUrl;
   await waitForVideoEvent(video, "loadedmetadata");
   if (!Number.isFinite(video.duration) || video.duration <= 0) throw new Error("This video has no readable duration.");
@@ -1664,14 +2019,117 @@ async function detectVideoFrames(file) {
   const benchmarkInferenceMs = [];
   let successfulInferenceCount = 0;
   let adaptiveInferenceMs = null;
-  let activeVideoLaneCorners = sharedLaneOverride?.map(({ x, y }) => ({ x, y })) ?? null;
-  let activeVideoLaneSource = activeVideoLaneCorners ? "manual-fallback" : null;
+  let activeVideoLaneCorners = sharedLaneOverride?.map(({ x, y }) => ({ x, y }))
+    ?? lockedLane?.corners?.map(({ x, y }) => ({ x, y }))
+    ?? null;
+  let activeVideoLaneSource = sharedLaneOverride ? "manual-fallback" : lockedLane ? "locked-detection" : null;
   let lastManualReference = sharedLaneOverride;
   const processingStartedAt = performance.now();
   const count = Math.min(maxSamples, Math.max(2, Math.ceil(video.duration * samplesPerSecond)));
   const start = Math.min(0.15, video.duration / 10);
   const end = Math.max(start, video.duration - Math.min(0.08, video.duration / 20));
   const times = Array.from({ length: count }, (_, index) => count === 1 ? start : start + ((end - start) * index) / (count - 1));
+
+  let laneChosenByUser = false;
+  if (!sharedLaneOverride && canRunInference) {
+    const laneOptions = [];
+    const probeImageUrls = [];
+    let chosenLane = null;
+    const probeCount = Math.min(3, times.length);
+    try {
+      for (let index = 0; index < probeCount; index += 1) {
+        const timeSeconds = times[index];
+        frameProcessingStatus.textContent = `Checking lanes in opening sample ${index + 1} of ${probeCount}…`;
+        if (Math.abs(video.currentTime - timeSeconds) > 0.01) {
+          const seeked = waitForVideoEvent(video, "seeked");
+          video.currentTime = timeSeconds;
+          await seeked;
+        }
+        const scale = Math.min(1, 1920 / Math.max(video.videoWidth, video.videoHeight));
+        const sampleWidth = Math.max(1, Math.round(video.videoWidth * scale));
+        const sampleHeight = Math.max(1, Math.round(video.videoHeight * scale));
+        if (inferenceCanvas.width !== sampleWidth || inferenceCanvas.height !== sampleHeight) {
+          inferenceCanvas.width = sampleWidth;
+          inferenceCanvas.height = sampleHeight;
+        }
+        inferenceContext.drawImage(video, 0, 0, sampleWidth, sampleHeight);
+        const imageUrl = URL.createObjectURL(await fileFromCanvas(inferenceCanvas));
+        probeImageUrls.push(imageUrl);
+        try {
+          const probe = await runFrameInference({
+            detectLane: true,
+            canvas: inferenceCanvas,
+            width: sampleWidth,
+            height: sampleHeight,
+          });
+          for (const candidate of probe.candidates ?? []) {
+            if (!candidate.corners?.length) continue;
+            const match = laneOptions.find((option) => laneCandidatesMatch(option.matchingCorners ?? option.corners, candidate.corners));
+            if (match) {
+              const previousSupportCount = match.supportCount;
+              if (!match.seenProbeIndexes.includes(index)) {
+                match.supportCount += 1;
+                match.seenProbeIndexes.push(index);
+                match.matchingCorners = averageLaneCorners(
+                  match.matchingCorners ?? match.corners,
+                  candidate.corners,
+                  previousSupportCount,
+                  match.supportCount,
+                );
+              }
+              if ((Number(candidate.confidence) || 0) > (Number(match.confidence) || 0)) {
+                Object.assign(match, candidate, {
+                  corners: copyData(candidate.corners),
+                  imageUrl,
+                  sourceIndex: index,
+                });
+              }
+            } else {
+              laneOptions.push({
+                ...candidate,
+                corners: copyData(candidate.corners),
+                imageUrl,
+                sourceIndex: index,
+                supportCount: 1,
+                probeCount,
+                seenProbeIndexes: [index],
+                matchingCorners: copyData(candidate.corners),
+              });
+            }
+          }
+        } catch (error) {
+          console.warn(`[ONNX demo] Opening lane scan failed on sample ${index + 1}: ${error.message}`);
+        }
+      }
+
+      laneOptions.sort((a, b) => b.supportCount - a.supportCount
+        || (Number(b.confidence) || 0) - (Number(a.confidence) || 0));
+      if (laneOptions.length === 1) {
+        chosenLane = laneOptions[0];
+      } else if (laneOptions.length > 1) {
+        chosenLane = await requestDetectedLaneChoice(laneOptions);
+        laneChosenByUser = true;
+      }
+    } finally {
+      probeImageUrls.forEach((url) => URL.revokeObjectURL(url));
+      laneSelectionPanel.hidden = true;
+      laneSelectionOptions.replaceChildren();
+    }
+
+    if (chosenLane) {
+      lockedLane = {
+        confidence: chosenLane.confidence,
+        geometrySource: chosenLane.geometrySource,
+        corners: copyData(chosenLane.corners),
+      };
+      activeVideoLaneCorners = lockedLane.corners.map(({ x, y }) => ({ x, y }));
+      activeVideoLaneSource = "locked-detection";
+      laneAnchorFrame = chosenLane.sourceIndex;
+      frameProcessingStatus.textContent = laneOptions.length > 1
+        ? "Lane selected. Processing the rest of the video…"
+        : "One lane detected. Processing the rest of the video…";
+    }
+  }
 
   for (let index = 0; index < times.length; index += 1) {
     const timeSeconds = times[index];
@@ -1816,6 +2274,7 @@ async function detectVideoFrames(file) {
       frameItem.result.candidates = [lockedLane];
       frameItem.corners ??= lockedLane.corners.map(({ x, y }) => ({ x, y }));
       frameItem.laneSource ??= "locked-detection";
+      if (laneChosenByUser) keepBallsInsideLane(frameItem.result, lockedLane.corners);
     }
     frameItem.result.health.laneCount = frameItem.result.candidates.length;
     frameItem.result.health.ballCount = frameItem.result.balls.length;
@@ -1931,11 +2390,12 @@ async function processVideo(file) {
   uploadedVideoKey = null;
   sendCiclopesAnalysisButton.disabled = true;
   analysisResult.hidden = true;
-  exportShowcaseButton.disabled = true;
-  showcaseStatus.textContent = "";
+  showcaseExportReady = false;
   analysisSummary.replaceChildren();
   uploadResult.textContent = "";
   videoInput.disabled = true;
+  recordStartButton.hidden = false;
+  recordStopButton.hidden = true;
   recordStartButton.disabled = true;
   recordStopButton.disabled = true;
 
@@ -1963,8 +2423,7 @@ async function processVideo(file) {
     videoProcessingInProgress = false;
     updateFrameSteppers();
     if (selectedVideoFrame >= 0) {
-      ballSeedDrawButton.disabled = false;
-      ballSeedApplyButton.disabled = !startingBallSeed;
+      updateBallSeedActions();
     }
     if (ballReprocessPending && sharedLaneOverride) {
       ballReprocessPending = false;
@@ -1974,13 +2433,16 @@ async function processVideo(file) {
     }
     videoInput.disabled = false;
     recordStartButton.disabled = false;
+    recordStartButton.hidden = false;
+    recordStopButton.hidden = true;
+    updateTrackingVideoButton();
   }
 }
 
 sendCiclopesAnalysisButton.addEventListener("click", async () => {
   if (!uploadedVideoKey) return;
   sendCiclopesAnalysisButton.disabled = true;
-  sendCiclopesAnalysisButton.textContent = "Sending frame results…";
+  sendCiclopesAnalysisButton.textContent = "Ciclopes is analyzing frames…";
   uploadStatus.textContent = "Sending sampled detections and any lane correction to Ciclopes…";
   try {
     const analysis = await submitFrameResults(uploadedVideoKey);
@@ -1991,32 +2453,13 @@ sendCiclopesAnalysisButton.addEventListener("click", async () => {
       ciclopesAnalysis: analysis,
     }, null, 2);
     analysisResult.hidden = false;
-    exportShowcaseButton.disabled = false;
+    showcaseExportReady = true;
     uploadStatus.textContent = `Ciclopes analyzed ${analysis.ball_points.length} ball positions from the submitted frames.`;
   } catch (error) {
     uploadStatus.textContent = `Ciclopes could not analyze these frames: ${error.message}`;
   } finally {
-    sendCiclopesAnalysisButton.textContent = "Analyze reviewed frames with Ciclopes";
+    sendCiclopesAnalysisButton.textContent = "Run Ciclopes Analysis";
     updateAnalyzeButton();
-  }
-});
-
-exportShowcaseButton.addEventListener("click", async () => {
-  exportShowcaseButton.disabled = true;
-  showcaseStatus.textContent = "Building a short showcase video from the reviewed frames…";
-  try {
-    const blob = await renderShowcaseVideo();
-    const downloadUrl = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = downloadUrl;
-    link.download = "ciclopes-shot-showcase.webm";
-    link.click();
-    window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 60_000);
-    showcaseStatus.textContent = "Showcase video downloaded. It includes up to 12 reviewed frames and a summary end card.";
-  } catch (error) {
-    showcaseStatus.textContent = error.message;
-  } finally {
-    exportShowcaseButton.disabled = false;
   }
 });
 
@@ -2027,6 +2470,7 @@ frameStepperControls.forEach(({ previous, next }) => {
 
 laneResetButton.addEventListener("click", () => {
   if (videoFrameBaseline) {
+    invalidateGeneratedTrackingVideo();
     sharedLaneOverride = null;
     lockedLane = copyData(lockedLaneBaseline);
     laneAnchorFrame = laneAnchorFrameBaseline;
@@ -2070,7 +2514,10 @@ laneResetButton.addEventListener("click", () => {
 
 ballResetButton.addEventListener("click", () => {
   if (!videoFrameBaseline) return;
+  invalidateGeneratedTrackingVideo();
   startingBallSeed = null;
+  ballTrackingApplied = false;
+  showcaseExportReady = false;
   ballSeedMode = false;
   ballDrawStart = null;
   ballBoxDraft = null;
@@ -2084,9 +2531,7 @@ ballResetButton.addEventListener("click", () => {
     else frame.result.health.trackingSource = baseline.trackingSource;
     frame.result.health.ballCount = frame.result.balls.length;
   });
-  ballSeedDrawButton.disabled = selectedVideoFrame < 0;
-  ballSeedApplyButton.disabled = true;
-  ballSeedDrawButton.textContent = "Draw ball box";
+  updateBallSeedActions();
   ballSeedStatus.textContent = "Ball tracking restored to the original detections.";
   if (selectedVideoFrame >= 0) {
     result = videoFrames[selectedVideoFrame].result;
@@ -2097,19 +2542,27 @@ ballResetButton.addEventListener("click", () => {
 
 ballSeedDrawButton.addEventListener("click", () => {
   if (selectedVideoFrame < 0 || videoProcessingInProgress) return;
-  ballSeedMode = !ballSeedMode;
+  ballSeedMode = true;
   ballDrawStart = null;
   ballBoxDraft = null;
-  ballSeedDrawButton.textContent = ballSeedMode ? "Draw a box on the frame…" : "Draw starting ball box";
-  ballSeedStatus.textContent = ballSeedMode
-    ? "Drag a tight rectangle around the ball on this frame. Choose the first frame where it touches the lane."
-    : "Box drawing cancelled.";
+  ballSeedStatus.textContent = "Drag a tight box around the ball on this frame.";
+  updateBallSeedActions();
   if (ballSeedMode) ballPreview.scrollIntoView({ block: "center", behavior: "smooth" });
   drawCorners();
 });
 
 ballSeedApplyButton.addEventListener("click", () => {
-  trackFromStartingBallBox();
+  if (ballSeedMode) {
+    ballSeedMode = false;
+    ballDrawStart = null;
+    ballBoxDraft = null;
+    ballSeedStatus.textContent = startingBallSeed
+      ? "Box drawing stopped. Applying the starting box to track the shot…"
+      : "Box drawing cancelled.";
+    updateBallSeedActions();
+    drawCorners();
+  }
+  if (startingBallSeed) trackFromStartingBallBox();
 });
 
 fileInput.addEventListener("change", async () => {
@@ -2155,6 +2608,7 @@ videoInput.addEventListener("change", () => {
 });
 
 recordStartButton.addEventListener("click", async () => {
+  recordStartButton.disabled = true;
   try {
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
       throw new Error("This device does not support in-app video recording in the current build.");
@@ -2181,23 +2635,34 @@ recordStartButton.addEventListener("click", async () => {
       cameraStream = null;
       cameraPreview.srcObject = null;
       cameraPreview.hidden = true;
+      recordStartButton.hidden = false;
+      recordStartButton.disabled = true;
+      recordStopButton.hidden = true;
       recordStatus.textContent = "Recording saved. Uploading and analyzing sampled frames…";
       processVideo(shot).finally(() => { recordStatus.textContent = "Recording complete."; });
     }, { once: true });
     recorder.start(250);
-    recordStartButton.disabled = true;
+    recordStartButton.hidden = true;
+    recordStartButton.disabled = false;
+    recordStopButton.hidden = false;
     recordStopButton.disabled = false;
     recordStatus.textContent = "Recording. Frame the lane, then stop recording to upload and analyze the shot.";
   } catch (error) {
     recordStatus.textContent = `Could not start camera: ${error.message}`;
     cameraStream?.getTracks().forEach((track) => track.stop());
     cameraStream = null;
+    recordStartButton.hidden = false;
+    recordStartButton.disabled = false;
+    recordStopButton.hidden = true;
   }
 });
 
 recordStopButton.addEventListener("click", () => {
   if (recorder?.state === "recording") {
     recordStopButton.disabled = true;
+    recordStopButton.hidden = true;
+    recordStartButton.hidden = false;
+    recordStartButton.disabled = true;
     recordStatus.textContent = "Finishing recording…";
     recorder.stop();
   }
@@ -2261,8 +2726,7 @@ correctButton.addEventListener("click", async () => {
       : applyWebLaneCorrection(laneCorners, frameDimensions.width, frameDimensions.height);
     if (selectedVideoFrame >= 0) {
       updateSharedLaneCorners(laneCorners);
-      exportShowcaseButton.disabled = true;
-      showcaseStatus.textContent = "Lane changed. Run Ciclopes analysis again before exporting an updated showcase.";
+      showcaseExportReady = false;
       videoFrames[selectedVideoFrame].correction = correction;
       videoFrames[selectedVideoFrame].corners = laneCorners.map(({ x, y }) => ({ x, y }));
       videoFrames[selectedVideoFrame].laneOverride = true;

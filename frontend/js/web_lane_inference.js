@@ -7,6 +7,8 @@ const PROTO_CHANNELS = 32;
 const MAX_DETECTIONS = 300;
 const ROW_SIZE = 6 + PROTO_CHANNELS;
 const CONFIDENCE_THRESHOLD = 0.1;
+const LANE_CONFIDENCE_THRESHOLD = 0.2;
+const LANE_BOX_NMS_IOU = 0.78;
 const LANE_WIDTH_METERS = 1.0541;
 const LANE_LENGTH_METERS = 18.288;
 
@@ -62,16 +64,15 @@ function sourcePoint(modelX, modelY, transform, width, height) {
   };
 }
 
-function averageBoundary(values, from, to) {
-  let sum = 0;
-  let count = 0;
+function medianBoundary(values, from, to) {
+  const boundary = [];
   for (let y = Math.max(0, from); y <= Math.min(PROTO_SIZE - 1, to); y += 1) {
-    if (values[y] >= 0) {
-      sum += values[y];
-      count += 1;
-    }
+    if (values[y] >= 0) boundary.push(values[y]);
   }
-  return count ? sum / count : -1;
+  if (!boundary.length) return -1;
+  boundary.sort((a, b) => a - b);
+  const middle = Math.floor(boundary.length / 2);
+  return boundary.length % 2 ? boundary[middle] : (boundary[middle - 1] + boundary[middle]) / 2;
 }
 
 function isValidQuad(points) {
@@ -101,6 +102,9 @@ function laneQuad(row, rowOffset, prototypes, box, transform, frameWidth, frameH
   const left = new Int32Array(PROTO_SIZE).fill(-1);
   const right = new Int32Array(PROTO_SIZE).fill(-1);
   for (let y = minY; y <= maxY; y += 1) {
+    let runLeft = -1;
+    let bestLeft = -1;
+    let bestRight = -1;
     for (let x = minX; x <= maxX; x += 1) {
       let logit = 0;
       for (let channel = 0; channel < PROTO_CHANNELS; channel += 1) {
@@ -110,9 +114,24 @@ function laneQuad(row, rowOffset, prototypes, box, transform, frameWidth, frameH
       }
       const probability = 1 / (1 + Math.exp(-clamp(logit, -30, 30)));
       if (probability >= 0.5) {
-        if (left[y] < 0) left[y] = x;
-        right[y] = x;
+        if (runLeft < 0) runLeft = x;
+      } else if (runLeft >= 0) {
+        if (x - runLeft > bestRight - bestLeft) {
+          bestLeft = runLeft;
+          bestRight = x - 1;
+        }
+        runLeft = -1;
       }
+    }
+    if (runLeft >= 0 && maxX + 1 - runLeft > bestRight - bestLeft) {
+      bestLeft = runLeft;
+      bestRight = maxX;
+    }
+    // Keeping the widest contiguous run prevents disconnected mask islands
+    // (for example a bowler or pins) from being joined into a false lane.
+    if (bestRight - bestLeft >= 2) {
+      left[y] = bestLeft;
+      right[y] = bestRight;
     }
   }
 
@@ -125,12 +144,15 @@ function laneQuad(row, rowOffset, prototypes, box, transform, frameWidth, frameH
     if (left[y] >= 0 && right[y] > left[y]) { bottom = y; break; }
   }
   if (top < 0 || bottom - top < 8) return null;
+  let validRows = 0;
+  for (let y = top; y <= bottom; y += 1) if (left[y] >= 0) validRows += 1;
+  if (validRows < Math.max(8, Math.ceil((bottom - top + 1) * 0.55))) return null;
 
   const band = Math.max(2, Math.round((bottom - top) * 0.12));
-  const lTop = averageBoundary(left, top, Math.min(bottom, top + band));
-  const rTop = averageBoundary(right, top, Math.min(bottom, top + band));
-  const lBottom = averageBoundary(left, Math.max(top, bottom - band), bottom);
-  const rBottom = averageBoundary(right, Math.max(top, bottom - band), bottom);
+  const lTop = medianBoundary(left, top, Math.min(bottom, top + band));
+  const rTop = medianBoundary(right, top, Math.min(bottom, top + band));
+  const lBottom = medianBoundary(left, Math.max(top, bottom - band), bottom);
+  const rBottom = medianBoundary(right, Math.max(top, bottom - band), bottom);
   if (lTop < 0 || rTop <= lTop || lBottom < 0 || rBottom <= lBottom) return null;
 
   const points = [
@@ -140,6 +162,25 @@ function laneQuad(row, rowOffset, prototypes, box, transform, frameWidth, frameH
     sourcePoint(lBottom * INPUT_SIZE / PROTO_SIZE, bottom * INPUT_SIZE / PROTO_SIZE, transform, frameWidth, frameHeight),
   ];
   return isValidQuad(points) ? points : null;
+}
+
+function boxIoU(left, right) {
+  const intersectionWidth = Math.max(0, Math.min(left.x2, right.x2) - Math.max(left.x1, right.x1));
+  const intersectionHeight = Math.max(0, Math.min(left.y2, right.y2) - Math.max(left.y1, right.y1));
+  const intersection = intersectionWidth * intersectionHeight;
+  const union = (left.x2 - left.x1) * (left.y2 - left.y1)
+    + (right.x2 - right.x1) * (right.y2 - right.y1) - intersection;
+  return union > 0 ? intersection / union : 0;
+}
+
+function suppressLaneBoxes(proposals) {
+  const ordered = proposals.slice().sort((a, b) => b.confidence - a.confidence);
+  const kept = [];
+  for (const proposal of ordered) {
+    if (kept.some((selected) => boxIoU(selected.box, proposal.box) >= LANE_BOX_NMS_IOU)) continue;
+    kept.push(proposal);
+  }
+  return kept;
 }
 
 function predictionRows(outputs) {
@@ -166,6 +207,7 @@ function decode(outputs, transform, frameWidth, frameHeight, detectLane = true) 
   const rowCount = Math.min(MAX_DETECTIONS, predictions.length / ROW_SIZE);
   const candidates = [];
   const balls = [];
+  const laneProposals = [];
   let lanePredictions = 0;
   let rejectedLaneMasks = 0;
 
@@ -192,23 +234,22 @@ function decode(outputs, transform, frameWidth, frameHeight, detectLane = true) 
       });
     } else if (classId === 1 && detectLane) {
       lanePredictions += 1;
-      const corners = laneQuad(predictions, rowOffset, prototypes, { x1, y1, x2, y2 }, transform, frameWidth, frameHeight);
-      if (corners) {
-        candidates.push({ confidence, corners, geometrySource: "segmentation-mask" });
-      } else {
-        rejectedLaneMasks += 1;
-        // Preserve a usable starting outline when the lane class is present but
-        // its low-resolution mask cannot produce stable four-corner geometry.
-        const cornersFromBox = [
-          sourcePoint(x1, y1, transform, frameWidth, frameHeight),
-          sourcePoint(x2, y1, transform, frameWidth, frameHeight),
-          sourcePoint(x2, y2, transform, frameWidth, frameHeight),
-          sourcePoint(x1, y2, transform, frameWidth, frameHeight),
-        ];
-        if (isValidQuad(cornersFromBox)) {
-          candidates.push({ confidence, corners: cornersFromBox, geometrySource: "detection-box" });
-        }
-      }
+      if (confidence < LANE_CONFIDENCE_THRESHOLD) continue;
+      laneProposals.push({
+        confidence,
+        rowOffset,
+        box: { x1, y1, x2, y2 },
+      });
+    }
+  }
+
+  for (const proposal of suppressLaneBoxes(laneProposals)) {
+    const { confidence, rowOffset, box } = proposal;
+    const corners = laneQuad(predictions, rowOffset, prototypes, box, transform, frameWidth, frameHeight);
+    if (corners) {
+      candidates.push({ confidence, corners, geometrySource: "segmentation-mask" });
+    } else {
+      rejectedLaneMasks += 1;
     }
   }
 

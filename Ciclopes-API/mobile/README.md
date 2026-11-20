@@ -23,6 +23,40 @@ model again. This YOLO26 export returns 300 end-to-end detections in `output0`
 plus mask prototypes in `output1`; it does not need a separate NMS stage. The
 manifest records the actual graph shapes and preprocessing contract.
 
+## On-device lane candidate design
+
+The mobile demo uses lightweight postprocessing for interactive frame review.
+The ONNX graph emits end-to-end detections and mask prototypes; the browser
+and Android adapter decode lane masks into normalized lane quadrilaterals.
+End-to-end graph output does not remove the need to deduplicate and validate
+lane candidates for this use case.
+
+Candidate handling follows these choices:
+
+- Lane proposals need confidence of at least `0.20`; ball detections retain
+  the general `0.10` threshold.
+- Before decoding a lane mask, box NMS removes near-identical lane proposals
+  with IoU at or above `0.78`. The high threshold suppresses duplicates while
+  retaining distinct neighboring lanes.
+- Mask geometry keeps the widest contiguous foreground run on each row,
+  requires coherent vertical support, and uses median boundary estimates for
+  the far and near edges. Failed masks are discarded instead of being shown
+  as rectangular lanes derived from detection boxes.
+- Shared frontend postprocessing rejects implausibly small or short
+  quadrilaterals and applies polygon NMS at IoU `0.68` in normalized frame
+  coordinates.
+- Before processing a full clip, the demo scans its first three sampled
+  frames. It matches candidates by polygon overlap or corner proximity, ranks
+  them by opening-frame support, and asks the user to choose if multiple lanes
+  remain. A single candidate proceeds automatically.
+
+These thresholds and geometry checks are postprocessing heuristics, not a
+replacement for model evaluation. They reduce duplicates and fragments but
+cannot correct a consistently misplaced segmentation mask. Validate changes
+against labeled footage with multiple lanes, camera angles, and partial
+occlusions. The Python server pipeline above is separate and remains the
+reference implementation.
+
 ## Integration sequence
 
 1. Compare ONNX Runtime outputs and decoded masks with PyTorch on a fixed set

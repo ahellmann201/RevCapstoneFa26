@@ -35,7 +35,7 @@
         <input id="video-file" class="visually-hidden" type="file" accept="video/*" />
         <div class="record-controls">
           <button id="record-start" class="secondary-button" type="button">Record video</button>
-          <button id="record-stop" class="secondary-button" type="button" disabled>Stop recording</button>
+          <button id="record-stop" class="secondary-button" type="button" hidden>Stop recording</button>
           <span id="record-status" class="subtle-status" role="status" aria-live="polite">Camera is off.</span>
         </div>
         <video id="camera-preview" class="camera-preview" autoplay muted playsinline hidden></video>
@@ -46,6 +46,11 @@
         <h2 id="review-title">Review frames</h2>
         <p class="panel-copy">Choose a sampled frame to inspect it before analysis.</p>
         <p id="frame-processing-status" class="status" role="status" aria-live="polite" hidden></p>
+        <div id="lane-selection-panel" class="lane-selection-panel" hidden>
+          <h3>Choose the lane to analyze</h3>
+          <p class="lane-selection-copy">Multiple lanes were detected. Select the one used for this shot to continue.</p>
+          <div id="lane-selection-options" class="lane-selection-options" role="group" aria-label="Detected lanes"></div>
+        </div>
         <div id="frame-picker" class="frame-picker">
           <div class="frame-picker-heading">
             <span>Choose a frame</span>
@@ -55,21 +60,10 @@
         </div>
       </section>
 
-      <section id="tracking-preview-panel" class="panel lane_panel tracking-preview-panel" aria-labelledby="tracking-preview-title" hidden>
-        <p class="game_eyebrow">VIDEO PREVIEW</p>
-        <h2 id="tracking-preview-title">Preview lane and ball tracking</h2>
-        <div class="tracking-video-wrap">
-          <video id="video-preview" class="camera-preview" controls playsinline></video>
-          <canvas id="tracking-overlay" aria-hidden="true"></canvas>
-        </div>
-        <p class="tracking-preview-legend"><span><i class="legend-lane"></i>Lane outline</span><span><i class="legend-ball"></i>Ball track</span></p>
-      </section>
-
       <section class="panel lane_panel correction-panel" aria-labelledby="correction-title">
         <p class="game_eyebrow">LANE CORRECTION</p>
         <h2 id="correction-title">Correct the lane</h2>
         <p class="panel-copy">ONNX may miss the lane edges; adjust the outline so the lane is mapped correctly.</p>
-        <p id="status" class="status" role="status" aria-live="polite">Preparing on-device ONNX inference…</p>
         <div class="correction-tools controls">
           <label class="file-picker" for="image-file">
             <span>Choose still image</span>
@@ -86,55 +80,74 @@
             <option value="">No detected lane</option>
           </select>
         </div>
-        <div class="frame-stepper" aria-label="Lane correction frame navigation">
-          <button id="lane-frame-prev" class="secondary-button step-button" type="button" aria-label="Previous frame" disabled>←</button>
-          <span id="lane-frame-position" class="frame-position">No video frame selected</span>
-          <button id="lane-frame-next" class="secondary-button step-button" type="button" aria-label="Next frame" disabled>→</button>
-        </div>
-        <div class="zoom-controls" aria-label="Lane frame zoom controls">
-          <button id="lane-zoom-out" class="secondary-button zoom-button" type="button" aria-label="Zoom out" disabled>−</button>
-          <output id="lane-zoom-level" class="zoom-level">100%</output>
-          <button id="lane-zoom-in" class="secondary-button zoom-button" type="button" aria-label="Zoom in" disabled>+</button>
-          <button id="lane-zoom-reset" class="secondary-button zoom-reset" type="button" disabled>Reset</button>
-          <span>Drag frame to pan</span>
+        <div class="frame-view-controls" aria-label="Lane frame controls">
+          <div class="frame-stepper" aria-label="Lane correction frame navigation">
+            <button id="lane-frame-prev" class="secondary-button step-button" type="button" aria-label="Previous frame" disabled>←</button>
+            <span id="lane-frame-position" class="frame-position">No video frame selected</span>
+            <button id="lane-frame-next" class="secondary-button step-button" type="button" aria-label="Next frame" disabled>→</button>
+          </div>
+          <div class="zoom-controls" aria-label="Lane frame zoom controls">
+            <button id="lane-zoom-out" class="secondary-button zoom-button" type="button" aria-label="Zoom out" disabled>−</button>
+            <output id="lane-zoom-level" class="zoom-level">100%</output>
+            <button id="lane-zoom-in" class="secondary-button zoom-button" type="button" aria-label="Zoom in" disabled>+</button>
+            <button id="lane-zoom-reset" class="secondary-button zoom-reset" type="button" disabled>Reset</button>
+            <span>Drag frame to pan</span>
+          </div>
         </div>
         <div id="lane-preview" class="preview" hidden>
           <canvas id="lane-frame"></canvas>
           <canvas id="lane-overlay"></canvas>
         </div>
-        <section class="bowler-result" aria-labelledby="result-title">
-          <h3 id="result-title">What we found</h3>
-          <p id="result" role="status" aria-live="polite">Choose a frame or image to start.</p>
-          <pre id="technical-result" hidden>Waiting for detection.</pre>
-        </section>
+        <p id="result" class="result-footer" role="status" aria-live="polite">Choose a frame or image to start.</p>
+        <p id="status" class="status result-footer" role="status" aria-live="polite">Preparing on-device ONNX inference…</p>
+        <pre id="technical-result" hidden>Waiting for detection.</pre>
       </section>
 
       <section id="video-frame-review" class="panel lane_panel ball-tracking-panel" aria-labelledby="ball-tracking-title" hidden>
         <p class="game_eyebrow">BALL TRACKING</p>
         <h2 id="ball-tracking-title">Set the starting ball position</h2>
-        <p class="panel-copy">Draw a rectangle around the ball on the frame where it first touches the lane to guide tracking.</p>
-        <div class="frame-stepper" aria-label="Ball tracking frame navigation">
-          <button id="ball-frame-prev" class="secondary-button step-button" type="button" aria-label="Previous frame" disabled>←</button>
-          <span id="ball-frame-position" class="frame-position">No video frame selected</span>
-          <button id="ball-frame-next" class="secondary-button step-button" type="button" aria-label="Next frame" disabled>→</button>
-        </div>
-        <div class="zoom-controls" aria-label="Ball frame zoom controls">
-          <button id="ball-zoom-out" class="secondary-button zoom-button" type="button" aria-label="Zoom out" disabled>−</button>
-          <output id="ball-zoom-level" class="zoom-level">100%</output>
-          <button id="ball-zoom-in" class="secondary-button zoom-button" type="button" aria-label="Zoom in" disabled>+</button>
-          <button id="ball-zoom-reset" class="secondary-button zoom-reset" type="button" disabled>Reset</button>
-          <span>Drag frame to pan</span>
+        <div class="frame-view-controls" aria-label="Ball frame controls">
+          <div class="frame-stepper" aria-label="Ball tracking frame navigation">
+            <button id="ball-frame-prev" class="secondary-button step-button" type="button" aria-label="Previous frame" disabled>←</button>
+            <span id="ball-frame-position" class="frame-position">No video frame selected</span>
+            <button id="ball-frame-next" class="secondary-button step-button" type="button" aria-label="Next frame" disabled>→</button>
+          </div>
+          <div class="zoom-controls" aria-label="Ball frame zoom controls">
+            <button id="ball-zoom-out" class="secondary-button zoom-button" type="button" aria-label="Zoom out" disabled>−</button>
+            <output id="ball-zoom-level" class="zoom-level">100%</output>
+            <button id="ball-zoom-in" class="secondary-button zoom-button" type="button" aria-label="Zoom in" disabled>+</button>
+            <button id="ball-zoom-reset" class="secondary-button zoom-reset" type="button" disabled>Reset</button>
+            <span>Drag frame to pan</span>
+          </div>
         </div>
         <div class="ball-seed-controls">
-          <button id="ball-seed-draw" class="secondary-button" type="button" disabled>Draw ball box</button>
-          <button id="ball-seed-apply" class="secondary-button" type="button" disabled>Apply box and track video</button>
-          <button id="ball-reset" class="secondary-button" type="button" disabled>Reset ball tracking</button>
-          <p id="ball-seed-status" class="status" role="status" aria-live="polite">Select a video frame to set the ball’s starting position.</p>
+          <p id="ball-seed-status" class="status" role="status" aria-live="polite">Choose the first frame where the ball touches the lane, then draw a box.</p>
+          <div class="ball-seed-actions">
+            <button id="ball-seed-draw" class="secondary-button" type="button" disabled>Draw Ball Bounding Box</button>
+            <button id="ball-seed-apply" class="secondary-button" type="button" hidden disabled>Apply Box and Track Video</button>
+            <button id="ball-reset" class="secondary-button" type="button" disabled>Reset ball tracking</button>
+          </div>
         </div>
         <div id="ball-preview" class="preview" hidden>
           <canvas id="ball-frame"></canvas>
           <canvas id="ball-overlay"></canvas>
         </div>
+        <button id="generate-tracking-video" class="secondary-button tracking-generate-button" type="button" disabled>
+          Generate Tracking Preview
+        </button>
+        <p id="tracking-video-status" class="status tracking-video-status" role="status" aria-live="polite">
+          Review the lane and ball tracking, then generate a preview video.
+        </p>
+      </section>
+
+      <section id="tracking-preview-panel" class="panel lane_panel tracking-preview-panel" aria-labelledby="tracking-preview-title" hidden>
+        <p class="game_eyebrow">VIDEO PREVIEW</p>
+        <h2 id="tracking-preview-title">Preview lane and ball tracking</h2>
+        <div class="tracking-video-wrap">
+          <video id="video-preview" class="camera-preview" controls playsinline></video>
+        </div>
+        <p class="tracking-preview-legend"><span><i class="legend-lane"></i>Lane outline</span><span><i class="legend-ball"></i>Ball track</span></p>
+        <a id="download-tracking-video" class="tracking-video-download" hidden>Download annotated video</a>
       </section>
 
       <section class="panel lane_panel analyze-panel" aria-labelledby="analyze-title">
@@ -142,11 +155,10 @@
         <h2 id="analyze-title">Analyze the reviewed frames</h2>
         <p class="panel-copy">When your frame review and corrections are ready, send the results to Ciclopes.</p>
         <button id="send-ciclopes-analysis" class="secondary-button" type="button" disabled>
-          Analyze reviewed frames with Ciclopes
+          Run Ciclopes Analysis
         </button>
         <p id="upload-status" class="status" role="status" aria-live="polite">Import or record a video to analyze its sampled frames.</p>
         <section id="ciclopes-analysis-result" class="ciclopes-analysis-result" aria-live="polite" hidden>
-          <h3>What happened to the ball</h3>
           <div id="analysis-summary" class="analysis-summary"></div>
           <section class="lane-path-card" aria-labelledby="lane-path-title">
             <h4 id="lane-path-title">Ball path on the lane</h4>
@@ -157,8 +169,6 @@
               <span><i class="path-key path-key-last"></i>Last detected position</span>
             </div>
           </section>
-          <button id="export-showcase" class="secondary-button" type="button" disabled>Export showcase video</button>
-          <p id="showcase-status" class="status" role="status" aria-live="polite"></p>
           <pre id="upload-result" class="upload-result" hidden></pre>
         </section>
       </section>

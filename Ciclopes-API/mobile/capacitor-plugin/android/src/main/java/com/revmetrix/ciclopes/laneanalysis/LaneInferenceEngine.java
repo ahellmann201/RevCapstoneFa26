@@ -32,6 +32,8 @@ final class LaneInferenceEngine implements AutoCloseable {
     static final int MAX_DETECTIONS = 300;
     static final int ROW_SIZE = 6 + PROTO_CHANNELS;
     static final float CONFIDENCE_THRESHOLD = 0.10f;
+    private static final float LANE_CONFIDENCE_THRESHOLD = 0.20f;
+    private static final double LANE_BOX_NMS_IOU = 0.78;
     private static final String MODEL_ASSET = "ciclopes_lane_ball.onnx";
 
     static final class LaneCandidate {
@@ -44,6 +46,15 @@ final class LaneInferenceEngine implements AutoCloseable {
         final float confidence;
         final double[] box;
         BallCandidate(float confidence, double[] box) { this.confidence = confidence; this.box = box; }
+    }
+
+    private static final class LaneProposal {
+        final float[] row;
+        final float confidence, x1, y1, x2, y2;
+        LaneProposal(float[] row, float confidence, float x1, float y1, float x2, float y2) {
+            this.row = row; this.confidence = confidence;
+            this.x1 = x1; this.y1 = y1; this.x2 = x2; this.y2 = y2;
+        }
     }
 
     static final class FrameResult {
@@ -169,6 +180,7 @@ final class LaneInferenceEngine implements AutoCloseable {
     private static void decode(float[][] rows, float[][][] proto, Letterbox transform, int frameW, int frameH,
                                boolean detectLane, List<LaneCandidate> lanes, List<BallCandidate> balls) {
         int count = Math.min(rows.length, MAX_DETECTIONS);
+        List<LaneProposal> proposals = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             float[] row = rows[i];
             if (row.length < ROW_SIZE) continue;
@@ -184,10 +196,33 @@ final class LaneInferenceEngine implements AutoCloseable {
                     normX(x2, transform, frameW), normY(y2, transform, frameH)
                 }));
             } else if (classId == 1 && detectLane) {
-                double[][] quad = laneQuad(row, proto, x1, y1, x2, y2, transform, frameW, frameH);
-                if (quad != null) lanes.add(new LaneCandidate(confidence, quad));
+                if (confidence >= LANE_CONFIDENCE_THRESHOLD) {
+                    proposals.add(new LaneProposal(row, confidence, x1, y1, x2, y2));
+                }
             }
         }
+        proposals.sort((left, right) -> Float.compare(right.confidence, left.confidence));
+        List<LaneProposal> selected = new ArrayList<>();
+        for (LaneProposal proposal : proposals) {
+            boolean duplicate = false;
+            for (LaneProposal kept : selected) {
+                if (boxIoU(proposal, kept) >= LANE_BOX_NMS_IOU) { duplicate = true; break; }
+            }
+            if (!duplicate) selected.add(proposal);
+        }
+        for (LaneProposal proposal : selected) {
+            double[][] quad = laneQuad(proposal.row, proto, proposal.x1, proposal.y1,
+                proposal.x2, proposal.y2, transform, frameW, frameH);
+            if (quad != null) lanes.add(new LaneCandidate(proposal.confidence, quad));
+        }
+    }
+
+    private static double boxIoU(LaneProposal a, LaneProposal b) {
+        double width = Math.max(0, Math.min(a.x2, b.x2) - Math.max(a.x1, b.x1));
+        double height = Math.max(0, Math.min(a.y2, b.y2) - Math.max(a.y1, b.y1));
+        double intersection = width * height;
+        double union = (a.x2 - a.x1) * (a.y2 - a.y1) + (b.x2 - b.x1) * (b.y2 - b.y1) - intersection;
+        return union > 0 ? intersection / union : 0;
     }
 
     private static double[][] laneQuad(float[] row, float[][][] proto, float x1, float y1, float x2, float y2,
@@ -202,26 +237,38 @@ final class LaneInferenceEngine implements AutoCloseable {
         java.util.Arrays.fill(left, -1);
         java.util.Arrays.fill(right, -1);
         for (int y = minY; y <= maxY; y++) {
+            int runLeft = -1, bestLeft = -1, bestRight = -1;
             for (int x = minX; x <= maxX; x++) {
                 float logit = 0f;
                 for (int c = 0; c < PROTO_CHANNELS; c++) logit += row[6 + c] * proto[c][y][x];
                 float prob = (float) (1.0 / (1.0 + Math.exp(-Math.max(-30.0, Math.min(30.0, logit)))));
                 if (prob >= 0.5f) {
-                    if (left[y] < 0) left[y] = x;
-                    right[y] = x;
+                    if (runLeft < 0) runLeft = x;
+                } else if (runLeft >= 0) {
+                    if (x - runLeft > bestRight - bestLeft) {
+                        bestLeft = runLeft; bestRight = x - 1;
+                    }
+                    runLeft = -1;
                 }
             }
+            if (runLeft >= 0 && maxX + 1 - runLeft > bestRight - bestLeft) {
+                bestLeft = runLeft; bestRight = maxX;
+            }
+            if (bestRight - bestLeft >= 2) { left[y] = bestLeft; right[y] = bestRight; }
         }
 
         int top = -1, bottom = -1;
         for (int y = minY; y <= maxY; y++) if (left[y] >= 0 && right[y] > left[y]) { top = y; break; }
         for (int y = maxY; y >= minY; y--) if (left[y] >= 0 && right[y] > left[y]) { bottom = y; break; }
         if (top < 0 || bottom - top < 8) return null;
+        int validRows = 0;
+        for (int y = top; y <= bottom; y++) if (left[y] >= 0) validRows++;
+        if (validRows < Math.max(8, Math.ceil((bottom - top + 1) * 0.55))) return null;
         int band = Math.max(2, Math.round((bottom - top) * 0.12f));
-        double lTop = averageBoundary(left, top, Math.min(bottom, top + band));
-        double rTop = averageBoundary(right, top, Math.min(bottom, top + band));
-        double lBottom = averageBoundary(left, Math.max(top, bottom - band), bottom);
-        double rBottom = averageBoundary(right, Math.max(top, bottom - band), bottom);
+        double lTop = medianBoundary(left, top, Math.min(bottom, top + band));
+        double rTop = medianBoundary(right, top, Math.min(bottom, top + band));
+        double lBottom = medianBoundary(left, Math.max(top, bottom - band), bottom);
+        double rBottom = medianBoundary(right, Math.max(top, bottom - band), bottom);
         if (lTop < 0 || rTop <= lTop || lBottom < 0 || rBottom <= lBottom) return null;
 
         double[][] quad = {
@@ -234,10 +281,16 @@ final class LaneInferenceEngine implements AutoCloseable {
         return quad;
     }
 
-    private static double averageBoundary(int[] values, int from, int to) {
-        long sum = 0; int n = 0;
-        for (int y = Math.max(0, from); y <= Math.min(PROTO_SIZE - 1, to); y++) if (values[y] >= 0) { sum += values[y]; n++; }
-        return n == 0 ? -1 : sum / (double) n;
+    private static double medianBoundary(int[] values, int from, int to) {
+        int[] boundary = new int[Math.max(0, to - from + 1)];
+        int count = 0;
+        for (int y = Math.max(0, from); y <= Math.min(PROTO_SIZE - 1, to); y++) {
+            if (values[y] >= 0) boundary[count++] = values[y];
+        }
+        if (count == 0) return -1;
+        java.util.Arrays.sort(boundary, 0, count);
+        int middle = count / 2;
+        return count % 2 == 1 ? boundary[middle] : (boundary[middle - 1] + boundary[middle]) / 2.0;
     }
 
     private static double[] sourcePoint(double modelX, double modelY, Letterbox t, int width, int height) {
