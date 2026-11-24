@@ -2,9 +2,20 @@
 import { request } from "./database.js";
 import { listAll } from "./game_persistence.js";
 const LABELS = { stats: "Stats", games: "Games", arsenal: "Ball Arsenal" };
-export function renderHomeWidget(node, id, expanded) {
+export const STAT_METRICS = {
+    completed_games: "Completed Games", average_score: "Average Score", highest_score: "Highest Score",
+    latest_score: "Latest Score", invalid_games: "Invalid Games",
+};
+export const DEFAULT_STAT_METRICS = ["completed_games", "average_score", "highest_score"];
+export function validStatMetrics(metrics) {
+    return Array.isArray(metrics) && metrics.length >= 1 && metrics.length <= 3 && new Set(metrics).size === metrics.length && metrics.every(key => Object.hasOwn(STAT_METRICS, key));
+}
+export function renderHomeWidget(node, id, expanded, metrics = null) {
     const size = expanded ? "large" : "small";
-    if (node.dataset.widgetSize === size) return;
+    const selectedMetrics = validStatMetrics(metrics) ? metrics : DEFAULT_STAT_METRICS;
+    const signature = JSON.stringify([size, id === "stats" ? selectedMetrics : []]);
+    if (node.dataset.widgetConfig === signature) return;
+    node.dataset.widgetConfig = signature;
     node.dataset.widgetSize = size;
     node.classList.toggle("home-widget-large", expanded);
     node.replaceChildren();
@@ -22,7 +33,9 @@ export function renderHomeWidget(node, id, expanded) {
             if (node.dataset.widgetSize !== size || node.children[1] !== content || sessionStorage.getItem("authentication_token") !== token) return;
             content.replaceChildren();
             if (id === "stats") {
-                for (const [label, value] of [["Completed Games", data.completed_games], ["Average Score", data.average_score], ["Highest Score", data.highest_score]]) {
+                for (const key of selectedMetrics) {
+                    const label = STAT_METRICS[key];
+                    const value = key === "latest_score" ? data.recent_games?.[0]?.score : data[key];
                     const metric = document.createElement("div"); metric.className = "home-widget-metric";
                     const name = document.createElement("span"); name.textContent = label;
                     const number = document.createElement("strong");

@@ -195,3 +195,27 @@ it("preserves Nadia's color presets together with our saved widget sizes", () =>
     expect(validHomeLayout(saved)).toBe(true);
     expect(validHomeLayout([{ id: "stats", slot: 0, color: "url(unsafe)" }])).toBe(false);
 });
+
+
+it("saves selected statistics and restores them when the settings are reopened", () => {
+    localStorage.setItem("revmetrix:home-layout:v1:guest", JSON.stringify([{ id: "stats", slot: 0, size: "large" }]));
+    initHomeLayout();
+    document.querySelector('.home-edit-module[data-home-module="stats"]').click();
+    [...document.querySelectorAll("#home-module-options button")].find(button => button.textContent === "Choose statistics").click();
+    function toggle(key, checked) {
+        const input = document.querySelector(`#home-module-options input[value="${key}"]`);
+        input.checked = checked; input.dispatchEvent(new Event("change"));
+    }
+    expect(document.querySelector('input[value="latest_score"]').disabled).toBe(true);
+    toggle("completed_games", false); toggle("average_score", false);
+    toggle("latest_score", true); toggle("invalid_games", true);
+    [...document.querySelectorAll("#home-module-options button")].find(button => button.textContent === "Apply changes").click();
+    document.querySelector('[data-action="save"]').click();
+    expect(JSON.parse(localStorage.getItem("revmetrix:home-layout:v1:guest"))[0].metrics).toEqual(["highest_score", "latest_score", "invalid_games"]);
+    document.querySelector(".home-edit-toggle").click();
+    document.querySelector('.home-edit-module[data-home-module="stats"]').click();
+    [...document.querySelectorAll("#home-module-options button")].find(button => button.textContent === "Choose statistics").click();
+    expect([...document.querySelectorAll("#home-module-options input:checked")].map(input => input.value)).toEqual(["highest_score", "latest_score", "invalid_games"]);
+    expect(validHomeLayout([{ id: "stats", slot: 0, metrics: [] }])).toBe(false);
+    expect(validHomeLayout([{ id: "games", slot: 0, metrics: ["average_score"] }])).toBe(false);
+});

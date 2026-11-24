@@ -65,3 +65,7 @@
     background: var(--home-module-background); color: var(--home-module-foreground);
 }
 .home-color-custom .home-widget-content, .home-color-custom .home-widget-metric strong, .home-color-custom .home-widget-footer { color: var(--home-module-foreground); }
+
+.game-setup .home-stat-choice { margin: 0; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 8px 4px; color: var(--app-text); cursor: pointer; }
+.home-stat-choice input { width: 20px; height: 20px; flex-shrink: 0; accent-color: var(--button-color-1); }
+.home-stat-choice:has(input:disabled) { opacity: .55; }

@@ -644,3 +644,13 @@ The shared game-start dialog can continue a recent matching session or start a
 new session. The Games page can filter games by another game's session, while
 retaining nicknames, rename/delete controls, and search. The shared dialog also
 participates in automatic interface translations, including its dynamic content.
+
+
+To choose a Stats widget's content, enter rearrange mode, select the Stats tile,
+and choose **Choose statistics**. Select one to three metrics, apply the choices,
+then select **Done** to save the layout. Available metrics are completed games,
+average score, highest score, latest completed-game score, and invalid games.
+The default remains completed games, average, and highest score. Selections are
+stored in the Stats layout entry's optional `metrics` list; existing layouts
+retain their defaults. This requires deploying the updated API, with no SQL
+schema migration. The full statistics page is unchanged.

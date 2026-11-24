@@ -11,11 +11,14 @@ DEFAULT_LAYOUT = [{"id": "events", "slot": 0}, {"id": "game", "slot": 1}, {"id":
 MODULES = {name: (1, 1) for name in ("events", "game", "games", "sessions", "arsenal", "compare", "establishments", "archives", "stats", "ciclops", "smartDot", "smartWatch", "settings")}
 MODULES["week"] = (2, 2)
 
+StatMetric = Literal["completed_games", "average_score", "highest_score", "latest_score", "invalid_games"]
+
 class LayoutEntry(BaseModel):
     model_config = ConfigDict(extra="forbid")
     id: str = Field(max_length=32)
     slot: int = Field(ge=0, le=11, strict=True)
     size: Literal["small", "large"] | None = None
+    metrics: list[StatMetric] | None = Field(default=None, min_length=1, max_length=3)
     color: Literal["orange", "amber", "deepTeal", "teal", "slateTeal", "offWhite", "errorRed"] | None = None
 
 class HomeLayoutInput(BaseModel):
@@ -31,6 +34,8 @@ class HomeLayoutInput(BaseModel):
                 raise ValueError("Unknown or duplicate module")
             if entry.size is not None and entry.id not in {"stats", "games", "arsenal"}:
                 raise ValueError("This module cannot be resized")
+            if entry.metrics is not None and (entry.id != "stats" or len(set(entry.metrics)) != len(entry.metrics)):
+                raise ValueError("Statistics selections must be unique and belong to the stats widget")
             width, height = (2, 2) if entry.size == "large" else MODULES[entry.id]
             cells = {entry.slot + y * 2 + x for y in range(height) for x in range(width)}
             if entry.slot % 2 + width > 2 or max(cells) >= 12 or cells & occupied:

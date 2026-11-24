@@ -385,7 +385,13 @@ export const translations = {
         "Continue the session from {date} ({count} games).": "Continue the session from {date} ({count} games).",
         "Continue the session from {date} ({count} game).": "Continue the session from {date} ({count} game).",
         "Showing {count} games from the session of Game #{id}.": "Showing {count} games from the session of Game #{id}.",
-        "Showing {count} game from the session of Game #{id}.": "Showing {count} game from the session of Game #{id}."
+        "Showing {count} game from the session of Game #{id}.": "Showing {count} game from the session of Game #{id}.",
+        "Latest Score": "Latest Score",
+        "Choose statistics": "Choose statistics",
+        "Statistics to show": "Statistics to show",
+        "Choose one to three statistics.": "Choose one to three statistics.",
+        "Use default statistics": "Use default statistics",
+        "The server needs an update to save widget preferences. Your changes are still here.": "The server needs an update to save widget preferences. Your changes are still here."
     },
     "es": {
         "Delete game": "Eliminar partida",
@@ -772,7 +778,13 @@ export const translations = {
         "Continue the session from {date} ({count} games).": "Continuar la sesi\u00f3n del {date} ({count} partidas).",
         "Continue the session from {date} ({count} game).": "Continuar la sesi\u00f3n del {date} ({count} partida).",
         "Showing {count} games from the session of Game #{id}.": "Mostrando {count} partidas de la sesi\u00f3n de la partida #{id}.",
-        "Showing {count} game from the session of Game #{id}.": "Mostrando {count} partida de la sesi\u00f3n de la partida #{id}."
+        "Showing {count} game from the session of Game #{id}.": "Mostrando {count} partida de la sesi\u00f3n de la partida #{id}.",
+        "Latest Score": "\u00daltima puntuaci\u00f3n",
+        "Choose statistics": "Elegir estad\u00edsticas",
+        "Statistics to show": "Estad\u00edsticas a mostrar",
+        "Choose one to three statistics.": "Elige de una a tres estad\u00edsticas.",
+        "Use default statistics": "Usar estad\u00edsticas predeterminadas",
+        "The server needs an update to save widget preferences. Your changes are still here.": "El servidor necesita actualizarse para guardar las preferencias del widget. Tus cambios siguen aqu\u00ed."
     },
     "fr": {
         "Delete game": "Supprimer la partie",
@@ -1159,7 +1171,13 @@ export const translations = {
         "Continue the session from {date} ({count} games).": "Continuer la session du {date} ({count} parties).",
         "Continue the session from {date} ({count} game).": "Continuer la session du {date} ({count} partie).",
         "Showing {count} games from the session of Game #{id}.": "Affichage de {count} parties de la session de la partie n\u00ba{id}.",
-        "Showing {count} game from the session of Game #{id}.": "Affichage de {count} partie de la session de la partie n\u00ba{id}."
+        "Showing {count} game from the session of Game #{id}.": "Affichage de {count} partie de la session de la partie n\u00ba{id}.",
+        "Latest Score": "Dernier score",
+        "Choose statistics": "Choisir les statistiques",
+        "Statistics to show": "Statistiques \u00e0 afficher",
+        "Choose one to three statistics.": "Choisissez une \u00e0 trois statistiques.",
+        "Use default statistics": "Utiliser les statistiques par d\u00e9faut",
+        "The server needs an update to save widget preferences. Your changes are still here.": "Le serveur doit \u00eatre mis \u00e0 jour pour enregistrer les pr\u00e9f\u00e9rences du widget. Vos modifications sont conserv\u00e9es."
     },
     "de": {
         "Delete game": "Spiel l\u00f6schen",
@@ -1546,7 +1564,13 @@ export const translations = {
         "Continue the session from {date} ({count} games).": "Sitzung vom {date} fortsetzen ({count} Spiele).",
         "Continue the session from {date} ({count} game).": "Sitzung vom {date} fortsetzen ({count} Spiel).",
         "Showing {count} games from the session of Game #{id}.": "{count} Spiele aus der Sitzung von Spiel #{id}.",
-        "Showing {count} game from the session of Game #{id}.": "{count} Spiel aus der Sitzung von Spiel #{id}."
+        "Showing {count} game from the session of Game #{id}.": "{count} Spiel aus der Sitzung von Spiel #{id}.",
+        "Latest Score": "Letzte Punktzahl",
+        "Choose statistics": "Statistiken ausw\u00e4hlen",
+        "Statistics to show": "Anzuzeigende Statistiken",
+        "Choose one to three statistics.": "W\u00e4hle eine bis drei Statistiken.",
+        "Use default statistics": "Standardstatistiken verwenden",
+        "The server needs an update to save widget preferences. Your changes are still here.": "Der Server ben\u00f6tigt ein Update, um Widget-Einstellungen zu speichern. Deine \u00c4nderungen bleiben erhalten."
     },
     "zh-CN": {
         "Delete game": "\u5220\u9664\u6bd4\u8d5b",
@@ -1933,6 +1957,12 @@ export const translations = {
         "Continue the session from {date} ({count} games).": "\u7ee7\u7eed{date}\u7684\u573a\u6b21\uff08{count}\u5c40\uff09\u3002",
         "Continue the session from {date} ({count} game).": "\u7ee7\u7eed{date}\u7684\u573a\u6b21\uff08{count}\u5c40\uff09\u3002",
         "Showing {count} games from the session of Game #{id}.": "\u663e\u793a\u6bd4\u8d5b #{id}\u540c\u573a\u6b21\u7684{count}\u5c40\u6bd4\u8d5b\u3002",
-        "Showing {count} game from the session of Game #{id}.": "\u663e\u793a\u6bd4\u8d5b #{id}\u540c\u573a\u6b21\u7684{count}\u5c40\u6bd4\u8d5b\u3002"
+        "Showing {count} game from the session of Game #{id}.": "\u663e\u793a\u6bd4\u8d5b #{id}\u540c\u573a\u6b21\u7684{count}\u5c40\u6bd4\u8d5b\u3002",
+        "Latest Score": "\u6700\u8fd1\u5f97\u5206",
+        "Choose statistics": "\u9009\u62e9\u7edf\u8ba1\u6570\u636e",
+        "Statistics to show": "\u8981\u663e\u793a\u7684\u7edf\u8ba1\u6570\u636e",
+        "Choose one to three statistics.": "\u9009\u62e9\u4e00\u81f3\u4e09\u9879\u7edf\u8ba1\u6570\u636e\u3002",
+        "Use default statistics": "\u4f7f\u7528\u9ed8\u8ba4\u7edf\u8ba1\u6570\u636e",
+        "The server needs an update to save widget preferences. Your changes are still here.": "\u670d\u52a1\u5668\u9700\u8981\u66f4\u65b0\u624d\u80fd\u4fdd\u5b58\u7ec4\u4ef6\u8bbe\u7f6e\u3002\u60a8\u7684\u66f4\u6539\u4ecd\u7136\u4fdd\u7559\u3002"
     }
 };

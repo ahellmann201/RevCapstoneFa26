@@ -2,17 +2,44 @@
    come from the existing game screen styles. */
 html,
 body {
-  overscroll-behavior-y: none;
   background: var(--bg-color, #001e26);
 }
 
 body {
+  overflow-y: auto;
   min-width: 320px;
   min-height: 100dvh;
 }
 
 .onnx-page {
   padding-top: 24px;
+  min-width: 0;
+  max-width: 100%;
+  width: min(100%, 720px);
+  margin-inline: auto;
+  touch-action: pan-y;
+}
+
+/* The title and badge otherwise keep their desktop widths on narrow phones,
+   making the whole page wider than the viewport. */
+.onnx-page .game_heading {
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.onnx-page .game_heading > div {
+  min-width: 0;
+}
+
+.onnx-page .game_heading h1 {
+  overflow-wrap: anywhere;
+}
+
+.onnx-page .lane_panel,
+.onnx-page .frame-picker,
+.onnx-page .frame-picker-heading {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .onnx-page .panel-copy {

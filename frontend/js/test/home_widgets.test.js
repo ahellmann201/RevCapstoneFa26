@@ -40,3 +40,23 @@ it("shows a retry-through-full-page message on failure instead of invented stati
     await vi.waitFor(() => expect(node.textContent).toContain("Could not load"));
     expect(node.querySelector(".home-widget-metric")).toBeNull();
 });
+
+
+it("shows only the chosen metrics in the chosen order and refreshes a changed selection", async () => {
+    sessionStorage.setItem("authentication_token", "token");
+    request.mockResolvedValue({ completed_games: 4, average_score: 180.5, highest_score: 220, invalid_games: 2, recent_games: [{ score: 195 }] });
+    const node = document.querySelector("a");
+    renderHomeWidget(node, "stats", true, ["latest_score", "invalid_games"]);
+    await vi.waitFor(() => expect(node.querySelectorAll(".home-widget-metric")).toHaveLength(2));
+    expect([...node.querySelectorAll(".home-widget-metric span")].map(el => el.textContent)).toEqual(["Latest Score", "Invalid Games"]);
+    expect([...node.querySelectorAll(".home-widget-metric strong")].map(el => el.textContent)).toEqual(["195", "2"]);
+    renderHomeWidget(node, "stats", true, ["average_score"]);
+    await vi.waitFor(() => expect(node.querySelectorAll(".home-widget-metric")).toHaveLength(1));
+    expect(node.textContent).toContain("Average Score");
+    expect(node.textContent).not.toContain("Latest Score");
+});
+it("shows an unavailable value rather than zero when there is no latest completed game", async () => {
+    sessionStorage.setItem("authentication_token", "token"); request.mockResolvedValue({ recent_games: [] });
+    const node = document.querySelector("a"); renderHomeWidget(node, "stats", true, ["latest_score"]);
+    await vi.waitFor(() => expect(node.querySelector(".home-widget-metric strong")?.textContent).toBe("—"));
+});
